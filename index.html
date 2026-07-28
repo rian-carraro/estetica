@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Box Manager — Estética Automotiva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #15171B;
+  --surface: #1E2126;
+  --surface-2: #262A31;
+  --line: #2C3038;
+  --text: #F2F1ED;
+  --text-muted: #9A9FA6;
+  --gold: #E8A33D;
+  --gold-dim: #6b511f;
+  --blue: #3DA5D9;
+  --red: #D9534F;
+  --green: #5FB86A;
+  --radius: 10px;
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.03em; margin:0;}
+.oculto{display:none !important;}
+button{font-family:var(--font-body); cursor:pointer;}
+input,select,textarea{
+  font-family:var(--font-body);
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  color:var(--text);
+  border-radius:6px;
+  padding:10px 12px;
+  font-size:14px;
+  width:100%;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--gold); outline-offset:1px;}
+label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; display:block; margin:14px 0 6px;}
+
+/* ---------- BOTÕES ---------- */
+.btn{
+  border:none; border-radius:6px; padding:10px 18px; font-weight:600; font-size:14px;
+  transition:transform .1s ease, opacity .15s ease;
+}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:var(--gold); color:#1A1200;}
+.btn-primary:hover{opacity:0.9;}
+.btn-ghost{background:transparent; border:1px solid var(--line); color:var(--text);}
+.btn-ghost:hover{border-color:var(--gold); color:var(--gold);}
+.btn-danger{background:transparent; border:1px solid var(--red); color:var(--red);}
+.btn-whats{background:#25D366; color:#06210F;}
+.btn-sm{padding:6px 12px; font-size:12px; border-radius:5px;}
+
+/* ---------- TELA DE CONFIG ---------- */
+.tela-config{
+  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(232,163,61,0.06), transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(61,165,217,0.06), transparent 40%),
+    var(--bg);
+  padding:20px;
+}
+.config-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:36px 32px; width:100%; max-width:400px; position:relative;
+}
+.config-tread{
+  position:absolute; top:0; left:32px; right:32px; height:3px;
+  background-image:repeating-linear-gradient(90deg, var(--gold) 0 10px, transparent 10px 20px);
+  border-radius:0 0 4px 4px;
+}
+.config-card h1{font-size:28px; letter-spacing:0.06em; margin-bottom:4px;}
+.config-sub{color:var(--text-muted); font-size:13px; margin:0 0 8px;}
+.config-erro{color:var(--red); font-size:13px; min-height:18px;}
+.config-ajuda{margin-top:16px; font-size:12px; color:var(--text-muted);}
+.config-ajuda summary{cursor:pointer; color:var(--blue);}
+.config-ajuda code{background:var(--surface-2); padding:1px 5px; border-radius:3px; font-family:var(--font-mono);}
+#cfg-salvar{width:100%; margin-top:20px;}
+
+/* ---------- LAYOUT PRINCIPAL ---------- */
+.tela-app{display:flex; min-height:100vh;}
+.sidebar{
+  width:220px; background:var(--surface); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; padding:24px 16px; flex-shrink:0;
+}
+.logo{display:flex; align-items:center; gap:10px; margin-bottom:32px; padding:0 8px;}
+.logo-mark{color:var(--gold); font-size:20px;}
+.logo-txt{font-family:var(--font-display); font-size:15px; line-height:1.1; letter-spacing:0.04em;}
+.nav{display:flex; flex-direction:column; gap:4px; flex:1;}
+.nav-item{
+  background:transparent; border:none; color:var(--text-muted); text-align:left;
+  padding:11px 12px; border-radius:6px; font-size:14px; font-weight:500;
+}
+.nav-item:hover{background:var(--surface-2); color:var(--text);}
+.nav-item.ativo{background:var(--surface-2); color:var(--gold); font-weight:600;}
+.nav-desconectar{
+  background:none; border:1px solid var(--line); color:var(--text-muted);
+  padding:9px; border-radius:6px; font-size:12px;
+}
+.nav-desconectar:hover{border-color:var(--red); color:var(--red);}
+
+.conteudo{flex:1; padding:32px 40px; max-width:1100px;}
+.tab{display:none;}
+.tab.ativo{display:block;}
+.tab-header{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px; flex-wrap:wrap; gap:12px;}
+.eyebrow{color:var(--gold); font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; margin:0 0 4px;}
+.tab-header h2{font-size:26px;}
+
+/* ---------- DASHBOARD ---------- */
+.grid-dashboard{display:grid; grid-template-columns:1.6fr 1fr; gap:20px;}
+.painel-lista, .painel-lateral{display:flex; flex-direction:column; gap:14px;}
+.painel-lista h3, .painel-lateral h3{font-size:13px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;}
+.mini-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:18px; display:flex; flex-direction:column; gap:2px;
+}
+.mini-card.alerta{border-color:var(--gold-dim);}
+.mini-num{font-family:var(--font-display); font-size:32px; color:var(--gold);}
+.mini-label{font-size:12px; color:var(--text-muted);}
+.lista-alertas{display:flex; flex-direction:column; gap:8px;}
+.item-alerta{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:13px; display:flex; justify-content:space-between;}
+.item-alerta b{color:var(--red);}
+
+/* ---------- TICKET DE AGENDAMENTO (elemento assinatura) ---------- */
+.lista-agendamentos{display:flex; flex-direction:column; gap:14px;}
+.ticket{
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:16px 20px 16px 28px;
+  display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.ticket::before{
+  content:"";
+  position:absolute; left:0; top:0; bottom:0; width:14px;
+  background-image:radial-gradient(circle, var(--bg) 2.5px, transparent 2.6px);
+  background-size:14px 14px; background-position:0 4px;
+  border-right:1px dashed var(--line);
+}
+.ticket-info{display:flex; flex-direction:column; gap:3px;}
+.ticket-hora{font-family:var(--font-mono); color:var(--gold); font-size:15px; font-weight:600;}
+.ticket-cliente{font-size:15px; font-weight:600;}
+.ticket-detalhe{font-size:13px; color:var(--text-muted);}
+.ticket-status{
+  font-size:11px; text-transform:uppercase; letter-spacing:0.04em; padding:4px 10px; border-radius:20px; font-weight:600;
+}
+.status-agendado{background:rgba(61,165,217,0.15); color:var(--blue);}
+.status-em_andamento{background:rgba(232,163,61,0.15); color:var(--gold);}
+.status-concluido{background:rgba(95,184,106,0.15); color:var(--green);}
+.status-cancelado{background:rgba(217,83,79,0.15); color:var(--red);}
+.ticket-acoes{display:flex; gap:8px; align-items:center;}
+.vazio{color:var(--text-muted); font-size:14px; padding:20px 0;}
+
+/* ---------- AGENDA FILTRO ---------- */
+.filtro-data{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
+.filtro-data label{margin:0; font-size:12px;}
+.filtro-data input{width:auto;}
+
+/* ---------- CLIENTES ---------- */
+.lista-clientes{display:flex; flex-direction:column; gap:12px;}
+.cliente-card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px 20px;}
+.cliente-topo{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;}
+.cliente-nome{font-size:16px; font-weight:600;}
+.cliente-fone{font-family:var(--font-mono); font-size:13px; color:var(--text-muted);}
+.veiculos-mini{margin-top:10px; display:flex; flex-direction:column; gap:6px;}
+.veiculo-linha{
+  display:flex; justify-content:space-between; align-items:center;
+  background:var(--surface-2); border-radius:6px; padding:8px 12px; font-size:13px;
+}
+.placa{font-family:var(--font-mono); background:var(--bg); padding:2px 8px; border-radius:4px; letter-spacing:0.05em; font-weight:600;}
+.link-add{background:none; border:none; color:var(--blue); font-size:12px; text-align:left; padding:4px 0;}
+
+/* ---------- SERVIÇOS ---------- */
+.grid-servicos{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px;}
+.servico-card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px; display:flex; flex-direction:column; gap:8px;}
+.servico-nome{font-size:16px; font-weight:600;}
+.servico-desc{font-size:13px; color:var(--text-muted); flex:1;}
+.servico-meta{display:flex; justify-content:space-between; align-items:center; font-size:13px;}
+.servico-preco{font-family:var(--font-mono); color:var(--gold); font-weight:600; font-size:16px;}
+.servico-inativo{opacity:0.45;}
+.badge-inativo{font-size:10px; text-transform:uppercase; background:var(--surface-2); padding:2px 8px; border-radius:10px; color:var(--text-muted); align-self:flex-start;}
+
+/* ---------- ESTOQUE ---------- */
+.filtro-categoria{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
+.filtro-chip{
+  background:var(--surface); border:1px solid var(--line); color:var(--text-muted);
+  padding:6px 14px; border-radius:20px; font-size:12px;
+}
+.filtro-chip.ativo{border-color:var(--gold); color:var(--gold);}
+.grid-produtos{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:16px;}
+.produto-card{background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden; display:flex; flex-direction:column;}
+.produto-foto{width:100%; aspect-ratio:4/3; object-fit:cover; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:12px;}
+.produto-corpo{padding:14px; display:flex; flex-direction:column; gap:6px;}
+.produto-nome{font-weight:600; font-size:15px;}
+.produto-cat{font-size:11px; color:var(--gold); text-transform:uppercase; letter-spacing:0.04em;}
+.produto-cor-tag{display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);}
+.dot-cor{width:10px; height:10px; border-radius:50%; border:1px solid rgba(255,255,255,0.3); display:inline-block;}
+.produto-uso{font-size:12px; color:var(--text-muted); line-height:1.4;}
+.produto-qtd{font-family:var(--font-mono); font-size:14px; margin-top:4px;}
+.produto-qtd.baixo{color:var(--red); font-weight:600;}
+.produto-acoes{display:flex; gap:8px; padding:0 14px 14px; margin-top:auto;}
+
+/* ---------- MODAL ---------- */
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(10,11,13,0.75); backdrop-filter:blur(2px);
+  display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; z-index:50;
+}
+.modal-box{
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  padding:28px; width:100%; max-width:480px; margin-top:20px;
+}
+.modal-box h3{font-size:20px; margin-bottom:4px;}
+.modal-sub{color:var(--text-muted); font-size:13px; margin:0 0 10px;}
+.modal-acoes{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
+.modal-foto-preview{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; margin-top:8px; background:var(--surface-2);}
+.linha-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+/* ---------- TOAST ---------- */
+.toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+  background:var(--surface-2); border:1px solid var(--gold); color:var(--text);
+  padding:12px 20px; border-radius:8px; font-size:14px; z-index:100;
+  box-shadow:0 8px 24px rgba(0,0,0,0.4);
+}
+
+/* ---------- RESPONSIVO ---------- */
+@media (max-width:880px){
+  .tela-app{flex-direction:column;}
+  .sidebar{width:100%; flex-direction:row; align-items:center; padding:14px 16px; overflow-x:auto;}
+  .logo{margin-bottom:0;}
+  .nav{flex-direction:row;}
+  .nav-desconectar{white-space:nowrap;}
+  .conteudo{padding:24px 18px;}
+  .grid-dashboard{grid-template-columns:1fr;}
+  .linha-2{grid-template-columns:1fr;}
+}
+
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- APP PRINCIPAL -->
+  <div id="tela-app" class="tela-app">
+    <aside class="sidebar">
+      <div class="logo">
+        <span class="logo-mark">●</span>
+        <span class="logo-txt">BOX<br/>MANAGER</span>
+      </div>
+      <nav class="nav">
+        <button class="nav-item ativo" data-tab="dashboard">Painel</button>
+        <button class="nav-item" data-tab="agenda">Agenda</button>
+        <button class="nav-item" data-tab="clientes">Clientes &amp; Veículos</button>
+        <button class="nav-item" data-tab="servicos">Serviços</button>
+        <button class="nav-item" data-tab="estoque">Estoque</button>
+      </nav>
+    </aside>
+
+    <main class="conteudo">
+
+      <!-- DASHBOARD -->
+      <section id="tab-dashboard" class="tab ativo">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Hoje / <span id="data-hoje"></span></p>
+            <h2>Painel do dia</h2>
+          </div>
+        </header>
+        <div class="grid-dashboard">
+          <div class="painel-lista">
+            <h3>Agenda de hoje</h3>
+            <div id="lista-hoje" class="lista-agendamentos"></div>
+          </div>
+          <div class="painel-lateral">
+            <div class="mini-card">
+              <span class="mini-num" id="num-hoje">0</span>
+              <span class="mini-label">agendamentos hoje</span>
+            </div>
+            <div class="mini-card alerta">
+              <span class="mini-num" id="num-estoque-baixo">0</span>
+              <span class="mini-label">itens com estoque baixo</span>
+            </div>
+            <div id="lista-estoque-baixo" class="lista-alertas"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AGENDA -->
+      <section id="tab-agenda" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Ordens de serviço</p>
+            <h2>Agenda</h2>
+          </div>
+          <button class="btn btn-primary" id="btn-novo-agendamento">+ Novo agendamento</button>
+        </header>
+        <div class="filtro-data">
+          <label>Ver dia:</label>
+          <input type="date" id="filtro-data-agenda" />
+          <button class="btn btn-ghost" id="btn-todos-agendamentos">Ver todos</button>
+        </div>
+        <div id="lista-agenda-completa" class="lista-agendamentos"></div>
+      </section>
+
+      <!-- CLIENTES & VEÍCULOS -->
+      <section id="tab-clientes" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Cadastro</p>
+            <h2>Clientes &amp; Veículos</h2>
+          </div>
+          <button class="btn btn-primary" id="btn-novo-cliente">+ Novo cliente</button>
+        </header>
+        <div id="lista-clientes" class="lista-clientes"></div>
+      </section>
+
+      <!-- SERVIÇOS -->
+      <section id="tab-servicos" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Catálogo</p>
+            <h2>Serviços</h2>
+          </div>
+          <button class="btn btn-primary" id="btn-novo-servico">+ Novo serviço</button>
+        </header>
+        <div id="lista-servicos" class="grid-servicos"></div>
+      </section>
+
+      <!-- ESTOQUE -->
+      <section id="tab-estoque" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Produtos &amp; toalhas</p>
+            <h2>Estoque</h2>
+          </div>
+          <button class="btn btn-primary" id="btn-novo-produto">+ Novo produto</button>
+        </header>
+        <div class="filtro-categoria" id="filtro-categoria"></div>
+        <div id="lista-produtos" class="grid-produtos"></div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAIS -->
+<div id="modal-overlay" class="modal-overlay oculto">
+  <div id="modal-box" class="modal-box"></div>
+</div>
+
+<div id="toast" class="toast oculto"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+/* =========================================================
+   BOX MANAGER — lógica do sistema
+   ========================================================= */
+
+let sb = null;
+
+/* ---------- CONEXÃO COM SUPABASE ---------- */
+const SUPABASE_URL = 'https://djwgrdugpirgubjynoih.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YnyyjQKnO2Euf7E-9BPwPA_l4bAKFPv';
+
+async function iniciarConexao(){
+  try{
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { error } = await sb.from('servicos').select('id').limit(1);
+    if(error) throw error;
+    carregarTudo();
+  }catch(e){
+    toast('Não foi possível conectar ao banco. Confira se o schema.sql foi executado no Supabase. (' + (e.message||'erro') + ')');
+  }
+}
+
+/* ---------- NAVEGAÇÃO ---------- */
+document.querySelectorAll('.nav-item').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('ativo'));
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('ativo');
+  });
+});
+
+/* ---------- HELPERS ---------- */
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.remove('oculto');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>el.classList.add('oculto'), 3000);
+}
+
+function fecharModal(){
+  document.getElementById('modal-overlay').classList.add('oculto');
+  document.getElementById('modal-box').innerHTML = '';
+}
+document.getElementById('modal-overlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'modal-overlay') fecharModal();
+});
+
+function abrirModal(html){
+  document.getElementById('modal-box').innerHTML = html;
+  document.getElementById('modal-overlay').classList.remove('oculto');
+}
+
+function formatarData(d){
+  const [ano,mes,dia] = d.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+function formatarHora(h){
+  return h ? h.substring(0,5) : '';
+}
+function hojeISO(){
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+function escapeHtml(str){
+  if(str===null || str===undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ---------- CACHE LOCAL (para montar selects/relacionamentos) ---------- */
+let cacheClientes = [];
+let cacheVeiculos = [];
+let cacheServicos = [];
+let cacheProdutos = [];
+
+async function carregarTudo(){
+  document.getElementById('data-hoje').textContent = formatarData(hojeISO());
+  document.getElementById('filtro-data-agenda').value = hojeISO();
+  await Promise.all([carregarClientes(), carregarServicos(), carregarProdutos()]);
+  await carregarAgendamentos();
+  renderDashboard();
+}
+
+/* =========================================================
+   CLIENTES & VEÍCULOS
+   ========================================================= */
+async function carregarClientes(){
+  const { data: clientes, error } = await sb.from('clientes').select('*').order('nome');
+  if(error){ toast('Erro ao carregar clientes'); return; }
+  cacheClientes = clientes || [];
+  const { data: veiculos } = await sb.from('veiculos').select('*');
+  cacheVeiculos = veiculos || [];
+  renderClientes();
+}
+
+function renderClientes(){
+  const box = document.getElementById('lista-clientes');
+  if(cacheClientes.length === 0){
+    box.innerHTML = '<p class="vazio">Nenhum cliente cadastrado ainda. Clique em "+ Novo cliente".</p>';
+    return;
+  }
+  box.innerHTML = cacheClientes.map(c=>{
+    const veic = cacheVeiculos.filter(v=>v.cliente_id === c.id);
+    return `
+    <div class="cliente-card">
+      <div class="cliente-topo">
+        <div>
+          <div class="cliente-nome">${escapeHtml(c.nome)}</div>
+          <div class="cliente-fone">${escapeHtml(c.telefone)}</div>
+        </div>
+        <div class="ticket-acoes">
+          <button class="btn btn-ghost btn-sm" onclick="editarCliente('${c.id}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="removerCliente('${c.id}')">Excluir</button>
+        </div>
+      </div>
+      <div class="veiculos-mini">
+        ${veic.map(v=>`
+          <div class="veiculo-linha">
+            <span><span class="placa">${escapeHtml(v.placa)}</span> ${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')} ${v.cor?('· '+escapeHtml(v.cor)):''}</span>
+            <span>
+              <button class="link-add" onclick="editarVeiculo('${v.id}','${c.id}')">editar</button>
+              <button class="link-add" onclick="removerVeiculo('${v.id}')">excluir</button>
+            </span>
+          </div>`).join('')}
+        <button class="link-add" onclick="abrirModalVeiculo(null, '${c.id}')">+ adicionar veículo</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('btn-novo-cliente').addEventListener('click', ()=>abrirModalCliente(null));
+
+function abrirModalCliente(id){
+  const c = id ? cacheClientes.find(x=>x.id===id) : null;
+  abrirModal(`
+    <h3>${c?'Editar cliente':'Novo cliente'}</h3>
+    <label>Nome</label>
+    <input id="m-nome" value="${c?escapeHtml(c.nome):''}" placeholder="Nome do cliente" />
+    <label>WhatsApp (com DDI+DDD, só números)</label>
+    <input id="m-telefone" value="${c?escapeHtml(c.telefone):''}" placeholder="Ex: 5514999999999" />
+    <label>Observações</label>
+    <textarea id="m-obs" rows="2">${c?escapeHtml(c.observacoes||''):''}</textarea>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCliente(${c?`'${c.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalCliente = abrirModalCliente;
+window.editarCliente = (id)=>abrirModalCliente(id);
+
+async function salvarCliente(id){
+  const nome = document.getElementById('m-nome').value.trim();
+  const telefone = document.getElementById('m-telefone').value.trim().replace(/\D/g,'');
+  const observacoes = document.getElementById('m-obs').value.trim();
+  if(!nome || !telefone){ toast('Preencha nome e telefone'); return; }
+  let error;
+  if(id){
+    ({error} = await sb.from('clientes').update({nome, telefone, observacoes}).eq('id', id));
+  }else{
+    ({error} = await sb.from('clientes').insert({nome, telefone, observacoes}));
+  }
+  if(error){ toast('Erro ao salvar cliente'); return; }
+  fecharModal();
+  toast('Cliente salvo!');
+  carregarClientes();
+}
+window.salvarCliente = salvarCliente;
+
+async function removerCliente(id){
+  if(!confirm('Excluir este cliente e os veículos vinculados?')) return;
+  const { error } = await sb.from('clientes').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Cliente excluído');
+  carregarClientes();
+}
+window.removerCliente = removerCliente;
+
+function abrirModalVeiculo(id, clienteId){
+  const v = id ? cacheVeiculos.find(x=>x.id===id) : null;
+  abrirModal(`
+    <h3>${v?'Editar veículo':'Novo veículo'}</h3>
+    <label>Placa</label>
+    <input id="m-placa" value="${v?escapeHtml(v.placa):''}" placeholder="ABC1D23" />
+    <div class="linha-2">
+      <div><label>Marca</label><input id="m-marca" value="${v?escapeHtml(v.marca||''):''}" /></div>
+      <div><label>Modelo</label><input id="m-modelo" value="${v?escapeHtml(v.modelo||''):''}" /></div>
+    </div>
+    <label>Cor</label>
+    <input id="m-cor" value="${v?escapeHtml(v.cor||''):''}" />
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarVeiculo(${v?`'${v.id}'`:'null'}, '${clienteId}')">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalVeiculo = abrirModalVeiculo;
+window.editarVeiculo = (id, clienteId)=>abrirModalVeiculo(id, clienteId);
+
+async function salvarVeiculo(id, clienteId){
+  const placa = document.getElementById('m-placa').value.trim().toUpperCase();
+  const marca = document.getElementById('m-marca').value.trim();
+  const modelo = document.getElementById('m-modelo').value.trim();
+  const cor = document.getElementById('m-cor').value.trim();
+  if(!placa){ toast('Informe a placa'); return; }
+  let error;
+  if(id){
+    ({error} = await sb.from('veiculos').update({placa, marca, modelo, cor}).eq('id', id));
+  }else{
+    ({error} = await sb.from('veiculos').insert({placa, marca, modelo, cor, cliente_id: clienteId}));
+  }
+  if(error){ toast('Erro ao salvar veículo'); return; }
+  fecharModal();
+  toast('Veículo salvo!');
+  carregarClientes();
+}
+window.salvarVeiculo = salvarVeiculo;
+
+async function removerVeiculo(id){
+  if(!confirm('Excluir este veículo?')) return;
+  const { error } = await sb.from('veiculos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Veículo excluído');
+  carregarClientes();
+}
+window.removerVeiculo = removerVeiculo;
+
+/* =========================================================
+   SERVIÇOS
+   ========================================================= */
+async function carregarServicos(){
+  const { data, error } = await sb.from('servicos').select('*').order('nome');
+  if(error){ toast('Erro ao carregar serviços'); return; }
+  cacheServicos = data || [];
+  renderServicos();
+}
+
+function renderServicos(){
+  const box = document.getElementById('lista-servicos');
+  if(cacheServicos.length===0){
+    box.innerHTML = '<p class="vazio">Nenhum serviço cadastrado.</p>';
+    return;
+  }
+  box.innerHTML = cacheServicos.map(s=>`
+    <div class="servico-card ${s.ativo?'':'servico-inativo'}">
+      ${s.ativo?'':'<span class="badge-inativo">Inativo</span>'}
+      <div class="servico-nome">${escapeHtml(s.nome)}</div>
+      <div class="servico-desc">${escapeHtml(s.descricao||'')}</div>
+      <div class="servico-meta">
+        <span class="servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
+        <span>${s.duracao_minutos||60} min</span>
+      </div>
+      <div class="ticket-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalServico('${s.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerServico('${s.id}')">Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('btn-novo-servico').addEventListener('click', ()=>abrirModalServico(null));
+
+function abrirModalServico(id){
+  const s = id ? cacheServicos.find(x=>x.id===id) : null;
+  abrirModal(`
+    <h3>${s?'Editar serviço':'Novo serviço'}</h3>
+    <label>Nome do serviço</label>
+    <input id="m-nome" value="${s?escapeHtml(s.nome):''}" placeholder="Ex: Polimento técnico" />
+    <label>Descrição</label>
+    <textarea id="m-desc" rows="2">${s?escapeHtml(s.descricao||''):''}</textarea>
+    <div class="linha-2">
+      <div><label>Preço (R$)</label><input id="m-preco" type="number" step="0.01" value="${s?s.preco:''}" /></div>
+      <div><label>Duração (min)</label><input id="m-duracao" type="number" value="${s?s.duracao_minutos:60}" /></div>
+    </div>
+    <label><input type="checkbox" id="m-ativo" style="width:auto;" ${s? (s.ativo?'checked':'') : 'checked'}/> Serviço ativo</label>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarServico(${s?`'${s.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalServico = abrirModalServico;
+
+async function salvarServico(id){
+  const nome = document.getElementById('m-nome').value.trim();
+  const descricao = document.getElementById('m-desc').value.trim();
+  const preco = parseFloat(document.getElementById('m-preco').value)||0;
+  const duracao_minutos = parseInt(document.getElementById('m-duracao').value)||60;
+  const ativo = document.getElementById('m-ativo').checked;
+  if(!nome){ toast('Informe o nome do serviço'); return; }
+  let error;
+  if(id){
+    ({error} = await sb.from('servicos').update({nome, descricao, preco, duracao_minutos, ativo}).eq('id', id));
+  }else{
+    ({error} = await sb.from('servicos').insert({nome, descricao, preco, duracao_minutos, ativo}));
+  }
+  if(error){ toast('Erro ao salvar serviço'); return; }
+  fecharModal();
+  toast('Serviço salvo!');
+  carregarServicos();
+}
+window.salvarServico = salvarServico;
+
+async function removerServico(id){
+  if(!confirm('Excluir este serviço?')) return;
+  const { error } = await sb.from('servicos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Serviço excluído');
+  carregarServicos();
+}
+window.removerServico = removerServico;
+
+/* =========================================================
+   AGENDAMENTOS
+   ========================================================= */
+let cacheAgendamentos = [];
+
+async function carregarAgendamentos(){
+  const { data, error } = await sb.from('agendamentos').select('*').order('data').order('hora_inicio');
+  if(error){ toast('Erro ao carregar agenda'); return; }
+  cacheAgendamentos = data || [];
+  renderAgendaCompleta();
+  renderDashboard();
+}
+
+function nomeCliente(id){ return cacheClientes.find(c=>c.id===id)?.nome || '—'; }
+function telefoneCliente(id){ return cacheClientes.find(c=>c.id===id)?.telefone || ''; }
+function veiculoTxt(id){
+  const v = cacheVeiculos.find(x=>x.id===id);
+  if(!v) return '—';
+  return `${v.placa} ${v.marca||''} ${v.modelo||''}`.trim();
+}
+function nomeServico(id){ return cacheServicos.find(s=>s.id===id)?.nome || '—'; }
+
+function ticketHtml(a){
+  return `
+    <div class="ticket">
+      <div class="ticket-info">
+        <span class="ticket-hora">${formatarHora(a.hora_inicio)} · ${formatarData(a.data)}</span>
+        <span class="ticket-cliente">${escapeHtml(nomeCliente(a.cliente_id))}</span>
+        <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}</span>
+      </div>
+      <div class="ticket-acoes">
+        <span class="ticket-status status-${a.status}">${rotuloStatus(a.status)}</span>
+        <button class="btn btn-whats btn-sm" onclick="enviarWhatsapp('${a.id}')">WhatsApp</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalAgendamento('${a.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerAgendamento('${a.id}')">Excluir</button>
+      </div>
+    </div>
+  `;
+}
+function rotuloStatus(s){
+  return {agendado:'Agendado', em_andamento:'Em andamento', concluido:'Concluído', cancelado:'Cancelado'}[s] || s;
+}
+
+function renderDashboard(){
+  const hoje = hojeISO();
+  const doDia = cacheAgendamentos.filter(a=>a.data===hoje && a.status!=='cancelado');
+  document.getElementById('num-hoje').textContent = doDia.length;
+  document.getElementById('lista-hoje').innerHTML = doDia.length
+    ? doDia.map(ticketHtml).join('')
+    : '<p class="vazio">Nenhum agendamento para hoje.</p>';
+
+  const baixos = cacheProdutos.filter(p => Number(p.quantidade) <= Number(p.quantidade_minima||0));
+  document.getElementById('num-estoque-baixo').textContent = baixos.length;
+  document.getElementById('lista-estoque-baixo').innerHTML = baixos.map(p=>`
+    <div class="item-alerta"><span>${escapeHtml(p.nome)}</span> <b>${p.quantidade} ${p.unidade}</b></div>
+  `).join('');
+}
+
+function renderAgendaCompleta(){
+  const filtro = document.getElementById('filtro-data-agenda').value;
+  const lista = filtro ? cacheAgendamentos.filter(a=>a.data===filtro) : cacheAgendamentos;
+  const box = document.getElementById('lista-agenda-completa');
+  box.innerHTML = lista.length ? lista.map(ticketHtml).join('') : '<p class="vazio">Nenhum agendamento encontrado.</p>';
+}
+document.getElementById('filtro-data-agenda').addEventListener('change', renderAgendaCompleta);
+document.getElementById('btn-todos-agendamentos').addEventListener('click', ()=>{
+  document.getElementById('filtro-data-agenda').value = '';
+  renderAgendaCompleta();
+});
+
+document.getElementById('btn-novo-agendamento').addEventListener('click', ()=>abrirModalAgendamento(null));
+
+function abrirModalAgendamento(id){
+  const a = id ? cacheAgendamentos.find(x=>x.id===id) : null;
+  const clienteAtual = a ? a.cliente_id : (cacheClientes[0]?.id || '');
+  abrirModal(`
+    <h3>${a?'Editar agendamento':'Novo agendamento'}</h3>
+    <label>Cliente</label>
+    <select id="m-cliente" onchange="atualizarVeiculosModal()">
+      ${cacheClientes.map(c=>`<option value="${c.id}" ${c.id===clienteAtual?'selected':''}>${escapeHtml(c.nome)}</option>`).join('') || '<option value="">Cadastre um cliente primeiro</option>'}
+    </select>
+    <label>Veículo</label>
+    <select id="m-veiculo">
+      ${cacheVeiculos.filter(v=>v.cliente_id===clienteAtual).map(v=>`<option value="${v.id}" ${a&&a.veiculo_id===v.id?'selected':''}>${escapeHtml(v.placa)} ${escapeHtml(v.modelo||'')}</option>`).join('')}
+    </select>
+    <label>Serviço</label>
+    <select id="m-servico">
+      ${cacheServicos.filter(s=>s.ativo).map(s=>`<option value="${s.id}" ${a&&a.servico_id===s.id?'selected':''}>${escapeHtml(s.nome)}</option>`).join('')}
+    </select>
+    <div class="linha-2">
+      <div><label>Data</label><input id="m-data" type="date" value="${a?a.data:hojeISO()}" /></div>
+      <div><label>Hora início</label><input id="m-hora" type="time" value="${a?formatarHora(a.hora_inicio):'09:00'}" /></div>
+    </div>
+    <label>Status</label>
+    <select id="m-status">
+      ${['agendado','em_andamento','concluido','cancelado'].map(s=>`<option value="${s}" ${a&&a.status===s?'selected':''}>${rotuloStatus(s)}</option>`).join('')}
+    </select>
+    <label>Observações</label>
+    <textarea id="m-obs-agend" rows="2">${a?escapeHtml(a.observacoes||''):''}</textarea>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAgendamento(${a?`'${a.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalAgendamento = abrirModalAgendamento;
+
+function atualizarVeiculosModal(){
+  const clienteId = document.getElementById('m-cliente').value;
+  const sel = document.getElementById('m-veiculo');
+  const veic = cacheVeiculos.filter(v=>v.cliente_id===clienteId);
+  sel.innerHTML = veic.map(v=>`<option value="${v.id}">${escapeHtml(v.placa)} ${escapeHtml(v.modelo||'')}</option>`).join('') || '<option value="">Sem veículos</option>';
+}
+window.atualizarVeiculosModal = atualizarVeiculosModal;
+
+async function salvarAgendamento(id){
+  const cliente_id = document.getElementById('m-cliente').value;
+  const veiculo_id = document.getElementById('m-veiculo').value || null;
+  const servico_id = document.getElementById('m-servico').value || null;
+  const data = document.getElementById('m-data').value;
+  const hora_inicio = document.getElementById('m-hora').value;
+  const status = document.getElementById('m-status').value;
+  const observacoes = document.getElementById('m-obs-agend').value.trim();
+  if(!cliente_id || !data || !hora_inicio){ toast('Preencha cliente, data e hora'); return; }
+  const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, observacoes};
+  let error;
+  if(id){
+    ({error} = await sb.from('agendamentos').update(payload).eq('id', id));
+  }else{
+    ({error} = await sb.from('agendamentos').insert(payload));
+  }
+  if(error){ toast('Erro ao salvar agendamento'); return; }
+  fecharModal();
+  toast('Agendamento salvo!');
+  carregarAgendamentos();
+}
+window.salvarAgendamento = salvarAgendamento;
+
+async function removerAgendamento(id){
+  if(!confirm('Excluir este agendamento?')) return;
+  const { error } = await sb.from('agendamentos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Agendamento excluído');
+  carregarAgendamentos();
+}
+window.removerAgendamento = removerAgendamento;
+
+function enviarWhatsapp(id){
+  const a = cacheAgendamentos.find(x=>x.id===id);
+  if(!a) return;
+  const fone = telefoneCliente(a.cliente_id);
+  if(!fone){ toast('Este cliente não tem telefone cadastrado'); return; }
+  const msg = `Olá, ${nomeCliente(a.cliente_id)}! Seu agendamento na estética automotiva está confirmado:\n\n` +
+    `📅 Data: ${formatarData(a.data)}\n` +
+    `⏰ Horário: ${formatarHora(a.hora_inicio)}\n` +
+    `🚗 Veículo: ${veiculoTxt(a.veiculo_id)}\n` +
+    `🧽 Serviço: ${nomeServico(a.servico_id)}\n\n` +
+    `Qualquer imprevisto nos avise. Até lá!`;
+  const url = `https://wa.me/${fone}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+window.enviarWhatsapp = enviarWhatsapp;
+
+/* =========================================================
+   ESTOQUE / PRODUTOS
+   ========================================================= */
+let categoriaFiltro = 'Todas';
+
+async function carregarProdutos(){
+  const { data, error } = await sb.from('produtos').select('*').order('categoria').order('nome');
+  if(error){ toast('Erro ao carregar estoque'); return; }
+  cacheProdutos = data || [];
+  renderFiltroCategoria();
+  renderProdutos();
+}
+
+function renderFiltroCategoria(){
+  const cats = ['Todas', ...new Set(cacheProdutos.map(p=>p.categoria).filter(Boolean))];
+  document.getElementById('filtro-categoria').innerHTML = cats.map(c=>`
+    <button class="filtro-chip ${c===categoriaFiltro?'ativo':''}" onclick="filtrarCategoria('${escapeHtml(c)}')">${escapeHtml(c)}</button>
+  `).join('');
+}
+function filtrarCategoria(c){
+  categoriaFiltro = c;
+  renderFiltroCategoria();
+  renderProdutos();
+}
+window.filtrarCategoria = filtrarCategoria;
+
+function renderProdutos(){
+  const box = document.getElementById('lista-produtos');
+  const lista = categoriaFiltro==='Todas' ? cacheProdutos : cacheProdutos.filter(p=>p.categoria===categoriaFiltro);
+  if(lista.length===0){
+    box.innerHTML = '<p class="vazio">Nenhum produto cadastrado nesta categoria.</p>';
+    return;
+  }
+  box.innerHTML = lista.map(p=>{
+    const baixo = Number(p.quantidade) <= Number(p.quantidade_minima||0);
+    return `
+    <div class="produto-card">
+      ${p.foto_url ? `<img class="produto-foto" src="${p.foto_url}" alt="${escapeHtml(p.nome)}" />` : `<div class="produto-foto">sem foto</div>`}
+      <div class="produto-corpo">
+        <div class="produto-cat">${escapeHtml(p.categoria||'Geral')}</div>
+        <div class="produto-nome">${escapeHtml(p.nome)}</div>
+        ${p.cor ? `<span class="produto-cor-tag"><span class="dot-cor" style="background:${corParaCss(p.cor)}"></span>${escapeHtml(p.cor)}</span>` : ''}
+        ${p.uso ? `<div class="produto-uso">${escapeHtml(p.uso)}</div>` : ''}
+        <div class="produto-qtd ${baixo?'baixo':''}">${p.quantidade} ${escapeHtml(p.unidade||'un')} em estoque</div>
+      </div>
+      <div class="produto-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalMovimentacao('${p.id}')">Movimentar</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalProduto('${p.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerProduto('${p.id}')">Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function corParaCss(nomeCor){
+  const mapa = {
+    'amarela':'#E8C93D','amarelo':'#E8C93D','azul':'#3DA5D9','vermelha':'#D9534F','vermelho':'#D9534F',
+    'verde':'#5FB86A','branca':'#F2F1ED','branco':'#F2F1ED','preta':'#2C3038','preto':'#2C3038',
+    'laranja':'#E8A33D','roxa':'#9B6FD9','roxo':'#9B6FD9','cinza':'#9A9FA6','rosa':'#E88CC0'
+  };
+  return mapa[nomeCor.trim().toLowerCase()] || '#9A9FA6';
+}
+
+document.getElementById('btn-novo-produto').addEventListener('click', ()=>abrirModalProduto(null));
+
+function abrirModalProduto(id){
+  const p = id ? cacheProdutos.find(x=>x.id===id) : null;
+  abrirModal(`
+    <h3>${p?'Editar produto':'Novo produto'}</h3>
+    <p class="modal-sub">Use "Uso" para explicar para que serve o produto ou a cor da toalha (ex: "toalha azul = usar só em vidros").</p>
+    <label>Nome</label>
+    <input id="m-nome" value="${p?escapeHtml(p.nome):''}" placeholder="Ex: Toalha microfibra" />
+    <div class="linha-2">
+      <div><label>Categoria</label><input id="m-categoria" value="${p?escapeHtml(p.categoria||''):''}" placeholder="Ex: Toalha, Química..." /></div>
+      <div><label>Cor</label><input id="m-cor" value="${p?escapeHtml(p.cor||''):''}" placeholder="Ex: Azul" /></div>
+    </div>
+    <label>Para que serve</label>
+    <textarea id="m-uso" rows="2" placeholder="Ex: usar somente para secar vidros e espelhos">${p?escapeHtml(p.uso||''):''}</textarea>
+    <div class="linha-2">
+      <div><label>Quantidade atual</label><input id="m-qtd" type="number" step="0.01" value="${p?p.quantidade:0}" /></div>
+      <div><label>Unidade</label><input id="m-unidade" value="${p?escapeHtml(p.unidade||'un'):'un'}" placeholder="un, ml, l, kg" /></div>
+    </div>
+    <label>Estoque mínimo (avisa quando chegar nesse valor)</label>
+    <input id="m-qtd-min" type="number" step="0.01" value="${p?p.quantidade_minima:0}" />
+    <label>Foto do produto</label>
+    <input id="m-foto" type="file" accept="image/*" onchange="prevFoto(event)" />
+    <img id="m-foto-preview" class="modal-foto-preview ${p&&p.foto_url?'':'oculto'}" src="${p?p.foto_url||'':''}" />
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-salvar-produto" onclick="salvarProduto(${p?`'${p.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalProduto = abrirModalProduto;
+
+function prevFoto(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('m-foto-preview');
+    img.src = e.target.result;
+    img.classList.remove('oculto');
+  };
+  reader.readAsDataURL(file);
+}
+window.prevFoto = prevFoto;
+
+async function salvarProduto(id){
+  const nome = document.getElementById('m-nome').value.trim();
+  const categoria = document.getElementById('m-categoria').value.trim();
+  const cor = document.getElementById('m-cor').value.trim();
+  const uso = document.getElementById('m-uso').value.trim();
+  const quantidade = parseFloat(document.getElementById('m-qtd').value)||0;
+  const unidade = document.getElementById('m-unidade').value.trim()||'un';
+  const quantidade_minima = parseFloat(document.getElementById('m-qtd-min').value)||0;
+  const fotoInput = document.getElementById('m-foto');
+  if(!nome){ toast('Informe o nome do produto'); return; }
+
+  const btn = document.getElementById('btn-salvar-produto');
+  btn.textContent = 'Salvando...';
+  btn.disabled = true;
+
+  let foto_url = id ? (cacheProdutos.find(x=>x.id===id)?.foto_url || null) : null;
+  const arquivo = fotoInput.files[0];
+  if(arquivo){
+    const nomeArquivo = `${Date.now()}_${arquivo.name}`.replace(/\s+/g,'_');
+    const { error: erroUpload } = await sb.storage.from('produtos').upload(nomeArquivo, arquivo, {upsert:true});
+    if(erroUpload){
+      toast('Erro ao enviar foto: ' + erroUpload.message);
+    }else{
+      const { data: pub } = sb.storage.from('produtos').getPublicUrl(nomeArquivo);
+      foto_url = pub.publicUrl;
+    }
+  }
+
+  const payload = {nome, categoria, cor, uso, quantidade, unidade, quantidade_minima, foto_url};
+  let error;
+  if(id){
+    ({error} = await sb.from('produtos').update(payload).eq('id', id));
+  }else{
+    ({error} = await sb.from('produtos').insert(payload));
+  }
+  if(error){ toast('Erro ao salvar produto'); btn.textContent='Salvar'; btn.disabled=false; return; }
+  fecharModal();
+  toast('Produto salvo!');
+  carregarProdutos();
+}
+window.salvarProduto = salvarProduto;
+
+async function removerProduto(id){
+  if(!confirm('Excluir este produto do estoque?')) return;
+  const { error } = await sb.from('produtos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Produto excluído');
+  carregarProdutos();
+}
+window.removerProduto = removerProduto;
+
+function abrirModalMovimentacao(produtoId){
+  const p = cacheProdutos.find(x=>x.id===produtoId);
+  abrirModal(`
+    <h3>Movimentar estoque</h3>
+    <p class="modal-sub">${escapeHtml(p.nome)} — atual: ${p.quantidade} ${escapeHtml(p.unidade)}</p>
+    <label>Tipo</label>
+    <select id="m-tipo">
+      <option value="entrada">Entrada (compra/reposição)</option>
+      <option value="saida">Saída (uso/consumo)</option>
+    </select>
+    <label>Quantidade</label>
+    <input id="m-qtd-mov" type="number" step="0.01" value="1" />
+    <label>Observação</label>
+    <input id="m-obs-mov" placeholder="Ex: usado no serviço de hoje" />
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarMovimentacao('${produtoId}')">Confirmar</button>
+    </div>
+  `);
+}
+window.abrirModalMovimentacao = abrirModalMovimentacao;
+
+async function salvarMovimentacao(produtoId){
+  const p = cacheProdutos.find(x=>x.id===produtoId);
+  const tipo = document.getElementById('m-tipo').value;
+  const qtd = parseFloat(document.getElementById('m-qtd-mov').value)||0;
+  const obs = document.getElementById('m-obs-mov').value.trim();
+  if(qtd<=0){ toast('Informe uma quantidade válida'); return; }
+
+  const novaQtd = tipo==='entrada' ? Number(p.quantidade)+qtd : Number(p.quantidade)-qtd;
+  if(novaQtd < 0){ toast('Estoque não pode ficar negativo'); return; }
+
+  const { error: e1 } = await sb.from('produtos').update({quantidade: novaQtd}).eq('id', produtoId);
+  const { error: e2 } = await sb.from('movimentacoes_estoque').insert({produto_id: produtoId, tipo, quantidade: qtd, observacao: obs});
+  if(e1 || e2){ toast('Erro ao registrar movimentação'); return; }
+  fecharModal();
+  toast('Estoque atualizado!');
+  carregarProdutos();
+}
+window.salvarMovimentacao = salvarMovimentacao;
+
+/* ---------- START ---------- */
+iniciarConexao();
+
+</script>
+</body>
+</html>
