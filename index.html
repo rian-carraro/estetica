@@ -216,6 +216,18 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .produto-qtd.baixo{color:var(--red); font-weight:600;}
 .produto-acoes{display:flex; gap:8px; padding:0 14px 14px; margin-top:auto;}
 
+/* ---------- HISTÓRICO ---------- */
+.lista-historico{display:flex; flex-direction:column; gap:12px;}
+.historico-item{
+  background:var(--surface); border:1px solid var(--line); border-radius:10px;
+  padding:14px 18px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.historico-info{display:flex; flex-direction:column; gap:3px;}
+.historico-data{font-family:var(--font-mono); color:var(--text-muted); font-size:12px;}
+.historico-desc{font-size:14px;}
+.badge-entrada{background:rgba(95,184,106,0.15); color:var(--green);}
+.badge-saida{background:rgba(217,83,79,0.15); color:var(--red);}
+
 /* ---------- MODAL ---------- */
 .modal-overlay{
   position:fixed; inset:0; background:rgba(10,11,13,0.75); backdrop-filter:blur(2px);
@@ -261,14 +273,15 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
     <aside class="sidebar">
       <div class="logo">
         <span class="logo-mark">●</span>
-        <span class="logo-txt">ESTETICA<br/>MANAGER</span>
+        <span class="logo-txt">BOX<br/>MANAGER</span>
       </div>
       <nav class="nav">
         <button class="nav-item ativo" data-tab="dashboard">Painel</button>
         <button class="nav-item" data-tab="agenda">Agenda</button>
-        <button class="nav-item" data-tab="clientes">Clientes</button>
+        <button class="nav-item" data-tab="clientes">Clientes &amp; Veículos</button>
         <button class="nav-item" data-tab="servicos">Serviços</button>
         <button class="nav-item" data-tab="estoque">Estoque</button>
+        <button class="nav-item" data-tab="historico">Histórico</button>
       </nav>
     </aside>
 
@@ -286,7 +299,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
           <div class="painel-contadores">
             <div class="mini-card">
               <span class="mini-num" id="num-total">0</span>
-              <span class="mini-label">agendamentos no total</span>
+              <span class="mini-label">agendamentos em aberto</span>
             </div>
             <div class="mini-card alerta">
               <span class="mini-num" id="num-estoque-baixo">0</span>
@@ -295,7 +308,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
           </div>
           <div id="lista-estoque-baixo" class="lista-alertas"></div>
           <div class="painel-lista">
-            <h3>Todos os agendamentos</h3>
+            <h3>Agendamentos em aberto</h3>
             <div id="lista-agendamentos-painel" class="lista-agendamentos"></div>
           </div>
         </div>
@@ -318,12 +331,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <div id="lista-agenda-completa" class="lista-agendamentos"></div>
       </section>
 
-      <!-- CLIENTES -->
+      <!-- CLIENTES & VEÍCULOS -->
       <section id="tab-clientes" class="tab">
         <header class="tab-header">
           <div>
             <p class="eyebrow">Cadastro</p>
-            <h2>Clientes</h2>
+            <h2>Clientes &amp; Veículos</h2>
           </div>
           <button class="btn btn-primary" id="btn-novo-cliente">+ Novo cliente</button>
         </header>
@@ -353,6 +366,26 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         </header>
         <div class="filtro-categoria" id="filtro-categoria"></div>
         <div id="lista-produtos" class="grid-produtos"></div>
+      </section>
+
+      <!-- HISTÓRICO -->
+      <section id="tab-historico" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Registro</p>
+            <h2>Histórico</h2>
+          </div>
+        </header>
+        <div class="grid-dashboard">
+          <div class="painel-lista">
+            <h3>Histórico de serviços</h3>
+            <div id="lista-historico-servicos" class="lista-agendamentos"></div>
+          </div>
+          <div class="painel-lista">
+            <h3>Histórico de uso de produtos</h3>
+            <div id="lista-historico-produtos" class="lista-historico"></div>
+          </div>
+        </div>
       </section>
 
     </main>
@@ -425,6 +458,16 @@ function formatarData(d){
   const [ano,mes,dia] = d.split('-');
   return `${dia}/${mes}/${ano}`;
 }
+function formatarDataHora(isoString){
+  if(!isoString) return '';
+  const d = new Date(isoString);
+  const dia = String(d.getDate()).padStart(2,'0');
+  const mes = String(d.getMonth()+1).padStart(2,'0');
+  const ano = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return `${dia}/${mes}/${ano} ${hh}:${mm}`;
+}
 function formatarHora(h){
   return h ? h.substring(0,5) : '';
 }
@@ -446,13 +489,14 @@ let cacheProdutos = [];
 async function carregarTudo(){
   document.getElementById('data-hoje').textContent = formatarData(hojeISO());
   document.getElementById('filtro-data-agenda').value = hojeISO();
-  await Promise.all([carregarClientes(), carregarServicos(), carregarProdutos()]);
+  await Promise.all([carregarClientes(), carregarServicos(), carregarProdutos(), carregarMovimentacoes()]);
   await carregarAgendamentos();
   renderDashboard();
+  renderHistorico();
 }
 
 /* =========================================================
-   CLIENTES
+   CLIENTES & VEÍCULOS
    ========================================================= */
 async function carregarClientes(){
   const { data: clientes, error } = await sb.from('clientes').select('*').order('nome');
@@ -765,6 +809,7 @@ async function carregarAgendamentos(){
   cacheAgendamentos = data || [];
   renderAgendaCompleta();
   renderDashboard();
+  renderHistorico();
 }
 
 function nomeCliente(id){ return cacheClientes.find(c=>c.id===id)?.nome || '—'; }
@@ -798,11 +843,11 @@ function rotuloStatus(s){
 }
 
 function renderDashboard(){
-  const todos = cacheAgendamentos;
-  document.getElementById('num-total').textContent = todos.length;
-  document.getElementById('lista-agendamentos-painel').innerHTML = todos.length
-    ? todos.map(ticketHtml).join('')
-    : '<p class="vazio">Nenhum agendamento cadastrado ainda.</p>';
+  const emAberto = cacheAgendamentos.filter(a => a.status !== 'concluido');
+  document.getElementById('num-total').textContent = emAberto.length;
+  document.getElementById('lista-agendamentos-painel').innerHTML = emAberto.length
+    ? emAberto.map(ticketHtml).join('')
+    : '<p class="vazio">Nenhum agendamento em aberto.</p>';
 
   const baixos = cacheProdutos.filter(p => Number(p.quantidade) <= Number(p.quantidade_minima||0));
   document.getElementById('num-estoque-baixo').textContent = baixos.length;
@@ -927,6 +972,7 @@ async function carregarProdutos(){
   cacheProdutos = data || [];
   renderFiltroCategoria();
   renderProdutos();
+  renderHistorico();
 }
 
 function renderFiltroCategoria(){
@@ -1113,8 +1159,65 @@ async function salvarMovimentacao(produtoId){
   fecharModal();
   toast('Estoque atualizado!');
   carregarProdutos();
+  carregarMovimentacoes();
 }
 window.salvarMovimentacao = salvarMovimentacao;
+
+/* =========================================================
+   HISTÓRICO (serviços realizados + uso de produtos)
+   ========================================================= */
+let cacheMovimentacoes = [];
+
+async function carregarMovimentacoes(){
+  const { data, error } = await sb.from('movimentacoes_estoque').select('*').order('criado_em', {ascending:false});
+  if(error){ toast('Erro ao carregar histórico de estoque'); return; }
+  cacheMovimentacoes = data || [];
+  renderHistoricoProdutos();
+}
+
+function renderHistorico(){
+  renderHistoricoServicos();
+  renderHistoricoProdutos();
+}
+
+function renderHistoricoServicos(){
+  const box = document.getElementById('lista-historico-servicos');
+  if(!box) return;
+  const concluidos = cacheAgendamentos.filter(a => a.status === 'concluido');
+  if(concluidos.length===0){
+    box.innerHTML = '<p class="vazio">Nenhum serviço concluído ainda.</p>';
+    return;
+  }
+  const ordenado = [...concluidos].sort((a,b)=>{
+    const chaveA = a.data + ' ' + (a.hora_inicio||'');
+    const chaveB = b.data + ' ' + (b.hora_inicio||'');
+    return chaveB.localeCompare(chaveA);
+  });
+  box.innerHTML = ordenado.map(ticketHtml).join('');
+}
+
+function renderHistoricoProdutos(){
+  const box = document.getElementById('lista-historico-produtos');
+  if(!box) return;
+  if(cacheMovimentacoes.length===0){
+    box.innerHTML = '<p class="vazio">Nenhuma movimentação de estoque registrada ainda.</p>';
+    return;
+  }
+  box.innerHTML = cacheMovimentacoes.map(m=>{
+    const produto = cacheProdutos.find(p=>p.id===m.produto_id);
+    const nomeProduto = produto ? produto.nome : 'Produto removido';
+    const unidade = produto ? (produto.unidade||'un') : '';
+    const tipoTxt = m.tipo === 'entrada' ? 'Entrada' : 'Saída';
+    return `
+    <div class="historico-item">
+      <div class="historico-info">
+        <span class="historico-data">${formatarDataHora(m.criado_em)}</span>
+        <span class="historico-desc"><b>${escapeHtml(nomeProduto)}</b> — ${m.quantidade} ${escapeHtml(unidade)}${m.observacao ? ' · '+escapeHtml(m.observacao) : ''}</span>
+      </div>
+      <span class="ticket-status badge-${m.tipo}">${tipoTxt}</span>
+    </div>`;
+  }).join('');
+}
 
 /* ---------- START ---------- */
 iniciarConexao();
