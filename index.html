@@ -121,12 +121,13 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .tab-header h2{font-size:26px;}
 
 /* ---------- DASHBOARD ---------- */
-.grid-dashboard{display:grid; grid-template-columns:1.6fr 1fr; gap:20px;}
-.painel-lista, .painel-lateral{display:flex; flex-direction:column; gap:14px;}
-.painel-lista h3, .painel-lateral h3{font-size:13px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;}
+.grid-dashboard{display:flex; flex-direction:column; gap:20px;}
+.painel-contadores{display:flex; gap:16px; flex-wrap:wrap;}
+.painel-lista{display:flex; flex-direction:column; gap:14px;}
+.painel-lista h3{font-size:13px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;}
 .mini-card{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
-  padding:18px; display:flex; flex-direction:column; gap:2px;
+  padding:18px; display:flex; flex-direction:column; gap:2px; flex:1; min-width:200px;
 }
 .mini-card.alerta{border-color:var(--gold-dim);}
 .mini-num{font-family:var(--font-display); font-size:32px; color:var(--gold);}
@@ -246,7 +247,6 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
   .nav{flex-direction:row;}
   .nav-desconectar{white-space:nowrap;}
   .conteudo{padding:24px 18px;}
-  .grid-dashboard{grid-template-columns:1fr;}
   .linha-2{grid-template-columns:1fr;}
 }
 
@@ -261,12 +261,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
     <aside class="sidebar">
       <div class="logo">
         <span class="logo-mark">●</span>
-        <span class="logo-txt">BOX<br/>MANAGER</span>
+        <span class="logo-txt">ESTETICA<br/>MANAGER</span>
       </div>
       <nav class="nav">
         <button class="nav-item ativo" data-tab="dashboard">Painel</button>
         <button class="nav-item" data-tab="agenda">Agenda</button>
-        <button class="nav-item" data-tab="clientes">Clientes &amp; Veículos</button>
+        <button class="nav-item" data-tab="clientes">Clientes</button>
         <button class="nav-item" data-tab="servicos">Serviços</button>
         <button class="nav-item" data-tab="estoque">Estoque</button>
       </nav>
@@ -283,20 +283,20 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
           </div>
         </header>
         <div class="grid-dashboard">
-          <div class="painel-lista">
-            <h3>Agenda de hoje</h3>
-            <div id="lista-hoje" class="lista-agendamentos"></div>
-          </div>
-          <div class="painel-lateral">
+          <div class="painel-contadores">
             <div class="mini-card">
-              <span class="mini-num" id="num-hoje">0</span>
-              <span class="mini-label">agendamentos hoje</span>
+              <span class="mini-num" id="num-total">0</span>
+              <span class="mini-label">agendamentos no total</span>
             </div>
             <div class="mini-card alerta">
               <span class="mini-num" id="num-estoque-baixo">0</span>
               <span class="mini-label">itens com estoque baixo</span>
             </div>
-            <div id="lista-estoque-baixo" class="lista-alertas"></div>
+          </div>
+          <div id="lista-estoque-baixo" class="lista-alertas"></div>
+          <div class="painel-lista">
+            <h3>Todos os agendamentos</h3>
+            <div id="lista-agendamentos-painel" class="lista-agendamentos"></div>
           </div>
         </div>
       </section>
@@ -318,12 +318,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <div id="lista-agenda-completa" class="lista-agendamentos"></div>
       </section>
 
-      <!-- CLIENTES & VEÍCULOS -->
+      <!-- CLIENTES -->
       <section id="tab-clientes" class="tab">
         <header class="tab-header">
           <div>
             <p class="eyebrow">Cadastro</p>
-            <h2>Clientes &amp; Veículos</h2>
+            <h2>Clientes</h2>
           </div>
           <button class="btn btn-primary" id="btn-novo-cliente">+ Novo cliente</button>
         </header>
@@ -452,7 +452,7 @@ async function carregarTudo(){
 }
 
 /* =========================================================
-   CLIENTES & VEÍCULOS
+   CLIENTES
    ========================================================= */
 async function carregarClientes(){
   const { data: clientes, error } = await sb.from('clientes').select('*').order('nome');
@@ -552,9 +552,22 @@ function abrirModalVeiculo(id, clienteId){
     <h3>${v?'Editar veículo':'Novo veículo'}</h3>
     <label>Placa</label>
     <input id="m-placa" value="${v?escapeHtml(v.placa):''}" placeholder="ABC1D23" />
+    <label>Tipo de veículo</label>
+    <select id="m-tipo-veiculo" onchange="carregarMarcasFipe()">
+      <option value="cars">Carro</option>
+      <option value="motorcycles">Moto</option>
+    </select>
     <div class="linha-2">
-      <div><label>Marca</label><input id="m-marca" value="${v?escapeHtml(v.marca||''):''}" /></div>
-      <div><label>Modelo</label><input id="m-modelo" value="${v?escapeHtml(v.modelo||''):''}" /></div>
+      <div>
+        <label>Marca</label>
+        <input id="m-marca" list="dl-marcas" autocomplete="off" value="${v?escapeHtml(v.marca||''):''}" placeholder="Digite para buscar a marca" oninput="carregarModelosFipe()" />
+        <datalist id="dl-marcas"></datalist>
+      </div>
+      <div>
+        <label>Modelo</label>
+        <input id="m-modelo" list="dl-modelos" autocomplete="off" value="${v?escapeHtml(v.modelo||''):''}" placeholder="Digite para buscar o modelo" />
+        <datalist id="dl-modelos"></datalist>
+      </div>
     </div>
     <label>Cor</label>
     <input id="m-cor" value="${v?escapeHtml(v.cor||''):''}" />
@@ -563,9 +576,70 @@ function abrirModalVeiculo(id, clienteId){
       <button class="btn btn-primary" onclick="salvarVeiculo(${v?`'${v.id}'`:'null'}, '${clienteId}')">Salvar</button>
     </div>
   `);
+  carregarMarcasFipe();
 }
 window.abrirModalVeiculo = abrirModalVeiculo;
 window.editarVeiculo = (id, clienteId)=>abrirModalVeiculo(id, clienteId);
+
+/* ---------- BUSCA DE MARCAS/MODELOS (API FIPE — gratuita, sem chave) ---------- */
+let fipeMarcas = { cars: null, motorcycles: null };
+let fipeModelosCache = {};
+
+async function carregarMarcasFipe(){
+  const tipoSel = document.getElementById('m-tipo-veiculo');
+  const dlMarcas = document.getElementById('dl-marcas');
+  if(!tipoSel || !dlMarcas) return;
+  const tipo = tipoSel.value;
+  if(!fipeMarcas[tipo]){
+    try{
+      const resp = await fetch(`https://fipe.parallelum.com.br/api/v2/${tipo}/brands`);
+      if(!resp.ok) throw new Error('falha na resposta');
+      fipeMarcas[tipo] = await resp.json();
+    }catch(e){
+      fipeMarcas[tipo] = [];
+      toast('Não foi possível buscar as marcas agora (sem internet ou API indisponível)');
+    }
+  }
+  dlMarcas.innerHTML = fipeMarcas[tipo].map(m=>`<option value="${escapeHtml(m.name)}"></option>`).join('');
+  carregarModelosFipe();
+}
+window.carregarMarcasFipe = carregarMarcasFipe;
+
+async function carregarModelosFipe(){
+  const tipoSel = document.getElementById('m-tipo-veiculo');
+  const marcaInput = document.getElementById('m-marca');
+  const dlModelos = document.getElementById('dl-modelos');
+  if(!tipoSel || !marcaInput || !dlModelos) return;
+  const tipo = tipoSel.value;
+  const nomeMarca = marcaInput.value.trim().toLowerCase();
+  const marcas = fipeMarcas[tipo] || [];
+  const marca = marcas.find(m=>m.name.toLowerCase() === nomeMarca);
+  if(!marca){ dlModelos.innerHTML=''; return; }
+  const chave = `${tipo}-${marca.code}`;
+  if(!fipeModelosCache[chave]){
+    try{
+      const resp = await fetch(`https://fipe.parallelum.com.br/api/v2/${tipo}/brands/${marca.code}/models`);
+      if(!resp.ok) throw new Error('falha na resposta');
+      fipeModelosCache[chave] = await resp.json();
+    }catch(e){
+      fipeModelosCache[chave] = [];
+      toast('Não foi possível buscar os modelos agora');
+    }
+  }
+  const nomesAgrupados = [...new Set(fipeModelosCache[chave].map(m=>agruparNomeModelo(m.name)))]
+    .sort((a,b)=>a.localeCompare(b, 'pt-BR'));
+  dlModelos.innerHTML = nomesAgrupados.map(n=>`<option value="${escapeHtml(n)}"></option>`).join('');
+}
+window.carregarModelosFipe = carregarModelosFipe;
+
+// Agrupa variações de motor/versão do mesmo modelo (ex: "Focus 1.6 S/1.6 SE Flex 16v 5p Aut"
+// e "Focus 2.0 16V/2.0 16V Flex 5p" viram só "Focus"), cortando o nome a partir do primeiro número.
+function agruparNomeModelo(nome){
+  const match = nome.match(/^([^\d]+)/);
+  let base = (match ? match[1] : nome).trim();
+  base = base.replace(/[\/\-,.]+$/, '').trim();
+  return base || nome.trim();
+}
 
 async function salvarVeiculo(id, clienteId){
   const placa = document.getElementById('m-placa').value.trim().toUpperCase();
@@ -724,12 +798,11 @@ function rotuloStatus(s){
 }
 
 function renderDashboard(){
-  const hoje = hojeISO();
-  const doDia = cacheAgendamentos.filter(a=>a.data===hoje && a.status!=='cancelado');
-  document.getElementById('num-hoje').textContent = doDia.length;
-  document.getElementById('lista-hoje').innerHTML = doDia.length
-    ? doDia.map(ticketHtml).join('')
-    : '<p class="vazio">Nenhum agendamento para hoje.</p>';
+  const todos = cacheAgendamentos;
+  document.getElementById('num-total').textContent = todos.length;
+  document.getElementById('lista-agendamentos-painel').innerHTML = todos.length
+    ? todos.map(ticketHtml).join('')
+    : '<p class="vazio">Nenhum agendamento cadastrado ainda.</p>';
 
   const baixos = cacheProdutos.filter(p => Number(p.quantidade) <= Number(p.quantidade_minima||0));
   document.getElementById('num-estoque-baixo').textContent = baixos.length;
