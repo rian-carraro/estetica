@@ -168,9 +168,36 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .vazio{color:var(--text-muted); font-size:14px; padding:20px 0;}
 
 /* ---------- AGENDA FILTRO ---------- */
+.agenda-modos{display:flex; gap:8px; margin-bottom:16px;}
+.agenda-modos .btn.modo-ativo{border-color:var(--gold); color:var(--gold);}
 .filtro-data{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
 .filtro-data label{margin:0; font-size:12px;}
 .filtro-data input{width:auto;}
+
+/* ---------- AGENDA — VISÃO SEMANA ---------- */
+.agenda-semana{display:flex; flex-direction:column; gap:16px; margin-bottom:18px;}
+.semana-nav{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+.semana-label{font-family:var(--font-mono); color:var(--text-muted); font-size:13px;}
+.grid-semana{display:grid; grid-template-columns:repeat(7,1fr); gap:10px;}
+.dia-coluna{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:8px; min-height:170px;}
+.dia-coluna.dia-hoje{border-color:var(--gold);}
+.dia-cabecalho{display:flex; flex-direction:column; text-align:center; padding-bottom:6px; border-bottom:1px solid var(--line);}
+.dia-nome{font-size:10px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted);}
+.dia-numero{font-family:var(--font-mono); font-size:14px; font-weight:600;}
+.dia-corpo{display:flex; flex-direction:column; gap:6px; flex:1;}
+.dia-vazio{color:var(--text-muted); font-size:12px; text-align:center; margin-top:10px;}
+.semana-item{
+  background:var(--surface-2); border:1px solid var(--line); border-left:3px solid var(--blue);
+  border-radius:6px; padding:6px 8px; text-align:left; display:flex; flex-direction:column; gap:2px;
+  color:var(--text); font-size:11px; width:100%;
+}
+.semana-item:hover{border-color:var(--gold);}
+.semana-item.status-em_andamento{border-left-color:var(--gold);}
+.semana-item.status-concluido{border-left-color:var(--green);}
+.semana-item.status-cancelado{border-left-color:var(--red); opacity:0.6;}
+.semana-hora{font-family:var(--font-mono); font-weight:600; color:var(--gold);}
+.semana-cliente{font-weight:600;}
+.semana-servico{color:var(--text-muted);}
 
 /* ---------- CLIENTES ---------- */
 .lista-clientes{display:flex; flex-direction:column; gap:12px;}
@@ -228,6 +255,32 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .badge-entrada{background:rgba(95,184,106,0.15); color:var(--green);}
 .badge-saida{background:rgba(217,83,79,0.15); color:var(--red);}
 
+/* ---------- CONFIGURAÇÕES ---------- */
+.config-secao{
+  background:var(--surface); border:1px solid var(--line); border-radius:10px;
+  padding:20px 22px; margin-bottom:18px; max-width:640px;
+}
+.config-secao h3{font-size:15px; margin-bottom:6px;}
+.config-texto-ajuda{font-size:12px; color:var(--text-muted); margin:0 0 12px; line-height:1.5;}
+.config-texto-ajuda code{background:var(--surface-2); padding:1px 5px; border-radius:3px; font-family:var(--font-mono); color:var(--gold);}
+.config-secao textarea{font-family:var(--font-mono); font-size:13px; line-height:1.5; margin-bottom:12px;}
+.config-secao input, .config-secao select{margin-bottom:0;}
+.config-secao > button{margin-top:14px;}
+.linha-copiar{display:flex; gap:10px;}
+.linha-copiar input{font-family:var(--font-mono); font-size:12px;}
+.dias-trabalho-lista{display:flex; flex-direction:column; gap:10px; margin-top:16px;}
+.dia-trabalho-linha{
+  display:flex; align-items:center; gap:12px; background:var(--surface-2); border-radius:8px; padding:10px 14px; flex-wrap:wrap;
+}
+.dia-trabalho-linha label.check-dia{
+  display:flex; align-items:center; gap:8px; width:120px; font-size:13px; font-weight:600; color:var(--text);
+  text-transform:none; letter-spacing:0; margin:0;
+}
+.dia-trabalho-linha input[type="checkbox"]{width:auto;}
+.dia-trabalho-linha input[type="time"]{width:auto; padding:6px 10px;}
+.dia-trabalho-linha .ate{color:var(--text-muted); font-size:12px;}
+.dia-trabalho-linha.dia-inativo{opacity:0.45;}
+
 /* ---------- MODAL ---------- */
 .modal-overlay{
   position:fixed; inset:0; background:rgba(10,11,13,0.75); backdrop-filter:blur(2px);
@@ -260,6 +313,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
   .nav-desconectar{white-space:nowrap;}
   .conteudo{padding:24px 18px;}
   .linha-2{grid-template-columns:1fr;}
+  .grid-semana{grid-template-columns:1fr;}
 }
 
 </style>
@@ -282,6 +336,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <button class="nav-item" data-tab="servicos">Serviços</button>
         <button class="nav-item" data-tab="estoque">Estoque</button>
         <button class="nav-item" data-tab="historico">Histórico</button>
+        <button class="nav-item" data-tab="config">Configurações</button>
       </nav>
     </aside>
 
@@ -323,10 +378,23 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
           </div>
           <button class="btn btn-primary" id="btn-novo-agendamento">+ Novo agendamento</button>
         </header>
-        <div class="filtro-data">
+        <div class="agenda-modos">
+          <button class="btn btn-ghost modo-ativo" id="btn-modo-lista" onclick="mudarModoAgenda('lista')">Lista</button>
+          <button class="btn btn-ghost" id="btn-modo-semana" onclick="mudarModoAgenda('semana')">Semana</button>
+        </div>
+        <div class="filtro-data" id="filtro-data-wrapper">
           <label>Ver dia:</label>
           <input type="date" id="filtro-data-agenda" />
           <button class="btn btn-ghost" id="btn-todos-agendamentos">Ver todos</button>
+        </div>
+        <div id="agenda-semana" class="agenda-semana oculto">
+          <div class="semana-nav">
+            <button class="btn btn-ghost btn-sm" onclick="semanaAnterior()">← Semana anterior</button>
+            <span id="semana-label" class="semana-label"></span>
+            <button class="btn btn-ghost btn-sm" onclick="semanaHoje()">Hoje</button>
+            <button class="btn btn-ghost btn-sm" onclick="semanaProxima()">Próxima semana →</button>
+          </div>
+          <div id="grid-semana" class="grid-semana"></div>
         </div>
         <div id="lista-agenda-completa" class="lista-agendamentos"></div>
       </section>
@@ -385,6 +453,55 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
             <h3>Histórico de uso de produtos</h3>
             <div id="lista-historico-produtos" class="lista-historico"></div>
           </div>
+        </div>
+      </section>
+
+      <!-- CONFIGURAÇÕES -->
+      <section id="tab-config" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Ajustes</p>
+            <h2>Configurações</h2>
+          </div>
+        </header>
+
+        <div class="config-secao">
+          <h3>Link para o cliente agendar sozinho</h3>
+          <p class="config-texto-ajuda">Envie esse link pro cliente — ele escolhe o serviço, o dia e o horário disponível sozinho.</p>
+          <div class="linha-copiar">
+            <input id="link-publico" type="text" readonly />
+            <button class="btn btn-ghost" id="btn-copiar-link">Copiar link</button>
+          </div>
+        </div>
+
+        <div class="config-secao">
+          <h3>Mensagem de confirmação (WhatsApp)</h3>
+          <p class="config-texto-ajuda">Use estas variáveis, que são substituídas automaticamente: <code>{cliente}</code> <code>{data}</code> <code>{hora}</code> <code>{veiculo}</code> <code>{servico}</code></p>
+          <textarea id="cfg-mensagem" rows="8"></textarea>
+          <button class="btn btn-primary" id="btn-salvar-mensagem">Salvar mensagem</button>
+        </div>
+
+        <div class="config-secao">
+          <h3>Seu WhatsApp (recebe aviso de novo agendamento feito pelo link)</h3>
+          <input id="cfg-telefone-negocio" type="text" placeholder="Ex: 5514999999999 (DDI+DDD+número, só números)" />
+          <button class="btn btn-primary" id="btn-salvar-telefone">Salvar</button>
+        </div>
+
+        <div class="config-secao">
+          <h3>Dias e horários de trabalho</h3>
+          <p class="config-texto-ajuda">Define quais dias você atende e em qual faixa de horário — usado na Agenda e no link público de agendamento.</p>
+          <div class="linha-2">
+            <div>
+              <label>Duração de cada horário oferecido</label>
+              <select id="cfg-duracao-slot">
+                <option value="15">15 minutos</option>
+                <option value="30">30 minutos</option>
+                <option value="60">1 hora</option>
+              </select>
+            </div>
+          </div>
+          <div id="dias-trabalho-lista" class="dias-trabalho-lista"></div>
+          <button class="btn btn-primary" id="btn-salvar-dias">Salvar dias e horários</button>
         </div>
       </section>
 
@@ -489,7 +606,7 @@ let cacheProdutos = [];
 async function carregarTudo(){
   document.getElementById('data-hoje').textContent = formatarData(hojeISO());
   document.getElementById('filtro-data-agenda').value = hojeISO();
-  await Promise.all([carregarClientes(), carregarServicos(), carregarProdutos(), carregarMovimentacoes()]);
+  await Promise.all([carregarClientes(), carregarServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes()]);
   await carregarAgendamentos();
   renderDashboard();
   renderHistorico();
@@ -808,6 +925,7 @@ async function carregarAgendamentos(){
   if(error){ toast('Erro ao carregar agenda'); return; }
   cacheAgendamentos = data || [];
   renderAgendaCompleta();
+  if(modoAgenda === 'semana') renderAgendaSemana();
   renderDashboard();
   renderHistorico();
 }
@@ -867,6 +985,90 @@ document.getElementById('btn-todos-agendamentos').addEventListener('click', ()=>
   document.getElementById('filtro-data-agenda').value = '';
   renderAgendaCompleta();
 });
+
+/* ---------- VISÃO EM CALENDÁRIO / SEMANA ---------- */
+let modoAgenda = 'lista';
+let semanaAtualInicio = obterInicioSemana(new Date());
+
+function obterInicioSemana(data){
+  const d = new Date(data);
+  const diaSemana = d.getDay(); // 0 = domingo ... 6 = sábado
+  const diff = diaSemana === 0 ? -6 : 1 - diaSemana; // volta pra segunda-feira
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function dataParaISO(d){
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth()+1).padStart(2,'0');
+  const dia = String(d.getDate()).padStart(2,'0');
+  return `${ano}-${mes}-${dia}`;
+}
+
+function mudarModoAgenda(modo){
+  modoAgenda = modo;
+  document.getElementById('btn-modo-lista').classList.toggle('modo-ativo', modo==='lista');
+  document.getElementById('btn-modo-semana').classList.toggle('modo-ativo', modo==='semana');
+  document.getElementById('filtro-data-wrapper').classList.toggle('oculto', modo!=='lista');
+  document.getElementById('lista-agenda-completa').classList.toggle('oculto', modo!=='lista');
+  document.getElementById('agenda-semana').classList.toggle('oculto', modo!=='semana');
+  if(modo==='semana') renderAgendaSemana();
+}
+window.mudarModoAgenda = mudarModoAgenda;
+
+function renderAgendaSemana(){
+  const nomesDias = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  const dias = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(semanaAtualInicio);
+    d.setDate(semanaAtualInicio.getDate()+i);
+    dias.push(d);
+  }
+  document.getElementById('semana-label').textContent =
+    `${formatarData(dataParaISO(dias[0]))} – ${formatarData(dataParaISO(dias[6]))}`;
+
+  const grid = document.getElementById('grid-semana');
+  grid.innerHTML = dias.map((d,i)=>{
+    const iso = dataParaISO(d);
+    const doDia = cacheAgendamentos
+      .filter(a=>a.data===iso)
+      .sort((a,b)=>(a.hora_inicio||'').localeCompare(b.hora_inicio||''));
+    const ehHoje = iso === hojeISO();
+    return `
+      <div class="dia-coluna ${ehHoje?'dia-hoje':''}">
+        <div class="dia-cabecalho">
+          <span class="dia-nome">${nomesDias[i]}</span>
+          <span class="dia-numero">${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}</span>
+        </div>
+        <div class="dia-corpo">
+          ${doDia.length ? doDia.map(a=>`
+            <button class="semana-item status-${a.status}" onclick="abrirModalAgendamento('${a.id}')">
+              <span class="semana-hora">${formatarHora(a.hora_inicio)}</span>
+              <span class="semana-cliente">${escapeHtml(nomeCliente(a.cliente_id))}</span>
+              <span class="semana-servico">${escapeHtml(nomeServico(a.servico_id))}</span>
+            </button>
+          `).join('') : '<p class="dia-vazio">—</p>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function semanaAnterior(){
+  semanaAtualInicio.setDate(semanaAtualInicio.getDate()-7);
+  renderAgendaSemana();
+}
+function semanaProxima(){
+  semanaAtualInicio.setDate(semanaAtualInicio.getDate()+7);
+  renderAgendaSemana();
+}
+function semanaHoje(){
+  semanaAtualInicio = obterInicioSemana(new Date());
+  renderAgendaSemana();
+}
+window.semanaAnterior = semanaAnterior;
+window.semanaProxima = semanaProxima;
+window.semanaHoje = semanaHoje;
 
 document.getElementById('btn-novo-agendamento').addEventListener('click', ()=>abrirModalAgendamento(null));
 
@@ -950,12 +1152,14 @@ function enviarWhatsapp(id){
   if(!a) return;
   const fone = telefoneCliente(a.cliente_id);
   if(!fone){ toast('Este cliente não tem telefone cadastrado'); return; }
-  const msg = `Olá, ${nomeCliente(a.cliente_id)}! Seu agendamento na estética automotiva está confirmado:\n\n` +
-    `📅 Data: ${formatarData(a.data)}\n` +
-    `⏰ Horário: ${formatarHora(a.hora_inicio)}\n` +
-    `🚗 Veículo: ${veiculoTxt(a.veiculo_id)}\n` +
-    `🧽 Serviço: ${nomeServico(a.servico_id)}\n\n` +
-    `Qualquer imprevisto nos avise. Até lá!`;
+  const template = (cacheConfig && cacheConfig.mensagem_whatsapp) ||
+    'Olá, {cliente}! Seu agendamento na estética automotiva está confirmado:\n\n📅 Data: {data}\n⏰ Horário: {hora}\n🚗 Veículo: {veiculo}\n🧽 Serviço: {servico}\n\nQualquer imprevisto nos avise. Até lá!';
+  const msg = template
+    .replaceAll('{cliente}', nomeCliente(a.cliente_id))
+    .replaceAll('{data}', formatarData(a.data))
+    .replaceAll('{hora}', formatarHora(a.hora_inicio))
+    .replaceAll('{veiculo}', veiculoTxt(a.veiculo_id))
+    .replaceAll('{servico}', nomeServico(a.servico_id));
   const url = `https://wa.me/${fone}?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
 }
@@ -1218,6 +1422,114 @@ function renderHistoricoProdutos(){
     </div>`;
   }).join('');
 }
+
+/* =========================================================
+   CONFIGURAÇÕES (mensagem WhatsApp, dias/horários, link público)
+   ========================================================= */
+let cacheConfig = null;
+const NOMES_DIAS_SEMANA = [
+  {chave:'segunda', label:'Segunda'},
+  {chave:'terca',   label:'Terça'},
+  {chave:'quarta',  label:'Quarta'},
+  {chave:'quinta',  label:'Quinta'},
+  {chave:'sexta',   label:'Sexta'},
+  {chave:'sabado',  label:'Sábado'},
+  {chave:'domingo', label:'Domingo'},
+];
+
+async function carregarConfiguracoes(){
+  const { data, error } = await sb.from('configuracoes').select('*').eq('id','unica').maybeSingle();
+  if(error || !data){
+    toast('Não encontrei a tabela de configurações — rode o schema.sql atualizado no Supabase.');
+    return;
+  }
+  cacheConfig = data;
+  renderConfiguracoes();
+}
+
+function renderConfiguracoes(){
+  if(!cacheConfig) return;
+
+  const linkInput = document.getElementById('link-publico');
+  if(linkInput){
+    const base = location.href.replace(/[^\/]*$/, '');
+    linkInput.value = base + 'agendar.html';
+  }
+
+  const msgBox = document.getElementById('cfg-mensagem');
+  if(msgBox) msgBox.value = cacheConfig.mensagem_whatsapp || '';
+
+  const foneBox = document.getElementById('cfg-telefone-negocio');
+  if(foneBox) foneBox.value = cacheConfig.telefone_negocio || '';
+
+  const slotSel = document.getElementById('cfg-duracao-slot');
+  if(slotSel) slotSel.value = String(cacheConfig.duracao_slot_minutos || 30);
+
+  const dias = cacheConfig.dias_trabalho || {};
+  const lista = document.getElementById('dias-trabalho-lista');
+  if(lista){
+    lista.innerHTML = NOMES_DIAS_SEMANA.map(d=>{
+      const cfgDia = dias[d.chave] || {ativo:false, inicio:'08:00', fim:'18:00'};
+      return `
+      <div class="dia-trabalho-linha ${cfgDia.ativo?'':'dia-inativo'}" data-dia="${d.chave}">
+        <label class="check-dia">
+          <input type="checkbox" class="dia-check" onchange="toggleDiaTrabalho(this)" ${cfgDia.ativo?'checked':''}/>
+          ${d.label}
+        </label>
+        <input type="time" class="dia-inicio" value="${cfgDia.inicio}" />
+        <span class="ate">até</span>
+        <input type="time" class="dia-fim" value="${cfgDia.fim}" />
+      </div>`;
+    }).join('');
+  }
+}
+
+function toggleDiaTrabalho(checkbox){
+  checkbox.closest('.dia-trabalho-linha').classList.toggle('dia-inativo', !checkbox.checked);
+}
+window.toggleDiaTrabalho = toggleDiaTrabalho;
+
+document.getElementById('btn-salvar-mensagem').addEventListener('click', async ()=>{
+  const mensagem = document.getElementById('cfg-mensagem').value;
+  const { error } = await sb.from('configuracoes').update({mensagem_whatsapp: mensagem}).eq('id','unica');
+  if(error){ toast('Erro ao salvar a mensagem'); return; }
+  cacheConfig.mensagem_whatsapp = mensagem;
+  toast('Mensagem salva!');
+});
+
+document.getElementById('btn-salvar-telefone').addEventListener('click', async ()=>{
+  const telefone = document.getElementById('cfg-telefone-negocio').value.trim().replace(/\D/g,'');
+  const { error } = await sb.from('configuracoes').update({telefone_negocio: telefone}).eq('id','unica');
+  if(error){ toast('Erro ao salvar o telefone'); return; }
+  cacheConfig.telefone_negocio = telefone;
+  toast('Telefone salvo!');
+});
+
+document.getElementById('btn-salvar-dias').addEventListener('click', async ()=>{
+  const diasTrabalho = {};
+  document.querySelectorAll('.dia-trabalho-linha').forEach(linha=>{
+    const chave = linha.dataset.dia;
+    diasTrabalho[chave] = {
+      ativo: linha.querySelector('.dia-check').checked,
+      inicio: linha.querySelector('.dia-inicio').value || '08:00',
+      fim: linha.querySelector('.dia-fim').value || '18:00',
+    };
+  });
+  const duracaoSlot = parseInt(document.getElementById('cfg-duracao-slot').value) || 30;
+  const { error } = await sb.from('configuracoes').update({dias_trabalho: diasTrabalho, duracao_slot_minutos: duracaoSlot}).eq('id','unica');
+  if(error){ toast('Erro ao salvar dias e horários'); return; }
+  cacheConfig.dias_trabalho = diasTrabalho;
+  cacheConfig.duracao_slot_minutos = duracaoSlot;
+  toast('Dias e horários salvos!');
+});
+
+document.getElementById('btn-copiar-link').addEventListener('click', ()=>{
+  const link = document.getElementById('link-publico');
+  link.select();
+  navigator.clipboard.writeText(link.value)
+    .then(()=>toast('Link copiado!'))
+    .catch(()=>toast('Não deu pra copiar automaticamente — selecione e copie manualmente.'));
+});
 
 /* ---------- START ---------- */
 iniciarConexao();

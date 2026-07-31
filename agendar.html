@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agendar horário</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #15171B;
+  --surface: #1E2126;
+  --surface-2: #262A31;
+  --line: #2C3038;
+  --text: #F2F1ED;
+  --text-muted: #9A9FA6;
+  --gold: #E8A33D;
+  --blue: #3DA5D9;
+  --red: #D9534F;
+  --green: #5FB86A;
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); -webkit-font-smoothing:antialiased;
+  display:flex; justify-content:center; padding:24px 16px;
+}
+h1,h2,h3{font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.03em; margin:0;}
+.oculto{display:none !important;}
+button{font-family:var(--font-body); cursor:pointer;}
+input,select,textarea{
+  font-family:var(--font-body); background:var(--surface-2); border:1px solid var(--line);
+  color:var(--text); border-radius:6px; padding:11px 12px; font-size:15px; width:100%;
+}
+input:focus,select:focus{outline:2px solid var(--gold); outline-offset:1px;}
+label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; display:block; margin:14px 0 6px;}
+
+.wrap{width:100%; max-width:460px;}
+.cabecalho{text-align:center; margin-bottom:20px;}
+.cabecalho h1{font-size:22px; letter-spacing:0.05em;}
+.cabecalho p{color:var(--text-muted); font-size:13px; margin:4px 0 0;}
+
+.passos{display:flex; justify-content:center; gap:8px; margin-bottom:22px;}
+.passo-dot{width:8px; height:8px; border-radius:50%; background:var(--line);}
+.passo-dot.ativo{background:var(--gold);}
+.passo-dot.feito{background:var(--green);}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:24px 20px;}
+.card h2{font-size:18px; margin-bottom:16px;}
+
+.opcao-servico{
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  padding:14px 16px; margin-bottom:10px; cursor:pointer; text-align:left; width:100%; color:var(--text);
+}
+.opcao-servico:hover{border-color:var(--gold);}
+.opcao-servico.selecionado{border-color:var(--gold); background:rgba(232,163,61,0.08);}
+.opcao-servico-nome{font-weight:600; font-size:14px;}
+.opcao-servico-desc{font-size:12px; color:var(--text-muted); margin-top:2px;}
+.opcao-servico-preco{font-family:var(--font-mono); color:var(--gold); font-weight:600; white-space:nowrap;}
+
+.grid-horarios{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px;}
+.horario-btn{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:10px 4px;
+  color:var(--text); font-family:var(--font-mono); font-size:13px; text-align:center;
+}
+.horario-btn:hover{border-color:var(--gold);}
+.horario-btn.selecionado{background:var(--gold); color:#1A1200; border-color:var(--gold); font-weight:600;}
+.aviso{font-size:13px; color:var(--text-muted); text-align:center; padding:16px 0;}
+.aviso.erro{color:var(--red);}
+
+.resumo{background:var(--surface-2); border-radius:8px; padding:14px 16px; margin-bottom:16px; font-size:13px; line-height:1.7;}
+.resumo b{color:var(--gold);}
+
+.btns{display:flex; gap:10px; margin-top:20px;}
+.btn{border:none; border-radius:6px; padding:13px 18px; font-weight:600; font-size:14px; flex:1;}
+.btn-primary{background:var(--gold); color:#1A1200;}
+.btn-primary:disabled{opacity:0.4; cursor:not-allowed;}
+.btn-ghost{background:transparent; border:1px solid var(--line); color:var(--text);}
+.btn-whats{background:#25D366; color:#06210F; width:100%; padding:14px; border:none; border-radius:6px; font-weight:700; font-size:15px;}
+
+.sucesso{text-align:center;}
+.sucesso .icone{font-size:44px; margin-bottom:8px;}
+.sucesso h2{margin-bottom:6px;}
+.sucesso p{color:var(--text-muted); font-size:13px; margin-bottom:18px;}
+
+.carregando{text-align:center; padding:30px 0; color:var(--text-muted); font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="cabecalho">
+    <h1>Agendar horário</h1>
+    <p>Escolha o serviço, o dia e o horário</p>
+  </div>
+
+  <div class="passos" id="passos">
+    <span class="passo-dot ativo" data-passo="1"></span>
+    <span class="passo-dot" data-passo="2"></span>
+    <span class="passo-dot" data-passo="3"></span>
+    <span class="passo-dot" data-passo="4"></span>
+  </div>
+
+  <div class="card">
+
+    <!-- PASSO 1: SERVIÇO -->
+    <div id="passo-1" class="passo">
+      <h2>1. Qual serviço?</h2>
+      <div id="lista-servicos-publico"><div class="carregando">Carregando serviços...</div></div>
+    </div>
+
+    <!-- PASSO 2: DATA -->
+    <div id="passo-2" class="passo oculto">
+      <h2>2. Qual dia?</h2>
+      <label>Escolha a data</label>
+      <input type="date" id="input-data" />
+      <div id="aviso-data" class="aviso oculto"></div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="irParaPasso(1)">Voltar</button>
+        <button class="btn btn-primary" id="btn-continuar-data" onclick="confirmarData()">Continuar</button>
+      </div>
+    </div>
+
+    <!-- PASSO 3: HORÁRIO -->
+    <div id="passo-3" class="passo oculto">
+      <h2>3. Qual horário?</h2>
+      <div id="grid-horarios" class="grid-horarios"></div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="irParaPasso(2)">Voltar</button>
+      </div>
+    </div>
+
+    <!-- PASSO 4: DADOS DO CLIENTE -->
+    <div id="passo-4" class="passo oculto">
+      <h2>4. Seus dados</h2>
+      <label>Seu nome</label>
+      <input id="input-nome" placeholder="Nome completo" />
+      <label>Seu WhatsApp</label>
+      <input id="input-whatsapp" placeholder="Ex: (14) 99999-9999" />
+      <label>Placa do veículo (opcional)</label>
+      <input id="input-placa" placeholder="ABC1D23" />
+      <label>Modelo do veículo (opcional)</label>
+      <input id="input-modelo" placeholder="Ex: Honda Civic" />
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="irParaPasso(3)">Voltar</button>
+        <button class="btn btn-primary" id="btn-confirmar" onclick="confirmarAgendamento()">Confirmar agendamento</button>
+      </div>
+    </div>
+
+    <!-- SUCESSO -->
+    <div id="passo-sucesso" class="passo sucesso oculto">
+      <div class="icone">✅</div>
+      <h2>Agendamento feito!</h2>
+      <p>Seu horário foi reservado. Se puder, toque no botão abaixo pra avisar a loja pelo WhatsApp.</p>
+      <div class="resumo" id="resumo-final"></div>
+      <button class="btn-whats" id="btn-avisar-loja">Avisar a loja no WhatsApp</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://djwgrdugpirgubjynoih.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YnyyjQKnO2Euf7E-9BPwPA_l4bAKFPv';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const NOMES_DIAS = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
+
+let cacheServicosPub = [];
+let cacheConfigPub = null;
+let servicoEscolhido = null;
+let dataEscolhida = null;
+let horaEscolhida = null;
+
+function horaParaMinutos(hhmm){
+  const [h,m] = hhmm.split(':').map(Number);
+  return h*60+m;
+}
+function minutosParaHora(min){
+  const h = String(Math.floor(min/60)).padStart(2,'0');
+  const m = String(min%60).padStart(2,'0');
+  return `${h}:${m}`;
+}
+function escapeHtml(str){
+  if(str===null || str===undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function formatarDataBr(iso){
+  const [ano,mes,dia] = iso.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+function hojeISO(){
+  const d = new Date();
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth()+1).padStart(2,'0');
+  const dia = String(d.getDate()).padStart(2,'0');
+  return `${ano}-${mes}-${dia}`;
+}
+
+async function iniciar(){
+  document.getElementById('input-data').min = hojeISO();
+
+  const { data: servicos, error: e1 } = await sb.from('servicos').select('*').eq('ativo', true).order('nome');
+  const { data: config, error: e2 } = await sb.from('configuracoes').select('*').eq('id','unica').maybeSingle();
+
+  if(e1 || e2 || !config){
+    document.getElementById('lista-servicos-publico').innerHTML =
+      '<div class="aviso erro">Não foi possível carregar os horários agora. Tente novamente em alguns minutos ou fale direto com a loja.</div>';
+    return;
+  }
+
+  cacheServicosPub = servicos || [];
+  cacheConfigPub = config;
+  renderServicosPublico();
+}
+
+function renderServicosPublico(){
+  const box = document.getElementById('lista-servicos-publico');
+  if(cacheServicosPub.length === 0){
+    box.innerHTML = '<div class="aviso erro">Nenhum serviço disponível no momento.</div>';
+    return;
+  }
+  box.innerHTML = cacheServicosPub.map(s=>`
+    <button class="opcao-servico" data-id="${s.id}" onclick="escolherServico('${s.id}')">
+      <span>
+        <div class="opcao-servico-nome">${escapeHtml(s.nome)}</div>
+        <div class="opcao-servico-desc">${escapeHtml(s.descricao||'')} · ${s.duracao_minutos||60} min</div>
+      </span>
+      <span class="opcao-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
+    </button>
+  `).join('');
+}
+
+function escolherServico(id){
+  servicoEscolhido = cacheServicosPub.find(s=>s.id===id);
+  document.querySelectorAll('.opcao-servico').forEach(b=>b.classList.toggle('selecionado', b.dataset.id===id));
+  setTimeout(()=>irParaPasso(2), 200);
+}
+
+function irParaPasso(n){
+  document.querySelectorAll('.passo').forEach(p=>p.classList.add('oculto'));
+  document.getElementById('passo-'+n).classList.remove('oculto');
+  document.querySelectorAll('.passo-dot').forEach(d=>{
+    const dp = parseInt(d.dataset.passo);
+    d.classList.toggle('ativo', dp===n);
+    d.classList.toggle('feito', dp<n);
+  });
+}
+window.irParaPasso = irParaPasso;
+window.escolherServico = escolherServico;
+
+function confirmarData(){
+  const valor = document.getElementById('input-data').value;
+  const aviso = document.getElementById('aviso-data');
+  if(!valor){ aviso.textContent='Escolha uma data.'; aviso.classList.remove('oculto'); return; }
+  const diaSemana = NOMES_DIAS[new Date(valor+'T12:00:00').getDay()];
+  const cfgDia = (cacheConfigPub.dias_trabalho || {})[diaSemana];
+  if(!cfgDia || !cfgDia.ativo){
+    aviso.textContent = 'Não atendemos nesse dia. Escolha outra data.';
+    aviso.classList.remove('oculto');
+    return;
+  }
+  aviso.classList.add('oculto');
+  dataEscolhida = valor;
+  carregarHorarios();
+  irParaPasso(3);
+}
+window.confirmarData = confirmarData;
+
+async function carregarHorarios(){
+  const grid = document.getElementById('grid-horarios');
+  grid.innerHTML = '<div class="carregando">Buscando horários livres...</div>';
+
+  const diaSemana = NOMES_DIAS[new Date(dataEscolhida+'T12:00:00').getDay()];
+  const cfgDia = cacheConfigPub.dias_trabalho[diaSemana];
+  const duracaoSlot = cacheConfigPub.duracao_slot_minutos || 30;
+  const duracaoServico = servicoEscolhido.duracao_minutos || 60;
+
+  const { data: agendamentosDoDia, error } = await sb.from('agendamentos')
+    .select('hora_inicio, servico_id, status')
+    .eq('data', dataEscolhida)
+    .neq('status', 'cancelado');
+
+  if(error){
+    grid.innerHTML = '<div class="aviso erro">Erro ao buscar horários. Tente de novo.</div>';
+    return;
+  }
+
+  const ocupados = (agendamentosDoDia||[]).map(a=>{
+    const servico = cacheServicosPub.find(s=>s.id===a.servico_id);
+    const dur = servico ? (servico.duracao_minutos||60) : 60;
+    const ini = horaParaMinutos(a.hora_inicio.substring(0,5));
+    return {inicio: ini, fim: ini+dur};
+  });
+
+  const inicioMin = horaParaMinutos(cfgDia.inicio);
+  const fimMin = horaParaMinutos(cfgDia.fim);
+  const agora = new Date();
+  const ehHoje = dataEscolhida === hojeISO();
+  const minutosAgora = agora.getHours()*60 + agora.getMinutes();
+
+  const disponiveis = [];
+  for(let t=inicioMin; t+duracaoServico<=fimMin; t+=duracaoSlot){
+    if(ehHoje && t <= minutosAgora) continue;
+    const fimCandidato = t + duracaoServico;
+    const conflita = ocupados.some(o => t < o.fim && fimCandidato > o.inicio);
+    if(!conflita) disponiveis.push(t);
+  }
+
+  if(disponiveis.length===0){
+    grid.innerHTML = '<div class="aviso erro">Não tem mais horário livre nesse dia. Escolha outra data.</div>';
+    return;
+  }
+
+  grid.innerHTML = disponiveis.map(min=>{
+    const hora = minutosParaHora(min);
+    return `<button class="horario-btn" data-hora="${hora}" onclick="escolherHorario('${hora}')">${hora}</button>`;
+  }).join('');
+}
+
+function escolherHorario(hora){
+  horaEscolhida = hora;
+  document.querySelectorAll('.horario-btn').forEach(b=>b.classList.toggle('selecionado', b.dataset.hora===hora));
+  setTimeout(()=>irParaPasso(4), 200);
+}
+window.escolherHorario = escolherHorario;
+
+async function confirmarAgendamento(){
+  const nome = document.getElementById('input-nome').value.trim();
+  const whatsapp = document.getElementById('input-whatsapp').value.trim().replace(/\D/g,'');
+  const placa = document.getElementById('input-placa').value.trim().toUpperCase();
+  const modelo = document.getElementById('input-modelo').value.trim();
+
+  if(!nome || !whatsapp){
+    alert('Preencha seu nome e WhatsApp pra continuar.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-confirmar');
+  btn.disabled = true;
+  btn.textContent = 'Agendando...';
+
+  try{
+    // acha cliente existente pelo telefone, ou cria um novo
+    let clienteId;
+    const { data: clienteExistente } = await sb.from('clientes').select('id').eq('telefone', whatsapp).maybeSingle();
+    if(clienteExistente){
+      clienteId = clienteExistente.id;
+    }else{
+      const { data: novoCliente, error: erroCliente } = await sb.from('clientes')
+        .insert({nome, telefone: whatsapp}).select('id').single();
+      if(erroCliente) throw erroCliente;
+      clienteId = novoCliente.id;
+    }
+
+    let veiculoId = null;
+    if(placa){
+      const { data: novoVeiculo, error: erroVeiculo } = await sb.from('veiculos')
+        .insert({cliente_id: clienteId, placa, modelo}).select('id').single();
+      if(!erroVeiculo) veiculoId = novoVeiculo.id;
+    }
+
+    const { error: erroAgendamento } = await sb.from('agendamentos').insert({
+      cliente_id: clienteId,
+      veiculo_id: veiculoId,
+      servico_id: servicoEscolhido.id,
+      data: dataEscolhida,
+      hora_inicio: horaEscolhida,
+      status: 'agendado'
+    });
+    if(erroAgendamento) throw erroAgendamento;
+
+    mostrarSucesso(nome);
+  }catch(e){
+    alert('Não foi possível confirmar o agendamento. Tente novamente. (' + (e.message||'erro') + ')');
+    btn.disabled = false;
+    btn.textContent = 'Confirmar agendamento';
+  }
+}
+window.confirmarAgendamento = confirmarAgendamento;
+
+function mostrarSucesso(nome){
+  document.querySelectorAll('.passo').forEach(p=>p.classList.add('oculto'));
+  document.getElementById('passo-sucesso').classList.remove('oculto');
+  document.getElementById('passos').classList.add('oculto');
+
+  const modelo = document.getElementById('input-modelo').value.trim();
+  const placa = document.getElementById('input-placa').value.trim().toUpperCase();
+  const veiculoTxt = [placa, modelo].filter(Boolean).join(' ') || '—';
+
+  document.getElementById('resumo-final').innerHTML = `
+    <div><b>Serviço:</b> ${escapeHtml(servicoEscolhido.nome)}</div>
+    <div><b>Data:</b> ${formatarDataBr(dataEscolhida)}</div>
+    <div><b>Horário:</b> ${horaEscolhida}</div>
+    <div><b>Veículo:</b> ${escapeHtml(veiculoTxt)}</div>
+  `;
+
+  const btnAvisar = document.getElementById('btn-avisar-loja');
+  const foneLoja = cacheConfigPub.telefone_negocio;
+  if(!foneLoja){
+    btnAvisar.classList.add('oculto');
+  }else{
+    btnAvisar.addEventListener('click', ()=>{
+      const msg = `Olá! Acabei de agendar pelo link:\n\n` +
+        `👤 ${nome}\n` +
+        `🧽 Serviço: ${servicoEscolhido.nome}\n` +
+        `📅 Data: ${formatarDataBr(dataEscolhida)}\n` +
+        `⏰ Horário: ${horaEscolhida}\n` +
+        `🚗 Veículo: ${veiculoTxt}`;
+      window.open(`https://wa.me/${foneLoja}?text=${encodeURIComponent(msg)}`, '_blank');
+    });
+  }
+}
+
+iniciar();
+</script>
+</body>
+</html>
