@@ -853,7 +853,7 @@ function renderServicos(){
       <div class="servico-desc">${escapeHtml(s.descricao||'')}</div>
       <div class="servico-meta">
         <span class="servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
-        <span>${s.duracao_minutos||60} min</span>
+        <span>${formatarDuracao(s.duracao_minutos||60)}</span>
       </div>
       <div class="ticket-acoes">
         <button class="btn btn-ghost btn-sm" onclick="abrirModalServico('${s.id}')">Editar</button>
@@ -861,6 +861,23 @@ function renderServicos(){
       </div>
     </div>
   `).join('');
+}
+
+// Duração dos serviços: de 30 em 30 minutos, de 30 min até 4h30
+function formatarDuracao(min){
+  const h = Math.floor(min/60);
+  const m = min%60;
+  if(h===0) return `${m} min`;
+  if(m===0) return `${h}h`;
+  return `${h}h${String(m).padStart(2,'0')}`;
+}
+function opcoesDuracaoServico(atual){
+  const valor = atual || 60;
+  const passos = [];
+  for(let m=30; m<=270; m+=30) passos.push(m);
+  if(!passos.includes(valor)) passos.push(valor);
+  passos.sort((a,b)=>a-b);
+  return passos.map(m=>`<option value="${m}" ${m===valor?'selected':''}>${formatarDuracao(m)}</option>`).join('');
 }
 
 document.getElementById('btn-novo-servico').addEventListener('click', ()=>abrirModalServico(null));
@@ -873,9 +890,11 @@ function abrirModalServico(id){
     <input id="m-nome" value="${s?escapeHtml(s.nome):''}" placeholder="Ex: Polimento técnico" />
     <label>Descrição</label>
     <textarea id="m-desc" rows="2">${s?escapeHtml(s.descricao||''):''}</textarea>
+    <label>Etapas do serviço <span style="text-transform:none; letter-spacing:0; color:var(--text-muted);">(aparece só no botão "!" pro cliente, no link de agendamento)</span></label>
+    <textarea id="m-etapas" rows="4" placeholder="Ex:&#10;1. Lavagem externa com xampu neutro&#10;2. Limpeza dos vidros&#10;3. Aspiração interna&#10;4. Aplicação de pretinho nos pneus">${s?escapeHtml(s.etapas||''):''}</textarea>
     <div class="linha-2">
       <div><label>Preço (R$)</label><input id="m-preco" type="number" step="0.01" value="${s?s.preco:''}" /></div>
-      <div><label>Duração (min)</label><input id="m-duracao" type="number" value="${s?s.duracao_minutos:60}" /></div>
+      <div><label>Duração</label><select id="m-duracao">${opcoesDuracaoServico(s?s.duracao_minutos:60)}</select></div>
     </div>
     <label><input type="checkbox" id="m-ativo" style="width:auto;" ${s? (s.ativo?'checked':'') : 'checked'}/> Serviço ativo</label>
     <div class="modal-acoes">
@@ -889,15 +908,16 @@ window.abrirModalServico = abrirModalServico;
 async function salvarServico(id){
   const nome = document.getElementById('m-nome').value.trim();
   const descricao = document.getElementById('m-desc').value.trim();
+  const etapas = document.getElementById('m-etapas').value.trim();
   const preco = parseFloat(document.getElementById('m-preco').value)||0;
   const duracao_minutos = parseInt(document.getElementById('m-duracao').value)||60;
   const ativo = document.getElementById('m-ativo').checked;
   if(!nome){ toast('Informe o nome do serviço'); return; }
   let error;
   if(id){
-    ({error} = await sb.from('servicos').update({nome, descricao, preco, duracao_minutos, ativo}).eq('id', id));
+    ({error} = await sb.from('servicos').update({nome, descricao, etapas, preco, duracao_minutos, ativo}).eq('id', id));
   }else{
-    ({error} = await sb.from('servicos').insert({nome, descricao, preco, duracao_minutos, ativo}));
+    ({error} = await sb.from('servicos').insert({nome, descricao, etapas, preco, duracao_minutos, ativo}));
   }
   if(error){ toast('Erro ao salvar serviço'); return; }
   fecharModal();

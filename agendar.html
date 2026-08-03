@@ -62,6 +62,23 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .opcao-servico-nome{font-weight:600; font-size:14px;}
 .opcao-servico-desc{font-size:12px; color:var(--text-muted); margin-top:2px;}
 .opcao-servico-preco{font-family:var(--font-mono); color:var(--gold); font-weight:600; white-space:nowrap;}
+.btn-info{
+  display:inline-flex; align-items:center; justify-content:center; vertical-align:middle;
+  width:18px; height:18px; border-radius:50%; background:var(--blue); color:#06202B;
+  font-size:11px; font-weight:700; border:none; margin-left:6px; padding:0; cursor:pointer;
+}
+.btn-info:hover{opacity:0.85;}
+
+.modal-overlay-pub{
+  position:fixed; inset:0; background:rgba(10,11,13,0.8); backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center; padding:20px; z-index:200;
+}
+.modal-box-pub{
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  padding:22px; max-width:380px; width:100%;
+}
+.modal-box-pub h3{font-size:16px; margin-bottom:12px;}
+.modal-box-pub p{font-size:14px; color:var(--text-muted); line-height:1.6; white-space:pre-line; margin:0 0 18px;}
 
 .grid-horarios{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:14px;}
 .horario-btn{
@@ -70,6 +87,19 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 }
 .horario-btn:hover{border-color:var(--gold);}
 .horario-btn.selecionado{background:var(--gold); color:#1A1200; border-color:var(--gold); font-weight:600;}
+
+.mes-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+.mes-label{font-family:var(--font-display); font-size:15px; letter-spacing:0.04em; text-transform:uppercase;}
+.btn-mes{background:var(--surface-2); border:1px solid var(--line); color:var(--text); width:36px; height:36px; border-radius:6px; font-size:18px; line-height:1; display:flex; align-items:center; justify-content:center;}
+.btn-mes:hover{border-color:var(--gold);}
+.btn-mes:disabled{opacity:0.3; cursor:not-allowed;}
+.grid-dias{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-height:300px; overflow-y:auto; padding-right:2px;}
+.dia-btn{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:11px 4px;
+  color:var(--text); font-family:var(--font-mono); font-size:13px; text-align:center;
+}
+.dia-btn:hover{border-color:var(--gold);}
+.dia-btn.selecionado{background:var(--gold); color:#1A1200; border-color:var(--gold); font-weight:600;}
 .aviso{font-size:13px; color:var(--text-muted); text-align:center; padding:16px 0;}
 .aviso.erro{color:var(--red);}
 
@@ -104,6 +134,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
     <span class="passo-dot" data-passo="2"></span>
     <span class="passo-dot" data-passo="3"></span>
     <span class="passo-dot" data-passo="4"></span>
+    <span class="passo-dot" data-passo="5"></span>
   </div>
 
   <div class="card">
@@ -117,12 +148,15 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
     <!-- PASSO 2: DATA -->
     <div id="passo-2" class="passo oculto">
       <h2>2. Qual dia?</h2>
-      <label>Escolha a data</label>
-      <input type="date" id="input-data" />
+      <div class="mes-nav">
+        <button class="btn-mes" id="btn-mes-anterior" onclick="mudarMes(-1)">‹</button>
+        <span id="mes-label" class="mes-label"></span>
+        <button class="btn-mes" id="btn-mes-proximo" onclick="mudarMes(1)">›</button>
+      </div>
+      <div id="grid-dias" class="grid-dias"></div>
       <div id="aviso-data" class="aviso oculto"></div>
       <div class="btns">
         <button class="btn btn-ghost" onclick="irParaPasso(1)">Voltar</button>
-        <button class="btn btn-primary" id="btn-continuar-data" onclick="confirmarData()">Continuar</button>
       </div>
     </div>
 
@@ -148,6 +182,16 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
       <input id="input-modelo" placeholder="Ex: Honda Civic" />
       <div class="btns">
         <button class="btn btn-ghost" onclick="irParaPasso(3)">Voltar</button>
+        <button class="btn btn-primary" id="btn-continuar-dados" onclick="irParaResumo()">Continuar</button>
+      </div>
+    </div>
+
+    <!-- PASSO 5: RESUMO -->
+    <div id="passo-5" class="passo oculto">
+      <h2>5. Resumo</h2>
+      <div class="resumo" id="resumo-etapa"></div>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="irParaPasso(4)">Voltar</button>
         <button class="btn btn-primary" id="btn-confirmar" onclick="confirmarAgendamento()">Confirmar agendamento</button>
       </div>
     </div>
@@ -161,6 +205,14 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
       <button class="btn-whats" id="btn-avisar-loja">Avisar a loja no WhatsApp</button>
     </div>
 
+  </div>
+</div>
+
+<div id="modal-etapas" class="modal-overlay-pub oculto" onclick="if(event.target===this) fecharEtapas()">
+  <div class="modal-box-pub">
+    <h3 id="modal-etapas-titulo"></h3>
+    <p id="modal-etapas-texto"></p>
+    <button class="btn btn-ghost" style="width:100%;" onclick="fecharEtapas()">Fechar</button>
   </div>
 </div>
 
@@ -195,6 +247,13 @@ function formatarDataBr(iso){
   const [ano,mes,dia] = iso.split('-');
   return `${dia}/${mes}/${ano}`;
 }
+function formatarDuracao(min){
+  const h = Math.floor(min/60);
+  const m = min%60;
+  if(h===0) return `${m} min`;
+  if(m===0) return `${h}h`;
+  return `${h}h${String(m).padStart(2,'0')}`;
+}
 function hojeISO(){
   const d = new Date();
   const ano = d.getFullYear();
@@ -204,7 +263,8 @@ function hojeISO(){
 }
 
 async function iniciar(){
-  document.getElementById('input-data').min = hojeISO();
+  mesAtual = new Date();
+  mesAtual.setDate(1);
 
   const { data: servicos, error: e1 } = await sb.from('servicos').select('*').eq('ativo', true).order('nome');
   const { data: config, error: e2 } = await sb.from('configuracoes').select('*').eq('id','unica').maybeSingle();
@@ -218,6 +278,7 @@ async function iniciar(){
   cacheServicosPub = servicos || [];
   cacheConfigPub = config;
   renderServicosPublico();
+  renderGridDias();
 }
 
 function renderServicosPublico(){
@@ -227,15 +288,35 @@ function renderServicosPublico(){
     return;
   }
   box.innerHTML = cacheServicosPub.map(s=>`
-    <button class="opcao-servico" data-id="${s.id}" onclick="escolherServico('${s.id}')">
+    <div class="opcao-servico" data-id="${s.id}" onclick="escolherServico('${s.id}')">
       <span>
-        <div class="opcao-servico-nome">${escapeHtml(s.nome)}</div>
-        <div class="opcao-servico-desc">${escapeHtml(s.descricao||'')} · ${s.duracao_minutos||60} min</div>
+        <div class="opcao-servico-nome">
+          ${escapeHtml(s.nome)}
+          <button type="button" class="btn-info" title="Ver etapas do serviço" onclick="abrirEtapas('${s.id}', event)">!</button>
+        </div>
+        <div class="opcao-servico-desc">${escapeHtml(s.descricao||'')} · ${formatarDuracao(s.duracao_minutos||60)}</div>
       </span>
       <span class="opcao-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
-    </button>
+    </div>
   `).join('');
 }
+
+function abrirEtapas(id, ev){
+  ev.stopPropagation();
+  const s = cacheServicosPub.find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('modal-etapas-titulo').textContent = s.nome;
+  document.getElementById('modal-etapas-texto').textContent = s.etapas && s.etapas.trim()
+    ? s.etapas
+    : 'Nenhuma etapa cadastrada para esse serviço ainda.';
+  document.getElementById('modal-etapas').classList.remove('oculto');
+}
+window.abrirEtapas = abrirEtapas;
+
+function fecharEtapas(){
+  document.getElementById('modal-etapas').classList.add('oculto');
+}
+window.fecharEtapas = fecharEtapas;
 
 function escolherServico(id){
   servicoEscolhido = cacheServicosPub.find(s=>s.id===id);
@@ -255,23 +336,63 @@ function irParaPasso(n){
 window.irParaPasso = irParaPasso;
 window.escolherServico = escolherServico;
 
-function confirmarData(){
-  const valor = document.getElementById('input-data').value;
+let mesAtual = null;
+
+function dataParaISO(d){
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth()+1).padStart(2,'0');
+  const dia = String(d.getDate()).padStart(2,'0');
+  return `${ano}-${mes}-${dia}`;
+}
+
+function mudarMes(delta){
+  mesAtual.setMonth(mesAtual.getMonth()+delta);
+  renderGridDias();
+}
+window.mudarMes = mudarMes;
+
+function renderGridDias(){
+  const nomesMeses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const abrevDias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  document.getElementById('mes-label').textContent = `${nomesMeses[mesAtual.getMonth()]} de ${mesAtual.getFullYear()}`;
+
+  const hoje = new Date();
+  const mesmoMesDeHoje = mesAtual.getFullYear()===hoje.getFullYear() && mesAtual.getMonth()===hoje.getMonth();
+  document.getElementById('btn-mes-anterior').disabled = mesmoMesDeHoje;
+
+  const hojeIso = hojeISO();
+  const diasNoMes = new Date(mesAtual.getFullYear(), mesAtual.getMonth()+1, 0).getDate();
+  const botoes = [];
+  for(let d=1; d<=diasNoMes; d++){
+    const dataObj = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), d);
+    const iso = dataParaISO(dataObj);
+    if(iso < hojeIso) continue;
+    const diaSemanaIdx = dataObj.getDay();
+    const chaveDia = NOMES_DIAS[diaSemanaIdx];
+    const cfgDia = (cacheConfigPub.dias_trabalho||{})[chaveDia];
+    if(!cfgDia || !cfgDia.ativo) continue;
+    botoes.push({iso, label: `${abrevDias[diaSemanaIdx]} - ${String(d).padStart(2,'0')}`});
+  }
+
+  const grid = document.getElementById('grid-dias');
   const aviso = document.getElementById('aviso-data');
-  if(!valor){ aviso.textContent='Escolha uma data.'; aviso.classList.remove('oculto'); return; }
-  const diaSemana = NOMES_DIAS[new Date(valor+'T12:00:00').getDay()];
-  const cfgDia = (cacheConfigPub.dias_trabalho || {})[diaSemana];
-  if(!cfgDia || !cfgDia.ativo){
-    aviso.textContent = 'Não atendemos nesse dia. Escolha outra data.';
+  if(botoes.length===0){
+    grid.innerHTML = '';
+    aviso.textContent = 'Nenhum dia disponível nesse mês. Tente o próximo mês.';
     aviso.classList.remove('oculto');
     return;
   }
   aviso.classList.add('oculto');
-  dataEscolhida = valor;
-  carregarHorarios();
-  irParaPasso(3);
+  grid.innerHTML = botoes.map(b=>`<button class="dia-btn" data-iso="${b.iso}" onclick="escolherData('${b.iso}')">${b.label}</button>`).join('');
 }
-window.confirmarData = confirmarData;
+
+function escolherData(iso){
+  dataEscolhida = iso;
+  document.querySelectorAll('.dia-btn').forEach(b=>b.classList.toggle('selecionado', b.dataset.iso===iso));
+  carregarHorarios();
+  setTimeout(()=>irParaPasso(3), 200);
+}
+window.escolherData = escolherData;
 
 async function carregarHorarios(){
   const grid = document.getElementById('grid-horarios');
@@ -330,6 +451,32 @@ function escolherHorario(hora){
   setTimeout(()=>irParaPasso(4), 200);
 }
 window.escolherHorario = escolherHorario;
+
+function irParaResumo(){
+  const nome = document.getElementById('input-nome').value.trim();
+  const whatsapp = document.getElementById('input-whatsapp').value.trim();
+  if(!nome || !whatsapp){
+    alert('Preencha seu nome e WhatsApp pra continuar.');
+    return;
+  }
+  renderResumo();
+  irParaPasso(5);
+}
+window.irParaResumo = irParaResumo;
+
+function renderResumo(){
+  const placa = document.getElementById('input-placa').value.trim().toUpperCase();
+  const modelo = document.getElementById('input-modelo').value.trim();
+  const veiculoTxt = [placa, modelo].filter(Boolean).join(' ') || '—';
+  document.getElementById('resumo-etapa').innerHTML = `
+    <div><b>Serviço:</b> ${escapeHtml(servicoEscolhido.nome)}</div>
+    <div><b>Dia:</b> ${formatarDataBr(dataEscolhida)}</div>
+    <div><b>Horário:</b> ${horaEscolhida}</div>
+    <div><b>Duração:</b> ${formatarDuracao(servicoEscolhido.duracao_minutos||60)}</div>
+    <div><b>Valor:</b> R$ ${Number(servicoEscolhido.preco||0).toFixed(2)}</div>
+    <div><b>Veículo:</b> ${escapeHtml(veiculoTxt)}</div>
+  `;
+}
 
 async function confirmarAgendamento(){
   const nome = document.getElementById('input-nome').value.trim();
