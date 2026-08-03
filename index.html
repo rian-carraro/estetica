@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Box Manager — Estética Automotiva</title>
+<title>Estética Automotiva</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -327,12 +327,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
     <aside class="sidebar">
       <div class="logo">
         <span class="logo-mark">●</span>
-        <span class="logo-txt">BOX<br/>MANAGER</span>
+        <span class="logo-txt">ESTETICA<br/>MANAGER</span>
       </div>
       <nav class="nav">
         <button class="nav-item ativo" data-tab="dashboard">Painel</button>
         <button class="nav-item" data-tab="agenda">Agenda</button>
-        <button class="nav-item" data-tab="clientes">Clientes &amp; Veículos</button>
+        <button class="nav-item" data-tab="clientes">Clientes</button>
         <button class="nav-item" data-tab="servicos">Serviços</button>
         <button class="nav-item" data-tab="estoque">Estoque</button>
         <button class="nav-item" data-tab="historico">Histórico</button>
@@ -346,7 +346,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
       <section id="tab-dashboard" class="tab ativo">
         <header class="tab-header">
           <div>
-            <p class="eyebrow">Hoje / <span id="data-hoje"></span></p>
+            <p class="eyebrow">Hoje <span id="data-hoje"></span></p>
             <h2>Painel do dia</h2>
           </div>
         </header>
@@ -399,12 +399,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <div id="lista-agenda-completa" class="lista-agendamentos"></div>
       </section>
 
-      <!-- CLIENTES & VEÍCULOS -->
+      <!--  -->
       <section id="tab-clientes" class="tab">
         <header class="tab-header">
           <div>
             <p class="eyebrow">Cadastro</p>
-            <h2>Clientes &amp; Veículos</h2>
+            <h2>Clientes</h2>
           </div>
           <button class="btn btn-primary" id="btn-novo-cliente">+ Novo cliente</button>
         </header>
@@ -476,7 +476,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 
         <div class="config-secao">
           <h3>Mensagem de confirmação (WhatsApp)</h3>
-          <p class="config-texto-ajuda">Use estas variáveis, que são substituídas automaticamente: <code>{cliente}</code> <code>{data}</code> <code>{hora}</code> <code>{veiculo}</code> <code>{servico}</code></p>
+          <p class="config-texto-ajuda">Use estas variáveis, que são substituídas automaticamente: <br/> <code>{cliente}</code> <code>{data}</code> <code>{hora}</code> <code>{veiculo}</code> <code>{servico}</code></p>
           <textarea id="cfg-mensagem" rows="8"></textarea>
           <button class="btn btn-primary" id="btn-salvar-mensagem">Salvar mensagem</button>
         </div>
@@ -613,7 +613,7 @@ async function carregarTudo(){
 }
 
 /* =========================================================
-   CLIENTES & VEÍCULOS
+   
    ========================================================= */
 async function carregarClientes(){
   const { data: clientes, error } = await sb.from('clientes').select('*').order('nome');
@@ -699,7 +699,7 @@ async function salvarCliente(id){
 window.salvarCliente = salvarCliente;
 
 async function removerCliente(id){
-  if(!confirm('Excluir este cliente e os veículos vinculados?')) return;
+  if(!confirm('Excluir este cliente e os vinculados?')) return;
   const { error } = await sb.from('clientes').delete().eq('id', id);
   if(error){ toast('Erro ao excluir'); return; }
   toast('Cliente excluído');
@@ -1131,7 +1131,7 @@ function atualizarVeiculosModal(){
   const clienteId = document.getElementById('m-cliente').value;
   const sel = document.getElementById('m-veiculo');
   const veic = cacheVeiculos.filter(v=>v.cliente_id===clienteId);
-  sel.innerHTML = veic.map(v=>`<option value="${v.id}">${escapeHtml(v.placa)} ${escapeHtml(v.modelo||'')}</option>`).join('') || '<option value="">Sem veículos</option>';
+  sel.innerHTML = veic.map(v=>`<option value="${v.id}">${escapeHtml(v.placa)} ${escapeHtml(v.modelo||'')}</option>`).join('') || '<option value="">Sem</option>';
 }
 window.atualizarVeiculosModal = atualizarVeiculosModal;
 
