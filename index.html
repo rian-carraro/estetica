@@ -223,6 +223,10 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .servico-inativo{opacity:0.45;}
 .badge-inativo{font-size:10px; text-transform:uppercase; background:var(--surface-2); padding:2px 8px; border-radius:10px; color:var(--text-muted); align-self:flex-start;}
 
+/* ---------- SUB SERVIÇOS ---------- */
+.badge-visivel{font-size:10px; text-transform:uppercase; background:rgba(95,184,106,0.15); color:var(--green); padding:2px 8px; border-radius:10px; align-self:flex-start;}
+.badge-oculto{font-size:10px; text-transform:uppercase; background:var(--surface-2); color:var(--text-muted); padding:2px 8px; border-radius:10px; align-self:flex-start;}
+
 /* ---------- ESTOQUE ---------- */
 .filtro-categoria{display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;}
 .filtro-chip{
@@ -415,12 +419,18 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
       <section id="tab-servicos" class="tab">
         <header class="tab-header">
           <div>
-            <p class="eyebrow">Catálogo</p>
-            <h2>Serviços</h2>
+            <p class="eyebrow" id="servicos-eyebrow">Catálogo</p>
+            <h2 id="servicos-titulo">Serviços</h2>
           </div>
           <button class="btn btn-primary" id="btn-novo-servico">+ Novo serviço</button>
         </header>
+        <div class="agenda-modos">
+          <button class="btn btn-ghost modo-ativo" id="btn-modo-servicos" onclick="mudarModoServicos('servicos')">Serviços</button>
+          <button class="btn btn-ghost" id="btn-modo-sub-servicos" onclick="mudarModoServicos('sub')">Sub Serviços</button>
+        </div>
+        <p class="config-texto-ajuda oculto" id="sub-servicos-ajuda">Itens extras que não entram no fluxo de agendamento. Use o botão "Mostrar pro cliente" pra decidir se cada um aparece na aba "Outros serviços" da página pública de agendamento.</p>
         <div id="lista-servicos" class="grid-servicos"></div>
+        <div id="lista-sub-servicos" class="grid-servicos oculto"></div>
       </section>
 
       <!-- ESTOQUE -->
@@ -606,7 +616,7 @@ let cacheProdutos = [];
 async function carregarTudo(){
   document.getElementById('data-hoje').textContent = formatarData(hojeISO());
   document.getElementById('filtro-data-agenda').value = hojeISO();
-  await Promise.all([carregarClientes(), carregarServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes()]);
+  await Promise.all([carregarClientes(), carregarServicos(), carregarSubServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes()]);
   await carregarAgendamentos();
   renderDashboard();
   renderHistorico();
@@ -880,7 +890,25 @@ function opcoesDuracaoServico(atual){
   return passos.map(m=>`<option value="${m}" ${m===valor?'selected':''}>${formatarDuracao(m)}</option>`).join('');
 }
 
-document.getElementById('btn-novo-servico').addEventListener('click', ()=>abrirModalServico(null));
+let modoServicosAtual = 'servicos';
+
+function mudarModoServicos(modo){
+  modoServicosAtual = modo;
+  document.getElementById('btn-modo-servicos').classList.toggle('modo-ativo', modo==='servicos');
+  document.getElementById('btn-modo-sub-servicos').classList.toggle('modo-ativo', modo==='sub');
+  document.getElementById('lista-servicos').classList.toggle('oculto', modo!=='servicos');
+  document.getElementById('lista-sub-servicos').classList.toggle('oculto', modo!=='sub');
+  document.getElementById('sub-servicos-ajuda').classList.toggle('oculto', modo!=='sub');
+  document.getElementById('servicos-eyebrow').textContent = modo==='sub' ? 'Extras & complementos' : 'Catálogo';
+  document.getElementById('servicos-titulo').textContent = modo==='sub' ? 'Sub Serviços' : 'Serviços';
+  document.getElementById('btn-novo-servico').textContent = modo==='sub' ? '+ Novo sub serviço' : '+ Novo serviço';
+}
+window.mudarModoServicos = mudarModoServicos;
+
+document.getElementById('btn-novo-servico').addEventListener('click', ()=>{
+  if(modoServicosAtual === 'sub') abrirModalSubServico(null);
+  else abrirModalServico(null);
+});
 
 function abrirModalServico(id){
   const s = id ? cacheServicos.find(x=>x.id===id) : null;
@@ -933,6 +961,97 @@ async function removerServico(id){
   toast('Serviço excluído');
   carregarServicos();
 }
+
+/* =========================================================
+   SUB SERVIÇOS (itens extras, exibidos ou não pro cliente)
+   ========================================================= */
+let cacheSubServicos = [];
+
+async function carregarSubServicos(){
+  const { data, error } = await sb.from('sub_servicos').select('*').order('nome');
+  if(error){ toast('Não encontrei a tabela de sub serviços — rode o schema atualizado no Supabase.'); return; }
+  cacheSubServicos = data || [];
+  renderSubServicos();
+}
+
+function renderSubServicos(){
+  const box = document.getElementById('lista-sub-servicos');
+  if(!box) return;
+  if(cacheSubServicos.length===0){
+    box.innerHTML = '<p class="vazio">Nenhum sub serviço cadastrado.</p>';
+    return;
+  }
+  box.innerHTML = cacheSubServicos.map(s=>`
+    <div class="servico-card">
+      <span class="${s.exibir_cliente?'badge-visivel':'badge-oculto'}">${s.exibir_cliente?'Visível pro cliente':'Oculto pro cliente'}</span>
+      <div class="servico-nome">${escapeHtml(s.nome)}</div>
+      <div class="servico-desc">${escapeHtml(s.descricao||'')}</div>
+      <div class="servico-meta">
+        <span class="servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
+      </div>
+      <div class="ticket-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="toggleExibirSubServico('${s.id}', ${s.exibir_cliente})">${s.exibir_cliente?'Ocultar do cliente':'Mostrar pro cliente'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalSubServico('${s.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerSubServico('${s.id}')">Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function abrirModalSubServico(id){
+  const s = id ? cacheSubServicos.find(x=>x.id===id) : null;
+  abrirModal(`
+    <h3>${s?'Editar sub serviço':'Novo sub serviço'}</h3>
+    <label>Nome</label>
+    <input id="m-nome" value="${s?escapeHtml(s.nome):''}" placeholder="Ex: Higienização de bancos" />
+    <label>Descrição</label>
+    <textarea id="m-desc" rows="3">${s?escapeHtml(s.descricao||''):''}</textarea>
+    <label>Preço (R$)</label>
+    <input id="m-preco" type="number" step="0.01" value="${s?s.preco:''}" />
+    <label><input type="checkbox" id="m-exibir" style="width:auto;" ${s? (s.exibir_cliente?'checked':'') : 'checked'}/> Mostrar na aba "Outros serviços" pro cliente</label>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarSubServico(${s?`'${s.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalSubServico = abrirModalSubServico;
+
+async function salvarSubServico(id){
+  const nome = document.getElementById('m-nome').value.trim();
+  const descricao = document.getElementById('m-desc').value.trim();
+  const preco = parseFloat(document.getElementById('m-preco').value)||0;
+  const exibir_cliente = document.getElementById('m-exibir').checked;
+  if(!nome){ toast('Informe o nome do sub serviço'); return; }
+  let error;
+  if(id){
+    ({error} = await sb.from('sub_servicos').update({nome, descricao, preco, exibir_cliente}).eq('id', id));
+  }else{
+    ({error} = await sb.from('sub_servicos').insert({nome, descricao, preco, exibir_cliente}));
+  }
+  if(error){ toast('Erro ao salvar sub serviço'); return; }
+  fecharModal();
+  toast('Sub serviço salvo!');
+  carregarSubServicos();
+}
+window.salvarSubServico = salvarSubServico;
+
+async function toggleExibirSubServico(id, atual){
+  const { error } = await sb.from('sub_servicos').update({exibir_cliente: !atual}).eq('id', id);
+  if(error){ toast('Erro ao atualizar visibilidade'); return; }
+  toast(!atual ? 'Agora aparece pro cliente' : 'Agora está oculto do cliente');
+  carregarSubServicos();
+}
+window.toggleExibirSubServico = toggleExibirSubServico;
+
+async function removerSubServico(id){
+  if(!confirm('Excluir este sub serviço?')) return;
+  const { error } = await sb.from('sub_servicos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Sub serviço excluído');
+  carregarSubServicos();
+}
+window.removerSubServico = removerSubServico;
 window.removerServico = removerServico;
 
 /* =========================================================

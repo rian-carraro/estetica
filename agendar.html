@@ -119,6 +119,20 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .sucesso p{color:var(--text-muted); font-size:13px; margin-bottom:18px;}
 
 .carregando{text-align:center; padding:30px 0; color:var(--text-muted); font-size:13px;}
+
+/* ---------- OUTROS SERVIÇOS (sub serviços) ---------- */
+.outros-servicos{margin-top:20px;}
+.outros-servicos h2{font-size:16px; margin-bottom:4px;}
+.outros-servicos-sub{font-size:12px; color:var(--text-muted); margin:0 0 14px;}
+.sub-servico-card{
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  padding:14px 16px; margin-bottom:10px;
+}
+.sub-servico-info{display:flex; flex-direction:column; gap:2px;}
+.sub-servico-nome{font-weight:600; font-size:14px;}
+.sub-servico-desc{font-size:12px; color:var(--text-muted);}
+.sub-servico-preco{font-family:var(--font-mono); color:var(--gold); font-weight:600; white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -206,6 +220,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
     </div>
 
   </div>
+
+  <div id="outros-servicos" class="outros-servicos card oculto">
+    <h2>Outros serviços</h2>
+    <p class="outros-servicos-sub">Não fazem parte do agendamento por horário — fale com a gente pelo WhatsApp pra combinar.</p>
+    <div id="lista-outros-servicos"></div>
+  </div>
 </div>
 
 <div id="modal-etapas" class="modal-overlay-pub oculto" onclick="if(event.target===this) fecharEtapas()">
@@ -279,6 +299,26 @@ async function iniciar(){
   cacheConfigPub = config;
   renderServicosPublico();
   renderGridDias();
+  carregarOutrosServicos();
+}
+
+async function carregarOutrosServicos(){
+  const { data, error } = await sb.from('sub_servicos').select('*').eq('exibir_cliente', true).order('nome');
+  const box = document.getElementById('outros-servicos');
+  if(error || !data || data.length===0){
+    box.classList.add('oculto');
+    return;
+  }
+  document.getElementById('lista-outros-servicos').innerHTML = data.map(s=>`
+    <div class="sub-servico-card">
+      <div class="sub-servico-info">
+        <div class="sub-servico-nome">${escapeHtml(s.nome)}</div>
+        <div class="sub-servico-desc">${escapeHtml(s.descricao||'')}</div>
+      </div>
+      <span class="sub-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
+    </div>
+  `).join('');
+  box.classList.remove('oculto');
 }
 
 function renderServicosPublico(){
