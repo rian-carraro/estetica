@@ -222,6 +222,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .servico-preco{font-family:var(--font-mono); color:var(--gold); font-weight:600; font-size:16px;}
 .servico-inativo{opacity:0.45;}
 .badge-inativo{font-size:10px; text-transform:uppercase; background:var(--surface-2); padding:2px 8px; border-radius:10px; color:var(--text-muted); align-self:flex-start;}
+.badge-tipo-veiculo{font-size:10px; text-transform:uppercase; background:var(--surface-2); padding:2px 8px; border-radius:10px; color:var(--blue); align-self:flex-start;}
 
 /* ---------- SUB SERVIÇOS ---------- */
 .badge-visivel{font-size:10px; text-transform:uppercase; background:rgba(95,184,106,0.15); color:var(--green); padding:2px 8px; border-radius:10px; align-self:flex-start;}
@@ -859,6 +860,7 @@ function renderServicos(){
   box.innerHTML = cacheServicos.map(s=>`
     <div class="servico-card ${s.ativo?'':'servico-inativo'}">
       ${s.ativo?'':'<span class="badge-inativo">Inativo</span>'}
+      <span class="badge-tipo-veiculo">${s.tipo_veiculo==='moto'?'🏍️ Moto':'🚗 Carro'}</span>
       <div class="servico-nome">${escapeHtml(s.nome)}</div>
       <div class="servico-desc">${escapeHtml(s.descricao||'')}</div>
       <div class="servico-meta">
@@ -924,6 +926,11 @@ function abrirModalServico(id){
       <div><label>Preço (R$)</label><input id="m-preco" type="number" step="0.01" value="${s?s.preco:''}" /></div>
       <div><label>Duração</label><select id="m-duracao">${opcoesDuracaoServico(s?s.duracao_minutos:60)}</select></div>
     </div>
+    <label>Tipo de veículo</label>
+    <select id="m-tipo-veiculo">
+      <option value="carro" ${!s || s.tipo_veiculo!=='moto' ? 'selected':''}>🚗 Carro</option>
+      <option value="moto" ${s && s.tipo_veiculo==='moto' ? 'selected':''}>🏍️ Moto</option>
+    </select>
     <label><input type="checkbox" id="m-ativo" style="width:auto;" ${s? (s.ativo?'checked':'') : 'checked'}/> Serviço ativo</label>
     <div class="modal-acoes">
       <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
@@ -939,13 +946,14 @@ async function salvarServico(id){
   const etapas = document.getElementById('m-etapas').value.trim();
   const preco = parseFloat(document.getElementById('m-preco').value)||0;
   const duracao_minutos = parseInt(document.getElementById('m-duracao').value)||60;
+  const tipo_veiculo = document.getElementById('m-tipo-veiculo').value;
   const ativo = document.getElementById('m-ativo').checked;
   if(!nome){ toast('Informe o nome do serviço'); return; }
   let error;
   if(id){
-    ({error} = await sb.from('servicos').update({nome, descricao, etapas, preco, duracao_minutos, ativo}).eq('id', id));
+    ({error} = await sb.from('servicos').update({nome, descricao, etapas, preco, duracao_minutos, tipo_veiculo, ativo}).eq('id', id));
   }else{
-    ({error} = await sb.from('servicos').insert({nome, descricao, etapas, preco, duracao_minutos, ativo}));
+    ({error} = await sb.from('servicos').insert({nome, descricao, etapas, preco, duracao_minutos, tipo_veiculo, ativo}));
   }
   if(error){ toast('Erro ao salvar serviço'); return; }
   fecharModal();
@@ -990,7 +998,7 @@ function renderSubServicos(){
         <span class="servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
       </div>
       <div class="ticket-acoes">
-        <button class="btn btn-ghost btn-sm" onclick="toggleExibirSubServico('${s.id}', ${s.exibir_cliente})">${s.exibir_cliente?'Ocultar do cliente':'Mostrar pro cliente'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleExibirSubServico('${s.id}', ${s.exibir_cliente})">${s.exibir_cliente?'Ocultar':'Mostrar'}</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirModalSubServico('${s.id}')">Editar</button>
         <button class="btn btn-danger btn-sm" onclick="removerSubServico('${s.id}')">Excluir</button>
       </div>

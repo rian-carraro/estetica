@@ -62,6 +62,8 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .opcao-servico-nome{font-weight:600; font-size:14px;}
 .opcao-servico-desc{font-size:12px; color:var(--text-muted); margin-top:2px;}
 .opcao-servico-preco{font-family:var(--font-mono); color:var(--gold); font-weight:600; white-space:nowrap;}
+.grupo-servicos-titulo{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin:18px 0 10px;}
+.grupo-servicos-titulo:first-child{margin-top:0;}
 .btn-info{
   display:inline-flex; align-items:center; justify-content:center; vertical-align:middle;
   width:18px; height:18px; border-radius:50%; background:var(--blue); color:#06202B;
@@ -327,7 +329,21 @@ function renderServicosPublico(){
     box.innerHTML = '<div class="aviso erro">Nenhum serviço disponível no momento.</div>';
     return;
   }
-  box.innerHTML = cacheServicosPub.map(s=>`
+  const deCarro = cacheServicosPub.filter(s=>s.tipo_veiculo!=='moto');
+  const deMoto = cacheServicosPub.filter(s=>s.tipo_veiculo==='moto');
+
+  let html = '';
+  if(deCarro.length){
+    html += '<div class="grupo-servicos-titulo">🚗 Carro</div>' + deCarro.map(cardServicoPublico).join('');
+  }
+  if(deMoto.length){
+    html += '<div class="grupo-servicos-titulo">🏍️ Moto</div>' + deMoto.map(cardServicoPublico).join('');
+  }
+  box.innerHTML = html;
+}
+
+function cardServicoPublico(s){
+  return `
     <div class="opcao-servico" data-id="${s.id}" onclick="escolherServico('${s.id}')">
       <span>
         <div class="opcao-servico-nome">
@@ -337,8 +353,7 @@ function renderServicosPublico(){
         <div class="opcao-servico-desc">${escapeHtml(s.descricao||'')} · ${formatarDuracao(s.duracao_minutos||60)}</div>
       </span>
       <span class="opcao-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
-    </div>
-  `).join('');
+    </div>`;
 }
 
 function abrirEtapas(id, ev){
