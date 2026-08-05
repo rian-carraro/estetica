@@ -116,25 +116,49 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .btn-whats{background:#25D366; color:#06210F; width:100%; padding:14px; border:none; border-radius:6px; font-weight:700; font-size:15px;}
 
 .sucesso{text-align:center;}
-.sucesso .icone{font-size:44px; margin-bottom:8px;}
+.sucesso .icone{display:flex; justify-content:center; margin-bottom:8px;}
 .sucesso h2{margin-bottom:6px;}
 .sucesso p{color:var(--text-muted); font-size:13px; margin-bottom:18px;}
 
 .carregando{text-align:center; padding:30px 0; color:var(--text-muted); font-size:13px;}
 
 /* ---------- OUTROS SERVIÇOS (sub serviços) ---------- */
-.outros-servicos{margin-top:20px;}
-.outros-servicos h2{font-size:16px; margin-bottom:4px;}
-.outros-servicos-sub{font-size:12px; color:var(--text-muted); margin:0 0 14px;}
+.outros-servicos-titulo{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin:22px 0 4px;}
+.outros-servicos-sub{font-size:12px; color:var(--text-muted); margin:0 0 12px;}
 .sub-servico-card{
   display:flex; justify-content:space-between; align-items:center; gap:10px;
   background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
-  padding:14px 16px; margin-bottom:10px;
+  padding:14px 16px; margin-bottom:10px; cursor:pointer; text-align:left; width:100%; color:var(--text);
 }
-.sub-servico-info{display:flex; flex-direction:column; gap:2px;}
-.sub-servico-nome{font-weight:600; font-size:14px;}
-.sub-servico-desc{font-size:12px; color:var(--text-muted);}
-.sub-servico-preco{font-family:var(--font-mono); color:var(--gold); font-weight:600; white-space:nowrap;}
+.sub-servico-card:hover{border-color:var(--gold);}
+.sub-servico-card.selecionado{border-color:var(--gold); background:rgba(232,163,61,0.08);}
+.sub-servico-linha{display:flex; align-items:center; gap:12px;}
+.sub-servico-check{
+  width:20px; height:20px; min-width:20px; border-radius:5px; border:1px solid var(--line);
+  background:var(--surface); display:flex; align-items:center; justify-content:center;
+  font-size:13px; color:transparent; font-weight:700;
+}
+.sub-servico-card.selecionado .sub-servico-check{background:var(--gold); border-color:var(--gold); color:#1A1200;}
+
+/* ---------- CONTATO PARA DATA ESPECÍFICA ---------- */
+.contato-data{
+  margin-top:18px; padding-top:16px; border-top:1px solid var(--line);
+  text-align:center;
+}
+.contato-data p{font-size:13px; color:var(--text-muted); margin:0 0 10px;}
+.btn-contato-data{
+  display:inline-block; background:transparent; border:1px solid var(--blue); color:var(--blue);
+  border-radius:6px; padding:10px 16px; font-weight:600; font-size:13px;
+}
+.btn-contato-data:hover{background:rgba(61,165,217,0.1);}
+
+/* ---------- ORÇAMENTO / RESUMO SUB SERVIÇOS ---------- */
+.orcamento-item{display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;}
+.orcamento-item:last-child{border-bottom:none;}
+.orcamento-item span:first-child{color:var(--text-muted);}
+.orcamento-total{display:flex; justify-content:space-between; padding-top:10px; margin-top:4px; border-top:1px solid var(--gold); font-weight:700; font-size:15px;}
+.orcamento-total span:last-child{color:var(--gold); font-family:var(--font-mono);}
+.orcamento-aviso{font-size:12px; color:var(--text-muted); margin:14px 0 0; line-height:1.6;}
 </style>
 </head>
 <body>
@@ -159,6 +183,16 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
     <div id="passo-1" class="passo">
       <h2>1. Qual serviço?</h2>
       <div id="lista-servicos-publico"><div class="carregando">Carregando serviços...</div></div>
+
+      <div id="bloco-outros-servicos" class="oculto">
+        <div class="outros-servicos-titulo">Outros serviços</div>
+        <p class="outros-servicos-sub">Pode escolher quantos quiser além do serviço principal. Não têm horário marcado — combinamos o dia pelo WhatsApp.</p>
+        <div id="lista-outros-servicos"></div>
+      </div>
+
+      <div class="btns">
+        <button class="btn btn-primary" id="btn-avancar-passo1" onclick="avancarPasso1()" disabled>Avançar</button>
+      </div>
     </div>
 
     <!-- PASSO 2: DATA -->
@@ -171,8 +205,23 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
       </div>
       <div id="grid-dias" class="grid-dias"></div>
       <div id="aviso-data" class="aviso oculto"></div>
+      <div class="contato-data">
+        <p>Deseja algum horário ou data específica?<br>Entre em contato:</p>
+        <button type="button" class="btn-contato-data" id="btn-contato-data-especifica">Falar no WhatsApp</button>
+      </div>
       <div class="btns">
         <button class="btn btn-ghost" onclick="irParaPasso(1)">Voltar</button>
+      </div>
+    </div>
+
+    <!-- ORÇAMENTO / CONTATO (fluxo com sub serviços) -->
+    <div id="passo-orcamento" class="passo oculto">
+      <h2>Resumo do orçamento</h2>
+      <div class="resumo" id="resumo-orcamento"></div>
+      <p class="orcamento-aviso">Esses itens não têm horário marcado pelo site. Toque no botão abaixo para falar com a gente no WhatsApp e combinarmos o melhor dia.</p>
+      <div class="btns">
+        <button class="btn btn-ghost" onclick="irParaPasso(1)">Voltar</button>
+        <button type="button" class="btn-whats" id="btn-contato-orcamento" style="flex:1;">Falar no WhatsApp</button>
       </div>
     </div>
 
@@ -214,19 +263,18 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 
     <!-- SUCESSO -->
     <div id="passo-sucesso" class="passo sucesso oculto">
-      <div class="icone">✅</div>
+      <div class="icone">
+        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="26" cy="26" r="25" stroke="var(--green)" stroke-width="2"/>
+          <path d="M15 27L22 34L37 18" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
       <h2>Agendamento feito!</h2>
       <p>Seu horário foi reservado. Se puder, toque no botão abaixo pra avisar a loja pelo WhatsApp.</p>
       <div class="resumo" id="resumo-final"></div>
       <button class="btn-whats" id="btn-avisar-loja">Avisar a loja no WhatsApp</button>
     </div>
 
-  </div>
-
-  <div id="outros-servicos" class="outros-servicos card oculto">
-    <h2>Outros serviços</h2>
-    <p class="outros-servicos-sub">Não fazem parte do agendamento por horário — fale com a gente pelo WhatsApp pra combinar.</p>
-    <div id="lista-outros-servicos"></div>
   </div>
 </div>
 
@@ -247,8 +295,10 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const NOMES_DIAS = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
 
 let cacheServicosPub = [];
+let cacheSubServicosPub = [];
 let cacheConfigPub = null;
 let servicoEscolhido = null;
+let subServicosEscolhidos = new Set();
 let dataEscolhida = null;
 let horaEscolhida = null;
 
@@ -302,26 +352,63 @@ async function iniciar(){
   renderServicosPublico();
   renderGridDias();
   carregarOutrosServicos();
+  configurarBotaoContatoData();
+}
+
+function configurarBotaoContatoData(){
+  const btn = document.getElementById('btn-contato-data-especifica');
+  btn.addEventListener('click', () => {
+    const foneLoja = cacheConfigPub.telefone_negocio;
+    if(!foneLoja){
+      alert('Número de WhatsApp da loja não configurado.');
+      return;
+    }
+    const nomeServico = servicoEscolhido ? servicoEscolhido.nome : 'serviço';
+    const msg = `Olá, gostaria de agendar um(a) ${nomeServico} mas não encontrei o dia/hora que desejo: `;
+    window.open(`https://wa.me/${foneLoja}?text=${encodeURIComponent(msg)}`, '_blank');
+  });
 }
 
 async function carregarOutrosServicos(){
   const { data, error } = await sb.from('sub_servicos').select('*').eq('exibir_cliente', true).order('nome');
-  const box = document.getElementById('outros-servicos');
+  const box = document.getElementById('bloco-outros-servicos');
   if(error || !data || data.length===0){
     box.classList.add('oculto');
     return;
   }
-  document.getElementById('lista-outros-servicos').innerHTML = data.map(s=>`
-    <div class="sub-servico-card">
-      <div class="sub-servico-info">
-        <div class="sub-servico-nome">${escapeHtml(s.nome)}</div>
-        <div class="sub-servico-desc">${escapeHtml(s.descricao||'')}</div>
-      </div>
-      <span class="sub-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
-    </div>
-  `).join('');
+  cacheSubServicosPub = data;
+  renderOutrosServicos();
   box.classList.remove('oculto');
 }
+
+function renderOutrosServicos(){
+  document.getElementById('lista-outros-servicos').innerHTML = cacheSubServicosPub.map(s=>`
+    <button type="button" class="sub-servico-card" data-id="${s.id}" onclick="toggleSubServico('${s.id}')">
+      <span class="sub-servico-linha">
+        <span class="sub-servico-check">✓</span>
+        <span>
+          <div class="opcao-servico-nome">
+            ${escapeHtml(s.nome)}
+            <button type="button" class="btn-info" title="Ver mais" onclick="abrirEtapas('${s.id}', event)">!</button>
+          </div>
+          <div class="opcao-servico-desc">${escapeHtml(s.descricao||'')}</div>
+        </span>
+      </span>
+      <span class="opcao-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
+    </button>
+  `).join('');
+}
+
+function toggleSubServico(id){
+  if(subServicosEscolhidos.has(id)){
+    subServicosEscolhidos.delete(id);
+  }else{
+    subServicosEscolhidos.add(id);
+  }
+  const card = document.querySelector(`.sub-servico-card[data-id="${id}"]`);
+  if(card) card.classList.toggle('selecionado', subServicosEscolhidos.has(id));
+}
+window.toggleSubServico = toggleSubServico;
 
 function renderServicosPublico(){
   const box = document.getElementById('lista-servicos-publico');
@@ -334,10 +421,10 @@ function renderServicosPublico(){
 
   let html = '';
   if(deCarro.length){
-    html += '<div class="grupo-servicos-titulo">🚗 Carro</div>' + deCarro.map(cardServicoPublico).join('');
+    html += '<div class="grupo-servicos-titulo">Carro</div>' + deCarro.map(cardServicoPublico).join('');
   }
   if(deMoto.length){
-    html += '<div class="grupo-servicos-titulo">🏍️ Moto</div>' + deMoto.map(cardServicoPublico).join('');
+    html += '<div class="grupo-servicos-titulo">Moto</div>' + deMoto.map(cardServicoPublico).join('');
   }
   box.innerHTML = html;
 }
@@ -358,7 +445,7 @@ function cardServicoPublico(s){
 
 function abrirEtapas(id, ev){
   ev.stopPropagation();
-  const s = cacheServicosPub.find(x=>x.id===id);
+  const s = cacheServicosPub.find(x=>x.id===id) || cacheSubServicosPub.find(x=>x.id===id);
   if(!s) return;
   document.getElementById('modal-etapas-titulo').textContent = s.nome;
   document.getElementById('modal-etapas-texto').textContent = s.etapas && s.etapas.trim()
@@ -376,12 +463,62 @@ window.fecharEtapas = fecharEtapas;
 function escolherServico(id){
   servicoEscolhido = cacheServicosPub.find(s=>s.id===id);
   document.querySelectorAll('.opcao-servico').forEach(b=>b.classList.toggle('selecionado', b.dataset.id===id));
-  setTimeout(()=>irParaPasso(2), 200);
+  document.getElementById('btn-avancar-passo1').disabled = false;
+}
+
+function avancarPasso1(){
+  if(!servicoEscolhido){
+    alert('Escolha um serviço pra continuar.');
+    return;
+  }
+  if(subServicosEscolhidos.size > 0){
+    renderOrcamento();
+    mostrarOrcamento();
+  }else{
+    irParaPasso(2);
+  }
+}
+window.avancarPasso1 = avancarPasso1;
+
+function juntarNomes(nomes){
+  if(nomes.length===1) return nomes[0];
+  return nomes.slice(0,-1).join(', ') + ' e ' + nomes[nomes.length-1];
+}
+
+function renderOrcamento(){
+  const subs = cacheSubServicosPub.filter(s=>subServicosEscolhidos.has(s.id));
+  const total = Number(servicoEscolhido.preco||0) + subs.reduce((soma,s)=>soma+Number(s.preco||0),0);
+
+  let html = `<div class="orcamento-item"><span>${escapeHtml(servicoEscolhido.nome)}</span><span>R$ ${Number(servicoEscolhido.preco||0).toFixed(2)}</span></div>`;
+  html += subs.map(s=>`<div class="orcamento-item"><span>${escapeHtml(s.nome)}</span><span>R$ ${Number(s.preco||0).toFixed(2)}</span></div>`).join('');
+  html += `<div class="orcamento-total"><span>Total</span><span>R$ ${total.toFixed(2)}</span></div>`;
+  document.getElementById('resumo-orcamento').innerHTML = html;
+
+  const foneLoja = cacheConfigPub.telefone_negocio;
+  const nomesSubs = juntarNomes(subs.map(s=>s.nome));
+  const msg = `Resumo: ${servicoEscolhido.nome} + ${nomesSubs} — Total R$ ${total.toFixed(2)}\n\n` +
+    `Estou entrando em contato pois quero fazer um(a) ${servicoEscolhido.nome} e um(a) ${nomesSubs}`;
+
+  const btn = document.getElementById('btn-contato-orcamento');
+  btn.onclick = () => {
+    if(!foneLoja){
+      alert('Número de WhatsApp da loja não configurado.');
+      return;
+    }
+    window.open(`https://wa.me/${foneLoja}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+}
+
+function mostrarOrcamento(){
+  document.querySelectorAll('.passo').forEach(p=>p.classList.add('oculto'));
+  document.getElementById('passo-orcamento').classList.remove('oculto');
+  document.getElementById('passos').classList.add('oculto');
 }
 
 function irParaPasso(n){
   document.querySelectorAll('.passo').forEach(p=>p.classList.add('oculto'));
   document.getElementById('passo-'+n).classList.remove('oculto');
+  document.getElementById('passos').classList.remove('oculto');
   document.querySelectorAll('.passo-dot').forEach(d=>{
     const dp = parseInt(d.dataset.passo);
     d.classList.toggle('ativo', dp===n);
@@ -610,11 +747,11 @@ function mostrarSucesso(nome){
   }else{
     btnAvisar.addEventListener('click', ()=>{
       const msg = `Olá! Acabei de agendar pelo link:\n\n` +
-        `👤 ${nome}\n` +
-        `🧽 Serviço: ${servicoEscolhido.nome}\n` +
-        `📅 Data: ${formatarDataBr(dataEscolhida)}\n` +
-        `⏰ Horário: ${horaEscolhida}\n` +
-        `🚗 Veículo: ${veiculoTxt}`;
+        `Cliente: ${nome}\n` +
+        `Serviço: ${servicoEscolhido.nome}\n` +
+        `Data: ${formatarDataBr(dataEscolhida)}\n` +
+        `Horário: ${horaEscolhida}\n` +
+        `Veículo: ${veiculoTxt}`;
       window.open(`https://wa.me/${foneLoja}?text=${encodeURIComponent(msg)}`, '_blank');
     });
   }

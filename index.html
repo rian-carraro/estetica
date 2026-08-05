@@ -860,7 +860,7 @@ function renderServicos(){
   box.innerHTML = cacheServicos.map(s=>`
     <div class="servico-card ${s.ativo?'':'servico-inativo'}">
       ${s.ativo?'':'<span class="badge-inativo">Inativo</span>'}
-      <span class="badge-tipo-veiculo">${s.tipo_veiculo==='moto'?'🏍️ Moto':'🚗 Carro'}</span>
+      <span class="badge-tipo-veiculo">${s.tipo_veiculo==='moto'?'Moto':'Carro'}</span>
       <div class="servico-nome">${escapeHtml(s.nome)}</div>
       <div class="servico-desc">${escapeHtml(s.descricao||'')}</div>
       <div class="servico-meta">
@@ -928,8 +928,8 @@ function abrirModalServico(id){
     </div>
     <label>Tipo de veículo</label>
     <select id="m-tipo-veiculo">
-      <option value="carro" ${!s || s.tipo_veiculo!=='moto' ? 'selected':''}>🚗 Carro</option>
-      <option value="moto" ${s && s.tipo_veiculo==='moto' ? 'selected':''}>🏍️ Moto</option>
+      <option value="carro" ${!s || s.tipo_veiculo!=='moto' ? 'selected':''}>Carro</option>
+      <option value="moto" ${s && s.tipo_veiculo==='moto' ? 'selected':''}>Moto</option>
     </select>
     <label><input type="checkbox" id="m-ativo" style="width:auto;" ${s? (s.ativo?'checked':'') : 'checked'}/> Serviço ativo</label>
     <div class="modal-acoes">
@@ -1014,6 +1014,8 @@ function abrirModalSubServico(id){
     <input id="m-nome" value="${s?escapeHtml(s.nome):''}" placeholder="Ex: Higienização de bancos" />
     <label>Descrição</label>
     <textarea id="m-desc" rows="3">${s?escapeHtml(s.descricao||''):''}</textarea>
+    <label>Etapas (aparece no botão "!" pro cliente)</label>
+    <textarea id="m-etapas" rows="4" placeholder="Ex:&#10;1. Remoção do estofamento/tapetes&#10;2. Extração profunda com shampoo específico&#10;3. Secagem&#10;4. Hidratação do couro">${s?escapeHtml(s.etapas||''):''}</textarea>
     <label>Preço (R$)</label>
     <input id="m-preco" type="number" step="0.01" value="${s?s.preco:''}" />
     <label><input type="checkbox" id="m-exibir" style="width:auto;" ${s? (s.exibir_cliente?'checked':'') : 'checked'}/> Mostrar na aba "Outros serviços" pro cliente</label>
@@ -1028,14 +1030,15 @@ window.abrirModalSubServico = abrirModalSubServico;
 async function salvarSubServico(id){
   const nome = document.getElementById('m-nome').value.trim();
   const descricao = document.getElementById('m-desc').value.trim();
+  const etapas = document.getElementById('m-etapas').value.trim();
   const preco = parseFloat(document.getElementById('m-preco').value)||0;
   const exibir_cliente = document.getElementById('m-exibir').checked;
   if(!nome){ toast('Informe o nome do sub serviço'); return; }
   let error;
   if(id){
-    ({error} = await sb.from('sub_servicos').update({nome, descricao, preco, exibir_cliente}).eq('id', id));
+    ({error} = await sb.from('sub_servicos').update({nome, descricao, etapas, preco, exibir_cliente}).eq('id', id));
   }else{
-    ({error} = await sb.from('sub_servicos').insert({nome, descricao, preco, exibir_cliente}));
+    ({error} = await sb.from('sub_servicos').insert({nome, descricao, etapas, preco, exibir_cliente}));
   }
   if(error){ toast('Erro ao salvar sub serviço'); return; }
   fecharModal();
@@ -1300,7 +1303,7 @@ function enviarWhatsapp(id){
   const fone = telefoneCliente(a.cliente_id);
   if(!fone){ toast('Este cliente não tem telefone cadastrado'); return; }
   const template = (cacheConfig && cacheConfig.mensagem_whatsapp) ||
-    'Olá, {cliente}! Seu agendamento na estética automotiva está confirmado:\n\n📅 Data: {data}\n⏰ Horário: {hora}\n🚗 Veículo: {veiculo}\n🧽 Serviço: {servico}\n\nQualquer imprevisto nos avise. Até lá!';
+    'Olá, {cliente}! Seu agendamento na estética automotiva está confirmado:\n\nData: {data}\nHorário: {hora}\nVeículo: {veiculo}\nServiço: {servico}\n\nQualquer imprevisto nos avise. Até lá!';
   const msg = template
     .replaceAll('{cliente}', nomeCliente(a.cliente_id))
     .replaceAll('{data}', formatarData(a.data))
