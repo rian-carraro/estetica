@@ -18,6 +18,7 @@
   --gold: #E8A33D;
   --gold-dim: #6b511f;
   --blue: #3DA5D9;
+  --blue-dim: #1c4a5e;
   --red: #D9534F;
   --green: #5FB86A;
   --radius: 10px;
@@ -160,6 +161,14 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .ticket-status{
   font-size:11px; text-transform:uppercase; letter-spacing:0.04em; padding:4px 10px; border-radius:20px; font-weight:600;
 }
+.ticket-status-select{
+  border:1px solid transparent; cursor:pointer; font-family:inherit; appearance:none; -webkit-appearance:none; -moz-appearance:none;
+  padding-right:22px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%239A9FA6' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat; background-position:right 8px center;
+}
+.ticket-status-select:hover{border-color:currentColor;}
+.ticket-status-select:focus{outline:none; border-color:currentColor;}
 .status-agendado{background:rgba(61,165,217,0.15); color:var(--blue);}
 .status-em_andamento{background:rgba(232,163,61,0.15); color:var(--gold);}
 .status-concluido{background:rgba(95,184,106,0.15); color:var(--green);}
@@ -270,6 +279,47 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .config-texto-ajuda code{background:var(--surface-2); padding:1px 5px; border-radius:3px; font-family:var(--font-mono); color:var(--gold);}
 .config-secao textarea{font-family:var(--font-mono); font-size:13px; line-height:1.5; margin-bottom:12px;}
 .config-secao input, .config-secao select{margin-bottom:0;}
+
+/* ---------- DILUIÇÃO ---------- */
+.dil-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;}
+@media (max-width:720px){ .dil-grid{grid-template-columns:1fr;} }
+.dil-linha-litros{display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:4px 4px 4px 16px;}
+.dil-linha-litros input{
+  flex:1; background:transparent; border:none; color:var(--text); font-family:var(--font-mono);
+  font-size:22px; font-weight:600; padding:12px 0; outline:none; width:0;
+}
+.dil-unidade-fixa{font-family:var(--font-mono); color:var(--text-muted); font-size:14px; padding-right:14px;}
+.dil-chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
+.dil-chip{
+  background:var(--surface-2); border:1px solid var(--line); color:var(--text-muted);
+  border-radius:20px; padding:7px 14px; font-size:12.5px; font-weight:600; cursor:pointer;
+  font-family:var(--font-mono); transition:border-color .15s, color .15s;
+}
+.dil-chip:hover{border-color:var(--gold);}
+.dil-chip.ativo{border-color:var(--gold); color:var(--gold); background:rgba(232,163,61,0.08);}
+.dil-linha-razao{display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:4px 16px;}
+.dil-linha-razao span{font-family:var(--font-mono); font-size:18px; color:var(--text-muted); font-weight:600;}
+.dil-linha-razao input{
+  width:70px; background:transparent; border:none; color:var(--gold); font-family:var(--font-mono);
+  font-size:18px; font-weight:700; padding:12px 0; outline:none; text-align:center;
+}
+.dil-razao-legenda{font-family:var(--font-body) !important; font-size:12px !important; color:var(--text-muted) !important; font-weight:500 !important;}
+.dil-barra-proporcao{height:34px; border-radius:8px; overflow:hidden; display:flex; margin-bottom:6px; border:1px solid var(--line);}
+.dil-seg-produto{background:var(--gold); transition:width .25s ease;}
+.dil-seg-agua{background:var(--blue); transition:width .25s ease;}
+.dil-legenda-barra{display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:20px;}
+.dil-legenda-barra span:first-child::before{content:'●'; color:var(--gold); margin-right:5px;}
+.dil-legenda-barra span:last-child::before{content:'●'; color:var(--blue); margin-right:5px;}
+.dil-resultados{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.dil-resultado-box{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:16px; text-align:center;}
+.dil-resultado-box.dil-produto{border-color:var(--gold-dim);}
+.dil-resultado-box.dil-agua{border-color:var(--blue-dim);}
+.dil-resultado-label{font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:6px; font-weight:600;}
+.dil-resultado-valor{font-family:var(--font-mono); font-size:22px; font-weight:700;}
+.dil-resultado-box.dil-produto .dil-resultado-valor{color:var(--gold);}
+.dil-resultado-box.dil-agua .dil-resultado-valor{color:var(--blue);}
+.dil-nota{font-size:12px; color:var(--text-muted); margin-top:16px; line-height:1.6;}
+.dil-nota b{color:var(--text);}
 .config-secao > button{margin-top:14px;}
 .linha-copiar{display:flex; gap:10px;}
 .linha-copiar input{font-family:var(--font-mono); font-size:12px;}
@@ -300,6 +350,8 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .modal-acoes{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
 .modal-foto-preview{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; margin-top:8px; background:var(--surface-2);}
 .linha-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.duracao-seletor{display:flex; gap:8px;}
+.duracao-seletor select{width:100%;}
 
 /* ---------- TOAST ---------- */
 .toast{
@@ -341,6 +393,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <button class="nav-item" data-tab="servicos">Serviços</button>
         <button class="nav-item" data-tab="estoque">Estoque</button>
         <button class="nav-item" data-tab="historico">Histórico</button>
+        <button class="nav-item" data-tab="diluicao">Diluição</button>
         <button class="nav-item" data-tab="config">Configurações</button>
       </nav>
     </aside>
@@ -467,6 +520,61 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         </div>
       </section>
 
+      <!-- DILUIÇÃO -->
+      <section id="tab-diluicao" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Ferramenta rápida</p>
+            <h2>Calculadora de Diluição</h2>
+          </div>
+        </header>
+        <p class="config-texto-ajuda" style="margin:-6px 0 20px;">Informe quanto quer preparar e a proporção do produto — a calculadora divide entre produto concentrado e água.</p>
+
+        <div class="dil-grid">
+          <div class="config-secao">
+            <label for="dil-litros">Quero preparar</label>
+            <div class="dil-linha-litros">
+              <input type="number" id="dil-litros" value="1" min="0" step="0.1" inputmode="decimal">
+              <span class="dil-unidade-fixa">litros</span>
+            </div>
+
+            <div style="margin-top:20px;">
+              <label>Proporção do produto</label>
+              <div class="dil-chips" id="dil-chips"></div>
+              <div class="dil-linha-razao">
+                <span>1 :</span>
+                <input type="number" id="dil-razao" value="10" min="0" step="1" inputmode="numeric">
+                <span class="dil-razao-legenda">(partes de água)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-secao">
+            <div class="dil-barra-proporcao">
+              <div class="dil-seg-produto" id="dil-seg-produto"></div>
+              <div class="dil-seg-agua" id="dil-seg-agua"></div>
+            </div>
+            <div class="dil-legenda-barra">
+              <span>Produto</span>
+              <span>Água</span>
+            </div>
+
+            <div class="dil-resultados">
+              <div class="dil-resultado-box dil-produto">
+                <div class="dil-resultado-label">Produto</div>
+                <div class="dil-resultado-valor" id="dil-valor-produto">—</div>
+              </div>
+              <div class="dil-resultado-box dil-agua">
+                <div class="dil-resultado-label">Água</div>
+                <div class="dil-resultado-valor" id="dil-valor-agua">—</div>
+              </div>
+            </div>
+
+            <p class="dil-nota">Diluição <b id="dil-nota-razao">1:10</b> — confirme sempre a diluição indicada na embalagem do fabricante.</p>
+          </div>
+        </div>
+      </section>
+
       <!-- CONFIGURAÇÕES -->
       <section id="tab-config" class="tab">
         <header class="tab-header">
@@ -487,9 +595,17 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 
         <div class="config-secao">
           <h3>Mensagem de confirmação (WhatsApp)</h3>
-          <p class="config-texto-ajuda">Use estas variáveis, que são substituídas automaticamente: <br/> <code>{cliente}</code> <code>{data}</code> <code>{hora}</code> <code>{veiculo}</code> <code>{servico}</code></p>
+          <p class="config-texto-ajuda">Enviada quando você confirma o agendamento. Variáveis disponíveis: <br/> <code>{cliente}</code> <code>{data}</code> <code>{hora}</code> <code>{veiculo}</code> <code>{servico}</code> <code>{valor}</code> <code>{observacoes}</code></p>
+          <p class="config-texto-ajuda">A placa só aparece dentro de <code>{veiculo}</code> se estiver cadastrada. Linhas de variáveis vazias (ex: sem observação) somem sozinhas da mensagem.</p>
           <textarea id="cfg-mensagem" rows="8"></textarea>
           <button class="btn btn-primary" id="btn-salvar-mensagem">Salvar mensagem</button>
+        </div>
+
+        <div class="config-secao">
+          <h3>Mensagem de lembrete (enviar 2 dias antes)</h3>
+          <p class="config-texto-ajuda">Pra você mandar manualmente como lembrete. Variáveis disponíveis: <br/> <code>{cliente}</code> <code>{data}</code> <code>{servico}</code> <code>{valor}</code> <code>{observacoes}</code></p>
+          <textarea id="cfg-mensagem-lembrete" rows="8"></textarea>
+          <button class="btn btn-primary" id="btn-salvar-mensagem-lembrete">Salvar mensagem de lembrete</button>
         </div>
 
         <div class="config-secao">
@@ -658,7 +774,7 @@ function renderClientes(){
       <div class="veiculos-mini">
         ${veic.map(v=>`
           <div class="veiculo-linha">
-            <span><span class="placa">${escapeHtml(v.placa)}</span> ${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')} ${v.cor?('· '+escapeHtml(v.cor)):''}</span>
+            <span>${v.placa ? `<span class="placa">${escapeHtml(v.placa)}</span> ` : ''}${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')} ${v.cor?('· '+escapeHtml(v.cor)):''}</span>
             <span>
               <button class="link-add" onclick="editarVeiculo('${v.id}','${c.id}')">editar</button>
               <button class="link-add" onclick="removerVeiculo('${v.id}')">excluir</button>
@@ -722,8 +838,8 @@ function abrirModalVeiculo(id, clienteId){
   const v = id ? cacheVeiculos.find(x=>x.id===id) : null;
   abrirModal(`
     <h3>${v?'Editar veículo':'Novo veículo'}</h3>
-    <label>Placa</label>
-    <input id="m-placa" value="${v?escapeHtml(v.placa):''}" placeholder="ABC1D23" />
+    <label>Placa (opcional)</label>
+    <input id="m-placa" value="${v?escapeHtml(v.placa||''):''}" placeholder="ABC1D23" />
     <label>Tipo de veículo</label>
     <select id="m-tipo-veiculo" onchange="carregarMarcasFipe()">
       <option value="cars">Carro</option>
@@ -818,7 +934,7 @@ async function salvarVeiculo(id, clienteId){
   const marca = document.getElementById('m-marca').value.trim();
   const modelo = document.getElementById('m-modelo').value.trim();
   const cor = document.getElementById('m-cor').value.trim();
-  if(!placa){ toast('Informe a placa'); return; }
+  if(!marca && !modelo){ toast('Informe ao menos a marca ou o modelo'); return; }
   let error;
   if(id){
     ({error} = await sb.from('veiculos').update({placa, marca, modelo, cor}).eq('id', id));
@@ -875,7 +991,7 @@ function renderServicos(){
   `).join('');
 }
 
-// Duração dos serviços: de 30 em 30 minutos, de 30 min até 4h30
+// Duração dos serviços
 function formatarDuracao(min){
   const h = Math.floor(min/60);
   const m = min%60;
@@ -883,13 +999,18 @@ function formatarDuracao(min){
   if(m===0) return `${h}h`;
   return `${h}h${String(m).padStart(2,'0')}`;
 }
-function opcoesDuracaoServico(atual){
-  const valor = atual || 60;
-  const passos = [];
-  for(let m=30; m<=270; m+=30) passos.push(m);
-  if(!passos.includes(valor)) passos.push(valor);
+function opcoesDuracaoHoras(atual){
+  let html = '';
+  for(let h=0; h<=8; h++){
+    html += `<option value="${h}" ${h===atual?'selected':''}>${h}h</option>`;
+  }
+  return html;
+}
+function opcoesDuracaoMinutos(atual){
+  const passos = [0,15,30,45];
+  if(!passos.includes(atual)) passos.push(atual);
   passos.sort((a,b)=>a-b);
-  return passos.map(m=>`<option value="${m}" ${m===valor?'selected':''}>${formatarDuracao(m)}</option>`).join('');
+  return passos.map(m=>`<option value="${m}" ${m===atual?'selected':''}>${String(m).padStart(2,'0')} min</option>`).join('');
 }
 
 let modoServicosAtual = 'servicos';
@@ -914,6 +1035,9 @@ document.getElementById('btn-novo-servico').addEventListener('click', ()=>{
 
 function abrirModalServico(id){
   const s = id ? cacheServicos.find(x=>x.id===id) : null;
+  const duracaoAtual = s ? (s.duracao_minutos||60) : 60;
+  const horasAtual = Math.floor(duracaoAtual/60);
+  const minutosAtual = duracaoAtual%60;
   abrirModal(`
     <h3>${s?'Editar serviço':'Novo serviço'}</h3>
     <label>Nome do serviço</label>
@@ -924,7 +1048,13 @@ function abrirModalServico(id){
     <textarea id="m-etapas" rows="4" placeholder="Ex:&#10;1. Lavagem externa com xampu neutro&#10;2. Limpeza dos vidros&#10;3. Aspiração interna&#10;4. Aplicação de pretinho nos pneus">${s?escapeHtml(s.etapas||''):''}</textarea>
     <div class="linha-2">
       <div><label>Preço (R$)</label><input id="m-preco" type="number" step="0.01" value="${s?s.preco:''}" /></div>
-      <div><label>Duração</label><select id="m-duracao">${opcoesDuracaoServico(s?s.duracao_minutos:60)}</select></div>
+      <div>
+        <label>Duração</label>
+        <div class="duracao-seletor">
+          <select id="m-duracao-horas">${opcoesDuracaoHoras(horasAtual)}</select>
+          <select id="m-duracao-minutos">${opcoesDuracaoMinutos(minutosAtual)}</select>
+        </div>
+      </div>
     </div>
     <label>Tipo de veículo</label>
     <select id="m-tipo-veiculo">
@@ -945,7 +1075,9 @@ async function salvarServico(id){
   const descricao = document.getElementById('m-desc').value.trim();
   const etapas = document.getElementById('m-etapas').value.trim();
   const preco = parseFloat(document.getElementById('m-preco').value)||0;
-  const duracao_minutos = parseInt(document.getElementById('m-duracao').value)||60;
+  const horas = parseInt(document.getElementById('m-duracao-horas').value)||0;
+  const minutos = parseInt(document.getElementById('m-duracao-minutos').value)||0;
+  const duracao_minutos = (horas*60 + minutos) || 60;
   const tipo_veiculo = document.getElementById('m-tipo-veiculo').value;
   const ativo = document.getElementById('m-ativo').checked;
   if(!nome){ toast('Informe o nome do serviço'); return; }
@@ -1019,6 +1151,7 @@ function abrirModalSubServico(id){
     <label>Preço (R$)</label>
     <input id="m-preco" type="number" step="0.01" value="${s?s.preco:''}" />
     <label><input type="checkbox" id="m-exibir" style="width:auto;" ${s? (s.exibir_cliente?'checked':'') : 'checked'}/> Mostrar na aba "Outros serviços" pro cliente</label>
+    <label><input type="checkbox" id="m-precisa-contato" style="width:auto;" ${s ? (s.precisa_contato!==false?'checked':'') : 'checked'}/> Se o cliente selecionar esse sub serviço, ele precisa entrar em contato (pula a escolha de horário)</label>
     <div class="modal-acoes">
       <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarSubServico(${s?`'${s.id}'`:'null'})">Salvar</button>
@@ -1033,12 +1166,13 @@ async function salvarSubServico(id){
   const etapas = document.getElementById('m-etapas').value.trim();
   const preco = parseFloat(document.getElementById('m-preco').value)||0;
   const exibir_cliente = document.getElementById('m-exibir').checked;
+  const precisa_contato = document.getElementById('m-precisa-contato').checked;
   if(!nome){ toast('Informe o nome do sub serviço'); return; }
   let error;
   if(id){
-    ({error} = await sb.from('sub_servicos').update({nome, descricao, etapas, preco, exibir_cliente}).eq('id', id));
+    ({error} = await sb.from('sub_servicos').update({nome, descricao, etapas, preco, exibir_cliente, precisa_contato}).eq('id', id));
   }else{
-    ({error} = await sb.from('sub_servicos').insert({nome, descricao, etapas, preco, exibir_cliente}));
+    ({error} = await sb.from('sub_servicos').insert({nome, descricao, etapas, preco, exibir_cliente, precisa_contato}));
   }
   if(error){ toast('Erro ao salvar sub serviço'); return; }
   fecharModal();
@@ -1085,7 +1219,8 @@ function telefoneCliente(id){ return cacheClientes.find(c=>c.id===id)?.telefone 
 function veiculoTxt(id){
   const v = cacheVeiculos.find(x=>x.id===id);
   if(!v) return '—';
-  return `${v.placa} ${v.marca||''} ${v.modelo||''}`.trim();
+  const nomeModelo = `${v.marca||''} ${v.modelo||''}`.trim();
+  return v.placa ? `${nomeModelo}${nomeModelo?' · ':''}${v.placa}` : (nomeModelo || '—');
 }
 function nomeServico(id){ return cacheServicos.find(s=>s.id===id)?.nome || '—'; }
 
@@ -1098,8 +1233,11 @@ function ticketHtml(a){
         <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}</span>
       </div>
       <div class="ticket-acoes">
-        <span class="ticket-status status-${a.status}">${rotuloStatus(a.status)}</span>
+        <select class="ticket-status ticket-status-select status-${a.status}" onchange="mudarStatusAgendamento('${a.id}', this.value)">
+          ${['agendado','em_andamento','concluido','cancelado'].map(s=>`<option value="${s}" ${a.status===s?'selected':''}>${rotuloStatus(s)}</option>`).join('')}
+        </select>
         <button class="btn btn-whats btn-sm" onclick="enviarWhatsapp('${a.id}')">WhatsApp</button>
+        <button class="btn btn-ghost btn-sm" onclick="enviarLembrete('${a.id}')">Lembrete</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirModalAgendamento('${a.id}')">Editar</button>
         <button class="btn btn-danger btn-sm" onclick="removerAgendamento('${a.id}')">Excluir</button>
       </div>
@@ -1233,7 +1371,7 @@ function abrirModalAgendamento(id){
     </select>
     <label>Veículo</label>
     <select id="m-veiculo">
-      ${cacheVeiculos.filter(v=>v.cliente_id===clienteAtual).map(v=>`<option value="${v.id}" ${a&&a.veiculo_id===v.id?'selected':''}>${escapeHtml(v.placa)} ${escapeHtml(v.modelo||'')}</option>`).join('')}
+      ${cacheVeiculos.filter(v=>v.cliente_id===clienteAtual).map(v=>`<option value="${v.id}" ${a&&a.veiculo_id===v.id?'selected':''}>${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')}${v.placa?' - '+escapeHtml(v.placa):''}</option>`).join('')}
     </select>
     <label>Serviço</label>
     <select id="m-servico">
@@ -1247,6 +1385,10 @@ function abrirModalAgendamento(id){
     <select id="m-status">
       ${['agendado','em_andamento','concluido','cancelado'].map(s=>`<option value="${s}" ${a&&a.status===s?'selected':''}>${rotuloStatus(s)}</option>`).join('')}
     </select>
+    <div class="linha-2">
+      <div><label>Horário que começou (opcional)</label><input id="m-hora-inicio-real" type="time" value="${a&&a.hora_inicio_real?formatarHora(a.hora_inicio_real):''}" /></div>
+      <div><label>Horário que terminou (opcional)</label><input id="m-hora-fim" type="time" value="${a&&a.hora_fim?formatarHora(a.hora_fim):''}" /></div>
+    </div>
     <label>Observações</label>
     <textarea id="m-obs-agend" rows="2">${a?escapeHtml(a.observacoes||''):''}</textarea>
     <div class="modal-acoes">
@@ -1261,7 +1403,7 @@ function atualizarVeiculosModal(){
   const clienteId = document.getElementById('m-cliente').value;
   const sel = document.getElementById('m-veiculo');
   const veic = cacheVeiculos.filter(v=>v.cliente_id===clienteId);
-  sel.innerHTML = veic.map(v=>`<option value="${v.id}">${escapeHtml(v.placa)} ${escapeHtml(v.modelo||'')}</option>`).join('') || '<option value="">Sem</option>';
+  sel.innerHTML = veic.map(v=>`<option value="${v.id}">${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')}${v.placa?' - '+escapeHtml(v.placa):''}</option>`).join('') || '<option value="">Sem</option>';
 }
 window.atualizarVeiculosModal = atualizarVeiculosModal;
 
@@ -1272,9 +1414,11 @@ async function salvarAgendamento(id){
   const data = document.getElementById('m-data').value;
   const hora_inicio = document.getElementById('m-hora').value;
   const status = document.getElementById('m-status').value;
+  const hora_inicio_real = document.getElementById('m-hora-inicio-real').value || null;
+  const hora_fim = document.getElementById('m-hora-fim').value || null;
   const observacoes = document.getElementById('m-obs-agend').value.trim();
   if(!cliente_id || !data || !hora_inicio){ toast('Preencha cliente, data e hora'); return; }
-  const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, observacoes};
+  const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, hora_inicio_real, hora_fim, observacoes};
   let error;
   if(id){
     ({error} = await sb.from('agendamentos').update(payload).eq('id', id));
@@ -1297,23 +1441,126 @@ async function removerAgendamento(id){
 }
 window.removerAgendamento = removerAgendamento;
 
+/* ---------- MUDANÇA DE ETAPA (status) DIRETO NA LISTA ---------- */
+function horaAtual(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+
+function reverterSelectsStatus(){
+  // volta os selects pro status real salvo (usado quando o modal é cancelado)
+  renderAgendaCompleta();
+  renderDashboard();
+  if(modoAgenda === 'semana') renderAgendaSemana();
+}
+
+function mudarStatusAgendamento(id, novoStatus){
+  const a = cacheAgendamentos.find(x=>x.id===id);
+  if(!a) return;
+
+  if(novoStatus === 'em_andamento'){
+    abrirModalHorarioEtapa(a, 'inicio');
+    return;
+  }
+  if(novoStatus === 'concluido'){
+    abrirModalHorarioEtapa(a, 'fim');
+    return;
+  }
+  atualizarStatusAgendamento(id, novoStatus, {});
+}
+window.mudarStatusAgendamento = mudarStatusAgendamento;
+
+function abrirModalHorarioEtapa(a, etapa){
+  const ehInicio = etapa === 'inicio';
+  abrirModal(`
+    <h3>${ehInicio ? 'Serviço em andamento' : 'Serviço concluído'}</h3>
+    <p class="modal-sub">${ehInicio ? 'Que horas começou?' : 'Que horas terminou?'}</p>
+    <label>Horário</label>
+    <input id="m-hora-etapa" type="time" value="${ehInicio ? (a.hora_inicio_real || horaAtual()) : (a.hora_fim || horaAtual())}" />
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal(); reverterSelectsStatus();">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarHorarioEtapa('${a.id}', '${etapa}')">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalHorarioEtapa = abrirModalHorarioEtapa;
+
+async function confirmarHorarioEtapa(id, etapa){
+  const hora = document.getElementById('m-hora-etapa').value;
+  if(!hora){ toast('Informe o horário'); return; }
+  if(etapa === 'inicio'){
+    await atualizarStatusAgendamento(id, 'em_andamento', {hora_inicio_real: hora});
+  }else{
+    await atualizarStatusAgendamento(id, 'concluido', {hora_fim: hora});
+  }
+}
+window.confirmarHorarioEtapa = confirmarHorarioEtapa;
+
+async function atualizarStatusAgendamento(id, status, extras){
+  const { error } = await sb.from('agendamentos').update({status, ...extras}).eq('id', id);
+  if(error){
+    toast('Erro ao atualizar status');
+    reverterSelectsStatus();
+    return;
+  }
+  fecharModal();
+  toast('Status atualizado!');
+  carregarAgendamentos();
+}
+window.atualizarStatusAgendamento = atualizarStatusAgendamento;
+
+
+function valorServico(id){
+  const s = cacheServicos.find(x=>x.id===id);
+  return s ? Number(s.preco||0) : 0;
+}
+function formatarMoeda(v){
+  return 'R$ ' + Number(v||0).toFixed(2).replace('.', ',');
+}
+
+function montarMensagem(template, a){
+  let msg = template
+    .replaceAll('{cliente}', nomeCliente(a.cliente_id))
+    .replaceAll('{data}', formatarData(a.data))
+    .replaceAll('{hora}', formatarHora(a.hora_inicio))
+    .replaceAll('{veiculo}', veiculoTxt(a.veiculo_id))
+    .replaceAll('{servico}', nomeServico(a.servico_id))
+    .replaceAll('{valor}', formatarMoeda(valorServico(a.servico_id)))
+    .replaceAll('{observacoes}', (a.observacoes||'').trim());
+
+  // remove linhas de rótulo que ficaram sem conteúdo (ex: "Observações: " vazio)
+  msg = msg.split('\n')
+    .filter(linha => linha.trim()==='' || !/:\s*$/.test(linha.trim()))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');
+  return msg;
+}
+
 function enviarWhatsapp(id){
   const a = cacheAgendamentos.find(x=>x.id===id);
   if(!a) return;
   const fone = telefoneCliente(a.cliente_id);
   if(!fone){ toast('Este cliente não tem telefone cadastrado'); return; }
   const template = (cacheConfig && cacheConfig.mensagem_whatsapp) ||
-    'Olá, {cliente}! Seu agendamento na estética automotiva está confirmado:\n\nData: {data}\nHorário: {hora}\nVeículo: {veiculo}\nServiço: {servico}\n\nQualquer imprevisto nos avise. Até lá!';
-  const msg = template
-    .replaceAll('{cliente}', nomeCliente(a.cliente_id))
-    .replaceAll('{data}', formatarData(a.data))
-    .replaceAll('{hora}', formatarHora(a.hora_inicio))
-    .replaceAll('{veiculo}', veiculoTxt(a.veiculo_id))
-    .replaceAll('{servico}', nomeServico(a.servico_id));
+    'Olá, {cliente}! Seu agendamento na estética automotiva está confirmado:\n\nData: {data}\nVeículo: {veiculo}\nServiço: {servico}\nValor: {valor}\nObservações: {observacoes}\n\nQualquer imprevisto nos avise. Até lá!';
+  const msg = montarMensagem(template, a);
   const url = `https://wa.me/${fone}?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
 }
 window.enviarWhatsapp = enviarWhatsapp;
+
+function enviarLembrete(id){
+  const a = cacheAgendamentos.find(x=>x.id===id);
+  if(!a) return;
+  const fone = telefoneCliente(a.cliente_id);
+  if(!fone){ toast('Este cliente não tem telefone cadastrado'); return; }
+  const template = (cacheConfig && cacheConfig.mensagem_lembrete) ||
+    'Oi, {cliente}! Passando aqui pra lembrar do seu agendamento em {data}.\n\nServiço: {servico}\nValor: {valor}\nObservações: {observacoes}\n\nQualquer imprevisto nos avise!';
+  const msg = montarMensagem(template, a);
+  const url = `https://wa.me/${fone}?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+window.enviarLembrete = enviarLembrete;
 
 /* =========================================================
    ESTOQUE / PRODUTOS
@@ -1547,7 +1794,30 @@ function renderHistoricoServicos(){
     const chaveB = b.data + ' ' + (b.hora_inicio||'');
     return chaveB.localeCompare(chaveA);
   });
-  box.innerHTML = ordenado.map(ticketHtml).join('');
+  box.innerHTML = ordenado.map(ticketHistoricoHtml).join('');
+}
+
+function ticketHistoricoHtml(a){
+  const inicio = a.hora_inicio_real ? formatarHora(a.hora_inicio_real) : null;
+  const fim = a.hora_fim ? formatarHora(a.hora_fim) : null;
+  const linhaHorarios = (inicio || fim)
+    ? `<span class="ticket-detalhe">${inicio ? 'Início: '+inicio : ''}${inicio && fim ? ' · ' : ''}${fim ? 'Fim: '+fim : ''}</span>`
+    : '';
+  return `
+    <div class="ticket">
+      <div class="ticket-info">
+        <span class="ticket-hora">${formatarHora(a.hora_inicio)} · ${formatarData(a.data)}</span>
+        <span class="ticket-cliente">${escapeHtml(nomeCliente(a.cliente_id))}</span>
+        <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}</span>
+        ${linhaHorarios}
+      </div>
+      <div class="ticket-acoes">
+        <span class="ticket-status status-${a.status}">${rotuloStatus(a.status)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalAgendamento('${a.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerAgendamento('${a.id}')">Excluir</button>
+      </div>
+    </div>
+  `;
 }
 
 function renderHistoricoProdutos(){
@@ -1609,6 +1879,9 @@ function renderConfiguracoes(){
   const msgBox = document.getElementById('cfg-mensagem');
   if(msgBox) msgBox.value = cacheConfig.mensagem_whatsapp || '';
 
+  const msgLembreteBox = document.getElementById('cfg-mensagem-lembrete');
+  if(msgLembreteBox) msgLembreteBox.value = cacheConfig.mensagem_lembrete || '';
+
   const foneBox = document.getElementById('cfg-telefone-negocio');
   if(foneBox) foneBox.value = cacheConfig.telefone_negocio || '';
 
@@ -1646,6 +1919,81 @@ document.getElementById('btn-salvar-mensagem').addEventListener('click', async (
   cacheConfig.mensagem_whatsapp = mensagem;
   toast('Mensagem salva!');
 });
+
+document.getElementById('btn-salvar-mensagem-lembrete').addEventListener('click', async ()=>{
+  const mensagem = document.getElementById('cfg-mensagem-lembrete').value;
+  const { error } = await sb.from('configuracoes').update({mensagem_lembrete: mensagem}).eq('id','unica');
+  if(error){ toast('Erro ao salvar a mensagem de lembrete'); return; }
+  cacheConfig.mensagem_lembrete = mensagem;
+  toast('Mensagem de lembrete salva!');
+});
+
+/* =========================================================
+   CALCULADORA DE DILUIÇÃO
+   ========================================================= */
+(function(){
+  const presets = [
+    {label:'1:4', valor:4},
+    {label:'1:10', valor:10},
+    {label:'1:20', valor:20},
+    {label:'1:40', valor:40},
+    {label:'1:100', valor:100},
+    {label:'1:200', valor:200},
+  ];
+
+  const chipsBox = document.getElementById('dil-chips');
+  chipsBox.innerHTML = presets.map(p => `<button type="button" class="dil-chip" data-valor="${p.valor}">${p.label}</button>`).join('');
+
+  const inputLitros = document.getElementById('dil-litros');
+  const inputRazao = document.getElementById('dil-razao');
+  const segProduto = document.getElementById('dil-seg-produto');
+  const segAgua = document.getElementById('dil-seg-agua');
+  const valorProdutoEl = document.getElementById('dil-valor-produto');
+  const valorAguaEl = document.getElementById('dil-valor-agua');
+  const notaRazao = document.getElementById('dil-nota-razao');
+
+  function formatarVolumeDiluicao(litros){
+    if(litros <= 0) return '0 ml';
+    if(litros < 1) return `${Math.round(litros*1000)} ml`;
+    return `${litros.toFixed(2).replace(/\.00$/,'').replace(/(\.\d)0$/,'$1')} L`;
+  }
+
+  function marcarChipAtivoDiluicao(razao){
+    document.querySelectorAll('.dil-chip').forEach(c=>{
+      c.classList.toggle('ativo', Number(c.dataset.valor) === razao);
+    });
+  }
+
+  function calcularDiluicao(){
+    const litros = Math.max(0, parseFloat(inputLitros.value) || 0);
+    const razao = Math.max(0, parseFloat(inputRazao.value) || 0);
+    const divisor = razao;
+
+    const produto = divisor > 0 ? litros / divisor : 0;
+    const agua = litros - produto;
+
+    valorProdutoEl.textContent = formatarVolumeDiluicao(produto);
+    valorAguaEl.textContent = formatarVolumeDiluicao(agua);
+
+    const pctProduto = divisor > 0 ? (produto/litros)*100 || 0 : 0;
+    segProduto.style.width = pctProduto + '%';
+    segAgua.style.width = (100-pctProduto) + '%';
+
+    notaRazao.textContent = `1:${razao || 0}`;
+    marcarChipAtivoDiluicao(razao);
+  }
+
+  inputLitros.addEventListener('input', calcularDiluicao);
+  inputRazao.addEventListener('input', calcularDiluicao);
+  chipsBox.addEventListener('click', (e)=>{
+    const chip = e.target.closest('.dil-chip');
+    if(!chip) return;
+    inputRazao.value = chip.dataset.valor;
+    calcularDiluicao();
+  });
+
+  calcularDiluicao();
+})();
 
 document.getElementById('btn-salvar-telefone').addEventListener('click', async ()=>{
   const telefone = document.getElementById('cfg-telefone-negocio').value.trim().replace(/\D/g,'');

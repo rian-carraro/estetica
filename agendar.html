@@ -383,7 +383,7 @@ async function carregarOutrosServicos(){
 
 function renderOutrosServicos(){
   document.getElementById('lista-outros-servicos').innerHTML = cacheSubServicosPub.map(s=>`
-    <button type="button" class="sub-servico-card" data-id="${s.id}" onclick="toggleSubServico('${s.id}')">
+    <div class="sub-servico-card" data-id="${s.id}" onclick="toggleSubServico('${s.id}')">
       <span class="sub-servico-linha">
         <span class="sub-servico-check">✓</span>
         <span>
@@ -395,7 +395,7 @@ function renderOutrosServicos(){
         </span>
       </span>
       <span class="opcao-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
-    </button>
+    </div>
   `).join('');
 }
 
@@ -466,12 +466,18 @@ function escolherServico(id){
   document.getElementById('btn-avancar-passo1').disabled = false;
 }
 
+function subServicosObjetosSelecionados(){
+  return cacheSubServicosPub.filter(s=>subServicosEscolhidos.has(s.id));
+}
+
 function avancarPasso1(){
   if(!servicoEscolhido){
     alert('Escolha um serviço pra continuar.');
     return;
   }
-  if(subServicosEscolhidos.size > 0){
+  const subsSelecionados = subServicosObjetosSelecionados();
+  const precisaContato = subsSelecionados.some(s => s.precisa_contato !== false);
+  if(precisaContato){
     renderOrcamento();
     mostrarOrcamento();
   }else{
@@ -486,7 +492,7 @@ function juntarNomes(nomes){
 }
 
 function renderOrcamento(){
-  const subs = cacheSubServicosPub.filter(s=>subServicosEscolhidos.has(s.id));
+  const subs = subServicosObjetosSelecionados();
   const total = Number(servicoEscolhido.preco||0) + subs.reduce((soma,s)=>soma+Number(s.preco||0),0);
 
   let html = `<div class="orcamento-item"><span>${escapeHtml(servicoEscolhido.nome)}</span><span>R$ ${Number(servicoEscolhido.preco||0).toFixed(2)}</span></div>`;
@@ -660,12 +666,15 @@ function renderResumo(){
   const placa = document.getElementById('input-placa').value.trim().toUpperCase();
   const modelo = document.getElementById('input-modelo').value.trim();
   const veiculoTxt = [placa, modelo].filter(Boolean).join(' ') || '—';
+  const subs = subServicosObjetosSelecionados();
+  const valorTotal = Number(servicoEscolhido.preco||0) + subs.reduce((soma,s)=>soma+Number(s.preco||0),0);
   document.getElementById('resumo-etapa').innerHTML = `
     <div><b>Serviço:</b> ${escapeHtml(servicoEscolhido.nome)}</div>
+    ${subs.length ? `<div><b>Sub serviços:</b> ${escapeHtml(subs.map(s=>s.nome).join(', '))}</div>` : ''}
     <div><b>Dia:</b> ${formatarDataBr(dataEscolhida)}</div>
     <div><b>Horário:</b> ${horaEscolhida}</div>
     <div><b>Duração:</b> ${formatarDuracao(servicoEscolhido.duracao_minutos||60)}</div>
-    <div><b>Valor:</b> R$ ${Number(servicoEscolhido.preco||0).toFixed(2)}</div>
+    <div><b>Valor:</b> R$ ${valorTotal.toFixed(2)}</div>
     <div><b>Veículo:</b> ${escapeHtml(veiculoTxt)}</div>
   `;
 }
@@ -705,13 +714,19 @@ async function confirmarAgendamento(){
       if(!erroVeiculo) veiculoId = novoVeiculo.id;
     }
 
+    const subs = subServicosObjetosSelecionados();
+    const observacoes = subs.length
+      ? `Sub serviços adicionados: ${subs.map(s=>`${s.nome} (R$ ${Number(s.preco||0).toFixed(2)})`).join(', ')}`
+      : null;
+
     const { error: erroAgendamento } = await sb.from('agendamentos').insert({
       cliente_id: clienteId,
       veiculo_id: veiculoId,
       servico_id: servicoEscolhido.id,
       data: dataEscolhida,
       hora_inicio: horaEscolhida,
-      status: 'agendado'
+      status: 'agendado',
+      observacoes
     });
     if(erroAgendamento) throw erroAgendamento;
 
@@ -732,9 +747,11 @@ function mostrarSucesso(nome){
   const modelo = document.getElementById('input-modelo').value.trim();
   const placa = document.getElementById('input-placa').value.trim().toUpperCase();
   const veiculoTxt = [placa, modelo].filter(Boolean).join(' ') || '—';
+  const subs = subServicosObjetosSelecionados();
 
   document.getElementById('resumo-final').innerHTML = `
     <div><b>Serviço:</b> ${escapeHtml(servicoEscolhido.nome)}</div>
+    ${subs.length ? `<div><b>Sub serviços:</b> ${escapeHtml(subs.map(s=>s.nome).join(', '))}</div>` : ''}
     <div><b>Data:</b> ${formatarDataBr(dataEscolhida)}</div>
     <div><b>Horário:</b> ${horaEscolhida}</div>
     <div><b>Veículo:</b> ${escapeHtml(veiculoTxt)}</div>
@@ -746,9 +763,11 @@ function mostrarSucesso(nome){
     btnAvisar.classList.add('oculto');
   }else{
     btnAvisar.addEventListener('click', ()=>{
+      const nomesSubs = subs.length ? juntarNomes(subs.map(s=>s.nome)) : '';
       const msg = `Olá! Acabei de agendar pelo link:\n\n` +
         `Cliente: ${nome}\n` +
         `Serviço: ${servicoEscolhido.nome}\n` +
+        (subs.length ? `Sub serviços: ${nomesSubs}\n` : '') +
         `Data: ${formatarDataBr(dataEscolhida)}\n` +
         `Horário: ${horaEscolhida}\n` +
         `Veículo: ${veiculoTxt}`;

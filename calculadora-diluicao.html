@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Diluição</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#15171B; --surface:#1E2126; --surface-2:#262A31; --line:#2C3038;
+  --text:#F2F1ED; --text-muted:#9A9FA6;
+  --gold:#E8A33D; --gold-dim:#6b511f;
+  --blue:#3DA5D9; --blue-dim:#1c4a5e;
+  --font-display:'Oswald', sans-serif; --font-body:'Inter', sans-serif; --font-mono:'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; background:var(--bg); color:var(--text); font-family:var(--font-body);
+  min-height:100vh; display:flex; justify-content:center; padding:40px 16px;
+}
+.wrap{width:100%; max-width:440px;}
+.eyebrow{font-family:var(--font-mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold); margin:0 0 6px;}
+h1{font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.02em; font-size:28px; margin:0 0 6px;}
+.sub{color:var(--text-muted); font-size:14px; margin:0 0 28px; line-height:1.5;}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px 20px; margin-bottom:16px;}
+
+label{display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px; font-weight:600;}
+
+.linha-litros{display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:4px 4px 4px 16px;}
+.linha-litros input{
+  flex:1; background:transparent; border:none; color:var(--text); font-family:var(--font-mono);
+  font-size:22px; font-weight:600; padding:12px 0; outline:none; width:0;
+}
+.unidade-fixa{font-family:var(--font-mono); color:var(--text-muted); font-size:14px; padding-right:14px;}
+
+.grupo-preco{margin-top:20px;}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
+.chip{
+  background:var(--surface-2); border:1px solid var(--line); color:var(--text-muted);
+  border-radius:20px; padding:7px 14px; font-size:12.5px; font-weight:600; cursor:pointer;
+  font-family:var(--font-mono); transition:border-color .15s, color .15s;
+}
+.chip:hover{border-color:var(--gold);}
+.chip.ativo{border-color:var(--gold); color:var(--gold); background:rgba(232,163,61,0.08);}
+
+.linha-razao{display:flex; align-items:center; gap:10px; background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:4px 16px;}
+.linha-razao span{font-family:var(--font-mono); font-size:18px; color:var(--text-muted); font-weight:600;}
+.linha-razao input{
+  width:70px; background:transparent; border:none; color:var(--gold); font-family:var(--font-mono);
+  font-size:18px; font-weight:700; padding:12px 0; outline:none; text-align:center;
+}
+
+/* barra de proporção — elemento assinatura */
+.barra-proporcao{
+  height:34px; border-radius:8px; overflow:hidden; display:flex; margin:22px 0 6px;
+  border:1px solid var(--line);
+}
+.seg-produto{background:var(--gold); transition:width .25s ease;}
+.seg-agua{background:var(--blue); transition:width .25s ease;}
+.legenda-barra{display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:24px;}
+.legenda-barra span:first-child::before{content:'●'; color:var(--gold); margin-right:5px;}
+.legenda-barra span:last-child::before{content:'●'; color:var(--blue); margin-right:5px;}
+
+.resultados{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.resultado-box{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:16px; text-align:center;}
+.resultado-box.produto{border-color:var(--gold-dim);}
+.resultado-box.agua{border-color:var(--blue-dim);}
+.resultado-label{font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:6px; font-weight:600;}
+.resultado-valor{font-family:var(--font-mono); font-size:24px; font-weight:700;}
+.resultado-box.produto .resultado-valor{color:var(--gold);}
+.resultado-box.agua .resultado-valor{color:var(--blue);}
+
+.rodape-nota{font-size:12px; color:var(--text-muted); text-align:center; margin-top:18px; line-height:1.6;}
+.rodape-nota b{color:var(--text);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Ferramenta rápida</p>
+  <h1>Calculadora de Diluição</h1>
+  <p class="sub">Informe quanto quer preparar e a proporção do produto — a calculadora divide entre produto concentrado e água.</p>
+
+  <div class="card">
+    <label for="litros">Quero preparar</label>
+    <div class="linha-litros">
+      <input type="number" id="litros" value="1" min="0" step="0.1" inputmode="decimal">
+      <span class="unidade-fixa">litros</span>
+    </div>
+
+    <div class="grupo-preco">
+      <label>Proporção do produto</label>
+      <div class="chips" id="chips"></div>
+      <div class="linha-razao">
+        <span>1 :</span>
+        <input type="number" id="razao" value="10" min="0" step="1" inputmode="numeric">
+        <span style="font-size:12px; color:var(--text-muted); font-weight:500;">(partes de água)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="barra-proporcao">
+      <div class="seg-produto" id="seg-produto"></div>
+      <div class="seg-agua" id="seg-agua"></div>
+    </div>
+    <div class="legenda-barra">
+      <span>Produto</span>
+      <span>Água</span>
+    </div>
+
+    <div class="resultados">
+      <div class="resultado-box produto">
+        <div class="resultado-label">Produto</div>
+        <div class="resultado-valor" id="valor-produto">—</div>
+      </div>
+      <div class="resultado-box agua">
+        <div class="resultado-label">Água</div>
+        <div class="resultado-valor" id="valor-agua">—</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="rodape-nota">Diluição <b id="nota-razao">1:10</b> — proporção comum pra APC de uso geral. Confirme sempre a diluição indicada na embalagem do fabricante.</p>
+</div>
+
+<script>
+const presets = [
+  {label:'1:4', valor:4},
+  {label:'1:10', valor:10},
+  {label:'1:20', valor:20},
+  {label:'1:40', valor:40},
+  {label:'1:100', valor:100},
+  {label:'1:200', valor:200},
+];
+
+const chipsBox = document.getElementById('chips');
+chipsBox.innerHTML = presets.map(p => `<button type="button" class="chip" data-valor="${p.valor}">${p.label}</button>`).join('');
+
+const inputLitros = document.getElementById('litros');
+const inputRazao = document.getElementById('razao');
+const segProduto = document.getElementById('seg-produto');
+const segAgua = document.getElementById('seg-agua');
+const valorProdutoEl = document.getElementById('valor-produto');
+const valorAguaEl = document.getElementById('valor-agua');
+const notaRazao = document.getElementById('nota-razao');
+
+function formatarVolume(litros){
+  if(litros <= 0) return '0 ml';
+  if(litros < 1) return `${Math.round(litros*1000)} ml`;
+  return `${litros.toFixed(2).replace(/\.00$/,'').replace(/(\.\d)0$/,'$1')} L`;
+}
+
+function marcarChipAtivo(razao){
+  document.querySelectorAll('.chip').forEach(c=>{
+    c.classList.toggle('ativo', Number(c.dataset.valor) === razao);
+  });
+}
+
+function calcular(){
+  const litros = Math.max(0, parseFloat(inputLitros.value) || 0);
+  const razao = Math.max(0, parseFloat(inputRazao.value) || 0);
+  const divisor = razao;
+
+  const produto = divisor > 0 ? litros / divisor : 0;
+  const agua = litros - produto;
+
+  valorProdutoEl.textContent = formatarVolume(produto);
+  valorAguaEl.textContent = formatarVolume(agua);
+
+  const pctProduto = divisor > 0 ? (produto/litros)*100 || 0 : 0;
+  segProduto.style.width = pctProduto + '%';
+  segAgua.style.width = (100-pctProduto) + '%';
+
+  notaRazao.textContent = `1:${razao || 0}`;
+  marcarChipAtivo(razao);
+}
+
+inputLitros.addEventListener('input', calcular);
+inputRazao.addEventListener('input', calcular);
+chipsBox.addEventListener('click', (e)=>{
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  inputRazao.value = chip.dataset.valor;
+  calcular();
+});
+
+calcular();
+</script>
+</body>
+</html>
