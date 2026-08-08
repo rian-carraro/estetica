@@ -320,6 +320,66 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .dil-resultado-box.dil-agua .dil-resultado-valor{color:var(--blue);}
 .dil-nota{font-size:12px; color:var(--text-muted); margin-top:16px; line-height:1.6;}
 .dil-nota b{color:var(--text);}
+
+/* ---------- FINANCEIRO ---------- */
+.fin-filtro{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:20px;}
+.fin-chip{
+  background:var(--surface-2); border:1px solid var(--line); color:var(--text-muted);
+  border-radius:20px; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer;
+  transition:border-color .15s, color .15s;
+}
+.fin-chip:hover{border-color:var(--gold);}
+.fin-chip.ativo{border-color:var(--gold); color:var(--gold); background:rgba(232,163,61,0.08);}
+.fin-periodo-custom{display:flex; align-items:center; gap:8px; margin-left:auto;}
+.fin-periodo-custom input{width:auto; padding:9px 10px; font-size:13px;}
+.fin-periodo-custom.oculto{display:none;}
+
+.fin-cards{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px; margin-bottom:22px;}
+.fin-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px;}
+.fin-card-label{font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); font-weight:600; margin-bottom:8px;}
+.fin-card-valor{font-family:var(--font-mono); font-size:22px; font-weight:700;}
+.fin-card.receita .fin-card-valor{color:var(--green);}
+.fin-card.despesa .fin-card-valor{color:var(--red);}
+.fin-card.lucro .fin-card-valor{color:var(--gold);}
+.fin-card.lucro.negativo .fin-card-valor{color:var(--red);}
+
+.fin-secao{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:16px;}
+.fin-secao-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:10px; flex-wrap:wrap;}
+.fin-secao-header h3{font-size:15px;}
+
+.fin-grafico{display:flex; align-items:flex-end; gap:4px; height:140px; padding-top:10px;}
+.fin-barra-wrap{flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; gap:6px;}
+.fin-barra{width:100%; max-width:26px; background:var(--gold); border-radius:3px 3px 0 0; min-height:2px; transition:height .2s ease;}
+.fin-barra-label{font-size:9px; color:var(--text-muted); font-family:var(--font-mono); white-space:nowrap;}
+
+.fin-tabela{width:100%; border-collapse:collapse; font-size:13px;}
+.fin-tabela th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-muted); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--line);}
+.fin-tabela td{padding:10px; border-bottom:1px solid var(--line); vertical-align:middle;}
+.fin-tabela tr:last-child td{border-bottom:none;}
+.fin-tabela .num{font-family:var(--font-mono); text-align:right; white-space:nowrap;}
+.fin-tabela .num.pos{color:var(--green);}
+.fin-tabela .num.neg{color:var(--red);}
+
+.fin-despesa-linha{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line);}
+.fin-despesa-linha:last-child{border-bottom:none;}
+.fin-despesa-info{display:flex; flex-direction:column; gap:2px;}
+.fin-despesa-nome{font-weight:600; font-size:13.5px;}
+.fin-despesa-meta{font-size:11.5px; color:var(--text-muted);}
+.fin-despesa-valor{font-family:var(--font-mono); color:var(--red); font-weight:600; white-space:nowrap;}
+.fin-despesa-acoes{display:flex; gap:6px; align-items:center;}
+
+.fin-fixa-linha{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line);}
+.fin-fixa-linha:last-child{border-bottom:none;}
+.fin-fixa-linha.inativa{opacity:0.45;}
+
+.fin-vazio{color:var(--text-muted); font-size:13px; text-align:center; padding:20px 0;}
+
+.receita-item{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); font-size:13px;}
+.receita-item:last-child{border-bottom:none;}
+.receita-item-nome{font-weight:600;}
+.receita-item-qtd{color:var(--text-muted); font-family:var(--font-mono); font-size:12px;}
+.receita-total-linha{display:flex; justify-content:space-between; padding-top:12px; margin-top:8px; border-top:1px solid var(--gold); font-weight:700; font-size:14px;}
+.receita-total-linha span:last-child{color:var(--gold); font-family:var(--font-mono);}
 .config-secao > button{margin-top:14px;}
 .linha-copiar{display:flex; gap:10px;}
 .linha-copiar input{font-family:var(--font-mono); font-size:12px;}
@@ -392,6 +452,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <button class="nav-item" data-tab="clientes">Clientes</button>
         <button class="nav-item" data-tab="servicos">Serviços</button>
         <button class="nav-item" data-tab="estoque">Estoque</button>
+        <button class="nav-item" data-tab="financeiro">Financeiro</button>
         <button class="nav-item" data-tab="historico">Histórico</button>
         <button class="nav-item" data-tab="diluicao">Diluição</button>
         <button class="nav-item" data-tab="config">Configurações</button>
@@ -498,6 +559,62 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         </header>
         <div class="filtro-categoria" id="filtro-categoria"></div>
         <div id="lista-produtos" class="grid-produtos"></div>
+      </section>
+
+      <!-- FINANCEIRO -->
+      <section id="tab-financeiro" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Dinheiro</p>
+            <h2>Financeiro</h2>
+          </div>
+        </header>
+
+        <div class="fin-filtro" id="fin-filtro">
+          <button type="button" class="fin-chip" data-periodo="mes-atual">Este mês</button>
+          <button type="button" class="fin-chip" data-periodo="mes-passado">Mês passado</button>
+          <button type="button" class="fin-chip" data-periodo="semana">Esta semana</button>
+          <button type="button" class="fin-chip" data-periodo="personalizado">Personalizado</button>
+          <div class="fin-periodo-custom oculto" id="fin-periodo-custom">
+            <input type="date" id="fin-data-inicio">
+            <span style="color:var(--text-muted);">até</span>
+            <input type="date" id="fin-data-fim">
+          </div>
+        </div>
+
+        <div class="fin-cards" id="fin-cards"></div>
+
+        <div class="fin-secao">
+          <div class="fin-secao-header"><h3>Faturamento por dia</h3></div>
+          <div class="fin-grafico" id="fin-grafico"></div>
+        </div>
+
+        <div class="fin-secao">
+          <div class="fin-secao-header"><h3>Serviços no período</h3></div>
+          <div id="fin-tabela-servicos"></div>
+        </div>
+
+        <div class="fin-secao">
+          <div class="fin-secao-header"><h3>Lucro por serviço</h3></div>
+          <p class="config-texto-ajuda">Lucro bruto = valor do serviço − custo dos produtos usados (cadastre a receita de cada serviço clicando em "Receita" na aba Serviços).</p>
+          <div id="fin-tabela-lucro"></div>
+        </div>
+
+        <div class="fin-secao">
+          <div class="fin-secao-header">
+            <h3>Despesas do período</h3>
+            <button class="btn btn-primary btn-sm" id="btn-nova-despesa">+ Nova despesa</button>
+          </div>
+          <div id="fin-lista-despesas"></div>
+        </div>
+
+        <div class="fin-secao">
+          <div class="fin-secao-header">
+            <h3>Despesas fixas (repetem todo mês)</h3>
+            <button class="btn btn-primary btn-sm" id="btn-nova-despesa-fixa">+ Nova despesa fixa</button>
+          </div>
+          <div id="fin-lista-despesas-fixas"></div>
+        </div>
       </section>
 
       <!-- HISTÓRICO -->
@@ -673,6 +790,7 @@ document.querySelectorAll('.nav-item').forEach(btn=>{
     btn.classList.add('ativo');
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('ativo'));
     document.getElementById('tab-'+btn.dataset.tab).classList.add('ativo');
+    if(btn.dataset.tab === 'financeiro') renderFinanceiro();
   });
 });
 
@@ -735,6 +853,7 @@ async function carregarTudo(){
   document.getElementById('filtro-data-agenda').value = hojeISO();
   await Promise.all([carregarClientes(), carregarServicos(), carregarSubServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes()]);
   await carregarAgendamentos();
+  await carregarFinanceiro();
   renderDashboard();
   renderHistorico();
 }
@@ -984,6 +1103,7 @@ function renderServicos(){
         <span>${formatarDuracao(s.duracao_minutos||60)}</span>
       </div>
       <div class="ticket-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalReceita('${s.id}')">Receita</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirModalServico('${s.id}')">Editar</button>
         <button class="btn btn-danger btn-sm" onclick="removerServico('${s.id}')">Excluir</button>
       </div>
@@ -1389,6 +1509,19 @@ function abrirModalAgendamento(id){
       <div><label>Horário que começou (opcional)</label><input id="m-hora-inicio-real" type="time" value="${a&&a.hora_inicio_real?formatarHora(a.hora_inicio_real):''}" /></div>
       <div><label>Horário que terminou (opcional)</label><input id="m-hora-fim" type="time" value="${a&&a.hora_fim?formatarHora(a.hora_fim):''}" /></div>
     </div>
+    <div class="linha-2">
+      <div><label>Valor cobrado (R$)</label><input id="m-valor-cobrado" type="number" step="0.01" value="${a&&a.valor_cobrado?a.valor_cobrado:''}" /></div>
+      <div><label>Forma de pagamento</label>
+        <select id="m-forma-pagamento">
+          <option value="">—</option>
+          <option value="dinheiro" ${a&&a.forma_pagamento==='dinheiro'?'selected':''}>Dinheiro</option>
+          <option value="pix" ${a&&a.forma_pagamento==='pix'?'selected':''}>Pix</option>
+          <option value="debito" ${a&&a.forma_pagamento==='debito'?'selected':''}>Cartão débito</option>
+          <option value="credito" ${a&&a.forma_pagamento==='credito'?'selected':''}>Cartão crédito</option>
+          <option value="outro" ${a&&a.forma_pagamento==='outro'?'selected':''}>Outro</option>
+        </select>
+      </div>
+    </div>
     <label>Observações</label>
     <textarea id="m-obs-agend" rows="2">${a?escapeHtml(a.observacoes||''):''}</textarea>
     <div class="modal-acoes">
@@ -1416,9 +1549,11 @@ async function salvarAgendamento(id){
   const status = document.getElementById('m-status').value;
   const hora_inicio_real = document.getElementById('m-hora-inicio-real').value || null;
   const hora_fim = document.getElementById('m-hora-fim').value || null;
+  const valor_cobrado = parseFloat(document.getElementById('m-valor-cobrado').value) || null;
+  const forma_pagamento = document.getElementById('m-forma-pagamento').value || null;
   const observacoes = document.getElementById('m-obs-agend').value.trim();
   if(!cliente_id || !data || !hora_inicio){ toast('Preencha cliente, data e hora'); return; }
-  const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, hora_inicio_real, hora_fim, observacoes};
+  const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, hora_inicio_real, hora_fim, valor_cobrado, forma_pagamento, observacoes};
   let error;
   if(id){
     ({error} = await sb.from('agendamentos').update(payload).eq('id', id));
@@ -1428,7 +1563,8 @@ async function salvarAgendamento(id){
   if(error){ toast('Erro ao salvar agendamento'); return; }
   fecharModal();
   toast('Agendamento salvo!');
-  carregarAgendamentos();
+  await carregarAgendamentos();
+  renderFinanceiro();
 }
 window.salvarAgendamento = salvarAgendamento;
 
@@ -1437,7 +1573,8 @@ async function removerAgendamento(id){
   const { error } = await sb.from('agendamentos').delete().eq('id', id);
   if(error){ toast('Erro ao excluir'); return; }
   toast('Agendamento excluído');
-  carregarAgendamentos();
+  await carregarAgendamentos();
+  renderFinanceiro();
 }
 window.removerAgendamento = removerAgendamento;
 
@@ -1472,11 +1609,27 @@ window.mudarStatusAgendamento = mudarStatusAgendamento;
 
 function abrirModalHorarioEtapa(a, etapa){
   const ehInicio = etapa === 'inicio';
+  const servico = cacheServicos.find(s=>s.id===a.servico_id);
+  const valorPadrao = a.valor_cobrado || (servico ? servico.preco : 0);
   abrirModal(`
     <h3>${ehInicio ? 'Serviço em andamento' : 'Serviço concluído'}</h3>
     <p class="modal-sub">${ehInicio ? 'Que horas começou?' : 'Que horas terminou?'}</p>
     <label>Horário</label>
     <input id="m-hora-etapa" type="time" value="${ehInicio ? (a.hora_inicio_real || horaAtual()) : (a.hora_fim || horaAtual())}" />
+    ${ehInicio ? '' : `
+      <div class="linha-2">
+        <div><label>Valor cobrado (R$)</label><input id="m-valor-cobrado" type="number" step="0.01" value="${valorPadrao}" /></div>
+        <div><label>Forma de pagamento</label>
+          <select id="m-forma-pagamento">
+            <option value="dinheiro" ${a.forma_pagamento==='dinheiro'?'selected':''}>Dinheiro</option>
+            <option value="pix" ${!a.forma_pagamento || a.forma_pagamento==='pix'?'selected':''}>Pix</option>
+            <option value="debito" ${a.forma_pagamento==='debito'?'selected':''}>Cartão débito</option>
+            <option value="credito" ${a.forma_pagamento==='credito'?'selected':''}>Cartão crédito</option>
+            <option value="outro" ${a.forma_pagamento==='outro'?'selected':''}>Outro</option>
+          </select>
+        </div>
+      </div>
+    `}
     <div class="modal-acoes">
       <button class="btn btn-ghost" onclick="fecharModal(); reverterSelectsStatus();">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmarHorarioEtapa('${a.id}', '${etapa}')">Salvar</button>
@@ -1491,7 +1644,9 @@ async function confirmarHorarioEtapa(id, etapa){
   if(etapa === 'inicio'){
     await atualizarStatusAgendamento(id, 'em_andamento', {hora_inicio_real: hora});
   }else{
-    await atualizarStatusAgendamento(id, 'concluido', {hora_fim: hora});
+    const valor_cobrado = parseFloat(document.getElementById('m-valor-cobrado').value)||0;
+    const forma_pagamento = document.getElementById('m-forma-pagamento').value;
+    await atualizarStatusAgendamento(id, 'concluido', {hora_fim: hora, valor_cobrado, forma_pagamento});
   }
 }
 window.confirmarHorarioEtapa = confirmarHorarioEtapa;
@@ -1505,7 +1660,8 @@ async function atualizarStatusAgendamento(id, status, extras){
   }
   fecharModal();
   toast('Status atualizado!');
-  carregarAgendamentos();
+  await carregarAgendamentos();
+  renderFinanceiro();
 }
 window.atualizarStatusAgendamento = atualizarStatusAgendamento;
 
@@ -1645,6 +1801,8 @@ function abrirModalProduto(id){
       <div><label>Quantidade atual</label><input id="m-qtd" type="number" step="0.01" value="${p?p.quantidade:0}" /></div>
       <div><label>Unidade</label><input id="m-unidade" value="${p?escapeHtml(p.unidade||'un'):'un'}" placeholder="un, ml, l, kg" /></div>
     </div>
+    <label>Custo por unidade (R$) <span style="text-transform:none; letter-spacing:0; color:var(--text-muted);">— usado pra calcular o lucro dos serviços</span></label>
+    <input id="m-custo-unitario" type="number" step="0.01" value="${p?p.custo_unitario||'':''}" placeholder="Ex: 12.50" />
     <label>Estoque mínimo (avisa quando chegar nesse valor)</label>
     <input id="m-qtd-min" type="number" step="0.01" value="${p?p.quantidade_minima:0}" />
     <label>Foto do produto</label>
@@ -1678,6 +1836,7 @@ async function salvarProduto(id){
   const uso = document.getElementById('m-uso').value.trim();
   const quantidade = parseFloat(document.getElementById('m-qtd').value)||0;
   const unidade = document.getElementById('m-unidade').value.trim()||'un';
+  const custo_unitario = parseFloat(document.getElementById('m-custo-unitario').value)||0;
   const quantidade_minima = parseFloat(document.getElementById('m-qtd-min').value)||0;
   const fotoInput = document.getElementById('m-foto');
   if(!nome){ toast('Informe o nome do produto'); return; }
@@ -1699,7 +1858,7 @@ async function salvarProduto(id){
     }
   }
 
-  const payload = {nome, categoria, cor, uso, quantidade, unidade, quantidade_minima, foto_url};
+  const payload = {nome, categoria, cor, uso, quantidade, unidade, custo_unitario, quantidade_minima, foto_url};
   let error;
   if(id){
     ({error} = await sb.from('produtos').update(payload).eq('id', id));
@@ -2029,8 +2188,519 @@ document.getElementById('btn-copiar-link').addEventListener('click', ()=>{
     .catch(()=>toast('Não deu pra copiar automaticamente — selecione e copie manualmente.'));
 });
 
+/* =========================================================
+   FINANCEIRO
+   ========================================================= */
+let cacheDespesas = [];
+let cacheDespesasFixas = [];
+let cacheReceitaServico = [];
+let finPeriodoTipo = 'mes-atual';
+
+async function carregarFinanceiro(){
+  const [{data: despesas}, {data: despesasFixas}, {data: receita}] = await Promise.all([
+    sb.from('despesas').select('*').order('data', {ascending:false}),
+    sb.from('despesas_fixas').select('*').order('descricao'),
+    sb.from('receita_servico').select('*'),
+  ]);
+  cacheDespesas = despesas || [];
+  cacheDespesasFixas = despesasFixas || [];
+  cacheReceitaServico = receita || [];
+  await garantirDespesasFixasDoMes();
+  renderFinanceiro();
+}
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function dataISO(ano, mes, dia){ return `${ano}-${pad2(mes)}-${pad2(dia)}`; }
+function diasNoMes(ano, mes){ return new Date(ano, mes, 0).getDate(); }
+
+async function garantirDespesasFixasDoMes(){
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth()+1;
+  const inicioMes = dataISO(ano, mes, 1);
+  const fimMes = dataISO(ano, mes, diasNoMes(ano, mes));
+
+  const pendentes = cacheDespesasFixas.filter(f=>f.ativa);
+  let precisaRecarregar = false;
+
+  for(const fixa of pendentes){
+    const jaExiste = cacheDespesas.some(d =>
+      d.despesa_fixa_id === fixa.id && d.data >= inicioMes && d.data <= fimMes
+    );
+    if(!jaExiste){
+      const diaClamp = Math.min(fixa.dia_mes||1, diasNoMes(ano, mes));
+      const { error } = await sb.from('despesas').insert({
+        descricao: fixa.descricao,
+        categoria: fixa.categoria,
+        quantidade: 1,
+        valor_unitario: fixa.valor,
+        valor_total: fixa.valor,
+        data: dataISO(ano, mes, diaClamp),
+        despesa_fixa_id: fixa.id,
+      });
+      if(!error) precisaRecarregar = true;
+    }
+  }
+
+  if(precisaRecarregar){
+    const { data } = await sb.from('despesas').select('*').order('data', {ascending:false});
+    cacheDespesas = data || [];
+  }
+}
+
+function calcularIntervaloFinanceiro(){
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth()+1;
+
+  if(finPeriodoTipo === 'mes-atual'){
+    return { inicio: dataISO(ano, mes, 1), fim: dataISO(ano, mes, diasNoMes(ano, mes)) };
+  }
+  if(finPeriodoTipo === 'mes-passado'){
+    const mesPassado = mes === 1 ? 12 : mes-1;
+    const anoPassado = mes === 1 ? ano-1 : ano;
+    return { inicio: dataISO(anoPassado, mesPassado, 1), fim: dataISO(anoPassado, mesPassado, diasNoMes(anoPassado, mesPassado)) };
+  }
+  if(finPeriodoTipo === 'semana'){
+    const diaSemana = hoje.getDay();
+    const seg = new Date(hoje);
+    seg.setDate(hoje.getDate() - ((diaSemana+6)%7));
+    const dom = new Date(seg);
+    dom.setDate(seg.getDate()+6);
+    return {
+      inicio: dataISO(seg.getFullYear(), seg.getMonth()+1, seg.getDate()),
+      fim: dataISO(dom.getFullYear(), dom.getMonth()+1, dom.getDate())
+    };
+  }
+  // personalizado
+  const inicio = document.getElementById('fin-data-inicio').value || dataISO(ano, mes, 1);
+  const fim = document.getElementById('fin-data-fim').value || dataISO(ano, mes, diasNoMes(ano, mes));
+  return { inicio, fim };
+}
+
+function custoProdutoServico(servicoId){
+  return cacheReceitaServico
+    .filter(r => r.servico_id === servicoId)
+    .reduce((soma, r) => {
+      const produto = cacheProdutos.find(p=>p.id===r.produto_id);
+      return soma + (Number(r.quantidade)||0) * (produto ? Number(produto.custo_unitario||0) : 0);
+    }, 0);
+}
+
+function renderFinanceiro(){
+  const box = document.getElementById('fin-cards');
+  if(!box) return; // aba ainda não está no DOM ou dados não carregados
+
+  const { inicio, fim } = calcularIntervaloFinanceiro();
+
+  document.querySelectorAll('.fin-chip').forEach(c=>c.classList.toggle('ativo', c.dataset.periodo===finPeriodoTipo));
+  document.getElementById('fin-periodo-custom').classList.toggle('oculto', finPeriodoTipo!=='personalizado');
+
+  const concluidosPeriodo = cacheAgendamentos.filter(a =>
+    a.status === 'concluido' && a.data >= inicio && a.data <= fim
+  );
+
+  const valorAgendamento = a => {
+    if(a.valor_cobrado !== null && a.valor_cobrado !== undefined) return Number(a.valor_cobrado);
+    const s = cacheServicos.find(x=>x.id===a.servico_id);
+    return s ? Number(s.preco||0) : 0;
+  };
+
+  const receitaTotal = concluidosPeriodo.reduce((soma,a)=>soma+valorAgendamento(a), 0);
+  const qtdServicos = concluidosPeriodo.length;
+  const ticketMedio = qtdServicos>0 ? receitaTotal/qtdServicos : 0;
+
+  const despesasPeriodo = cacheDespesas.filter(d => d.data >= inicio && d.data <= fim);
+  const despesaTotal = despesasPeriodo.reduce((soma,d)=>soma+Number(d.valor_total||0), 0);
+
+  const lucroLiquido = receitaTotal - despesaTotal;
+
+  box.innerHTML = `
+    <div class="fin-card receita"><div class="fin-card-label">Faturamento</div><div class="fin-card-valor">${formatarMoeda(receitaTotal)}</div></div>
+    <div class="fin-card"><div class="fin-card-label">Serviços concluídos</div><div class="fin-card-valor">${qtdServicos}</div></div>
+    <div class="fin-card despesa"><div class="fin-card-label">Despesas</div><div class="fin-card-valor">${formatarMoeda(despesaTotal)}</div></div>
+    <div class="fin-card lucro ${lucroLiquido<0?'negativo':''}"><div class="fin-card-label">Lucro</div><div class="fin-card-valor">${formatarMoeda(lucroLiquido)}</div></div>
+    <div class="fin-card"><div class="fin-card-label">Ticket médio</div><div class="fin-card-valor">${formatarMoeda(ticketMedio)}</div></div>
+  `;
+
+  renderGraficoFinanceiro(concluidosPeriodo, valorAgendamento, inicio, fim);
+  renderTabelaServicosFinanceiro(concluidosPeriodo, valorAgendamento);
+  renderTabelaLucroFinanceiro(concluidosPeriodo, valorAgendamento);
+  renderListaDespesasFinanceiro(despesasPeriodo);
+  renderListaDespesasFixas();
+}
+
+function renderGraficoFinanceiro(concluidos, valorAgendamento, inicio, fim){
+  const el = document.getElementById('fin-grafico');
+  const dIni = new Date(inicio+'T00:00:00');
+  const dFim = new Date(fim+'T00:00:00');
+  const totalDias = Math.round((dFim-dIni)/86400000)+1;
+
+  const porDia = {};
+  concluidos.forEach(a=>{
+    porDia[a.data] = (porDia[a.data]||0) + valorAgendamento(a);
+  });
+
+  let chaves = [];
+  if(totalDias <= 45){
+    for(let i=0;i<totalDias;i++){
+      const d = new Date(dIni); d.setDate(dIni.getDate()+i);
+      chaves.push(dataISO(d.getFullYear(), d.getMonth()+1, d.getDate()));
+    }
+  }else{
+    // agrupa por semana pra não poluir o gráfico
+    const semanas = {};
+    Object.keys(porDia).forEach(dt=>{
+      const d = new Date(dt+'T00:00:00');
+      const seg = new Date(d); seg.setDate(d.getDate()-((d.getDay()+6)%7));
+      const chave = dataISO(seg.getFullYear(), seg.getMonth()+1, seg.getDate());
+      semanas[chave] = (semanas[chave]||0) + porDia[dt];
+    });
+    chaves = Object.keys(semanas).sort();
+    const max = Math.max(1, ...Object.values(semanas));
+    el.innerHTML = chaves.map(k=>{
+      const v = semanas[k];
+      const [,mm,dd] = k.split('-');
+      return `<div class="fin-barra-wrap"><div class="fin-barra" style="height:${(v/max*100)||1}%" title="R$ ${v.toFixed(2)}"></div><span class="fin-barra-label">${dd}/${mm}</span></div>`;
+    }).join('');
+    return;
+  }
+
+  const max = Math.max(1, ...chaves.map(k=>porDia[k]||0));
+  el.innerHTML = chaves.map(k=>{
+    const v = porDia[k]||0;
+    const [,mm,dd] = k.split('-');
+    return `<div class="fin-barra-wrap"><div class="fin-barra" style="height:${(v/max*100)||1}%" title="R$ ${v.toFixed(2)}"></div><span class="fin-barra-label">${dd}/${mm}</span></div>`;
+  }).join('');
+}
+
+function renderTabelaServicosFinanceiro(concluidos, valorAgendamento){
+  const box = document.getElementById('fin-tabela-servicos');
+  if(concluidos.length===0){
+    box.innerHTML = '<p class="fin-vazio">Nenhum serviço concluído nesse período.</p>';
+    return;
+  }
+  const porServico = {};
+  concluidos.forEach(a=>{
+    const nome = nomeServico(a.servico_id);
+    if(!porServico[nome]) porServico[nome] = {qtd:0, total:0};
+    porServico[nome].qtd += 1;
+    porServico[nome].total += valorAgendamento(a);
+  });
+  const linhas = Object.entries(porServico).sort((a,b)=>b[1].total-a[1].total);
+  box.innerHTML = `
+    <table class="fin-tabela">
+      <thead><tr><th>Serviço</th><th class="num">Qtd</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        ${linhas.map(([nome,d])=>`<tr><td>${escapeHtml(nome)}</td><td class="num">${d.qtd}</td><td class="num">${formatarMoeda(d.total)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderTabelaLucroFinanceiro(concluidos, valorAgendamento){
+  const box = document.getElementById('fin-tabela-lucro');
+  if(concluidos.length===0){
+    box.innerHTML = '<p class="fin-vazio">Nenhum serviço concluído nesse período.</p>';
+    return;
+  }
+  const porServico = {};
+  concluidos.forEach(a=>{
+    const s = cacheServicos.find(x=>x.id===a.servico_id);
+    const nome = s ? s.nome : nomeServico(a.servico_id);
+    if(!porServico[a.servico_id]) porServico[a.servico_id] = {servicoId: a.servico_id, nome, qtd:0, receita:0, servico:s};
+    porServico[a.servico_id].qtd += 1;
+    porServico[a.servico_id].receita += valorAgendamento(a);
+  });
+
+  const linhas = Object.values(porServico).map(d=>{
+    const custoUnitario = custoProdutoServico(d.servicoId);
+    const custoTotal = custoUnitario * d.qtd;
+    const lucroTotal = d.receita - custoTotal;
+    const horas = d.servico ? (d.servico.duracao_minutos||60)/60 : 0;
+    const lucroPorHora = horas>0 ? (lucroTotal/d.qtd)/horas : 0;
+    return {...d, custoUnitario, custoTotal, lucroTotal, lucroPorHora};
+  }).sort((a,b)=>b.lucroTotal-a.lucroTotal);
+
+  box.innerHTML = `
+    <table class="fin-tabela">
+      <thead><tr>
+        <th>Serviço</th><th class="num">Qtd</th><th class="num">Custo produto (un.)</th>
+        <th class="num">Lucro bruto</th><th class="num">Lucro/hora</th>
+      </tr></thead>
+      <tbody>
+        ${linhas.map(d=>`
+          <tr>
+            <td>${escapeHtml(d.nome)}</td>
+            <td class="num">${d.qtd}</td>
+            <td class="num">${formatarMoeda(d.custoUnitario)}</td>
+            <td class="num ${d.lucroTotal>=0?'pos':'neg'}">${formatarMoeda(d.lucroTotal)}</td>
+            <td class="num">${formatarMoeda(d.lucroPorHora)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderListaDespesasFinanceiro(despesas){
+  const box = document.getElementById('fin-lista-despesas');
+  if(despesas.length===0){
+    box.innerHTML = '<p class="fin-vazio">Nenhuma despesa lançada nesse período.</p>';
+    return;
+  }
+  box.innerHTML = despesas.map(d=>`
+    <div class="fin-despesa-linha">
+      <div class="fin-despesa-info">
+        <span class="fin-despesa-nome">${escapeHtml(d.descricao)}${d.despesa_fixa_id?' <span style="color:var(--text-muted); font-weight:500;">(fixa)</span>':''}</span>
+        <span class="fin-despesa-meta">${escapeHtml(d.categoria||'Sem categoria')} · ${formatarData(d.data)} · ${d.quantidade}× de ${formatarMoeda(d.valor_unitario)}</span>
+      </div>
+      <div class="fin-despesa-acoes">
+        <span class="fin-despesa-valor">${formatarMoeda(d.valor_total)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalDespesa('${d.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerDespesa('${d.id}')">Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderListaDespesasFixas(){
+  const box = document.getElementById('fin-lista-despesas-fixas');
+  if(cacheDespesasFixas.length===0){
+    box.innerHTML = '<p class="fin-vazio">Nenhuma despesa fixa cadastrada.</p>';
+    return;
+  }
+  box.innerHTML = cacheDespesasFixas.map(f=>`
+    <div class="fin-fixa-linha ${f.ativa?'':'inativa'}">
+      <div class="fin-despesa-info">
+        <span class="fin-despesa-nome">${escapeHtml(f.descricao)}</span>
+        <span class="fin-despesa-meta">${escapeHtml(f.categoria||'Sem categoria')} · todo dia ${f.dia_mes} · ${f.ativa?'ativa':'pausada'}</span>
+      </div>
+      <div class="fin-despesa-acoes">
+        <span class="fin-despesa-valor">${formatarMoeda(f.valor)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="toggleDespesaFixaAtiva('${f.id}', ${!f.ativa})">${f.ativa?'Pausar':'Ativar'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalDespesaFixa('${f.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerDespesaFixa('${f.id}')">Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('fin-filtro').addEventListener('click', (e)=>{
+  const chip = e.target.closest('.fin-chip');
+  if(!chip) return;
+  finPeriodoTipo = chip.dataset.periodo;
+  if(finPeriodoTipo === 'personalizado'){
+    const hoje = hojeISO();
+    if(!document.getElementById('fin-data-inicio').value) document.getElementById('fin-data-inicio').value = hoje;
+    if(!document.getElementById('fin-data-fim').value) document.getElementById('fin-data-fim').value = hoje;
+  }
+  renderFinanceiro();
+});
+document.getElementById('fin-data-inicio').addEventListener('change', renderFinanceiro);
+document.getElementById('fin-data-fim').addEventListener('change', renderFinanceiro);
+
+/* ---------- DESPESAS (avulsas) ---------- */
+function abrirModalDespesa(id){
+  const d = id ? cacheDespesas.find(x=>x.id===id) : null;
+  abrirModal(`
+    <h3>${d?'Editar despesa':'Nova despesa'}</h3>
+    <label>O que foi comprado / gasto</label>
+    <input id="m-desc" value="${d?escapeHtml(d.descricao):''}" placeholder="Ex: Shampoo automotivo" />
+    <label>Categoria</label>
+    <input id="m-categoria" value="${d?escapeHtml(d.categoria||''):''}" placeholder="Ex: Produtos, Manutenção, Combustível..." />
+    <div class="linha-2">
+      <div><label>Quantidade</label><input id="m-quantidade" type="number" step="0.01" value="${d?d.quantidade:1}" /></div>
+      <div><label>Valor unitário (R$)</label><input id="m-valor-unitario" type="number" step="0.01" value="${d?d.valor_unitario:''}" /></div>
+    </div>
+    <label>Data</label>
+    <input id="m-data-despesa" type="date" value="${d?d.data:hojeISO()}" />
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarDespesa(${d?`'${d.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalDespesa = abrirModalDespesa;
+
+async function salvarDespesa(id){
+  const descricao = document.getElementById('m-desc').value.trim();
+  const categoria = document.getElementById('m-categoria').value.trim();
+  const quantidade = parseFloat(document.getElementById('m-quantidade').value)||1;
+  const valor_unitario = parseFloat(document.getElementById('m-valor-unitario').value)||0;
+  const data = document.getElementById('m-data-despesa').value;
+  if(!descricao || !data){ toast('Preencha a descrição e a data'); return; }
+  const valor_total = quantidade * valor_unitario;
+  const payload = {descricao, categoria, quantidade, valor_unitario, valor_total, data};
+  let error;
+  if(id){
+    ({error} = await sb.from('despesas').update(payload).eq('id', id));
+  }else{
+    ({error} = await sb.from('despesas').insert(payload));
+  }
+  if(error){ toast('Erro ao salvar despesa'); return; }
+  fecharModal();
+  toast('Despesa salva!');
+  carregarFinanceiro();
+}
+window.salvarDespesa = salvarDespesa;
+
+async function removerDespesa(id){
+  if(!confirm('Excluir essa despesa?')) return;
+  const { error } = await sb.from('despesas').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Despesa excluída');
+  carregarFinanceiro();
+}
+window.removerDespesa = removerDespesa;
+
+document.getElementById('btn-nova-despesa').addEventListener('click', ()=>abrirModalDespesa(null));
+
+/* ---------- DESPESAS FIXAS (recorrentes) ---------- */
+function abrirModalDespesaFixa(id){
+  const f = id ? cacheDespesasFixas.find(x=>x.id===id) : null;
+  abrirModal(`
+    <h3>${f?'Editar despesa fixa':'Nova despesa fixa'}</h3>
+    <p class="modal-sub">Ela é lançada sozinha todo mês, no dia que você escolher.</p>
+    <label>Descrição</label>
+    <input id="m-desc" value="${f?escapeHtml(f.descricao):''}" placeholder="Ex: Aluguel do espaço" />
+    <label>Categoria</label>
+    <input id="m-categoria" value="${f?escapeHtml(f.categoria||''):''}" placeholder="Ex: Aluguel, Água, Luz..." />
+    <div class="linha-2">
+      <div><label>Valor (R$)</label><input id="m-valor-fixa" type="number" step="0.01" value="${f?f.valor:''}" /></div>
+      <div><label>Todo dia</label><input id="m-dia-mes" type="number" min="1" max="28" value="${f?f.dia_mes:1}" /></div>
+    </div>
+    <label><input type="checkbox" id="m-ativa" style="width:auto;" ${f?(f.ativa?'checked':''):'checked'}/> Despesa ativa (gera lançamento todo mês)</label>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarDespesaFixa(${f?`'${f.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalDespesaFixa = abrirModalDespesaFixa;
+
+async function salvarDespesaFixa(id){
+  const descricao = document.getElementById('m-desc').value.trim();
+  const categoria = document.getElementById('m-categoria').value.trim();
+  const valor = parseFloat(document.getElementById('m-valor-fixa').value)||0;
+  const dia_mes = Math.min(28, Math.max(1, parseInt(document.getElementById('m-dia-mes').value)||1));
+  const ativa = document.getElementById('m-ativa').checked;
+  if(!descricao){ toast('Informe a descrição'); return; }
+  const payload = {descricao, categoria, valor, dia_mes, ativa};
+  let error;
+  if(id){
+    ({error} = await sb.from('despesas_fixas').update(payload).eq('id', id));
+  }else{
+    ({error} = await sb.from('despesas_fixas').insert(payload));
+  }
+  if(error){ toast('Erro ao salvar despesa fixa'); return; }
+  fecharModal();
+  toast('Despesa fixa salva!');
+  carregarFinanceiro();
+}
+window.salvarDespesaFixa = salvarDespesaFixa;
+
+async function toggleDespesaFixaAtiva(id, novoValor){
+  const { error } = await sb.from('despesas_fixas').update({ativa: novoValor}).eq('id', id);
+  if(error){ toast('Erro ao atualizar'); return; }
+  carregarFinanceiro();
+}
+window.toggleDespesaFixaAtiva = toggleDespesaFixaAtiva;
+
+async function removerDespesaFixa(id){
+  if(!confirm('Excluir essa despesa fixa? Lançamentos já gerados continuam no histórico.')) return;
+  const { error } = await sb.from('despesas_fixas').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Despesa fixa excluída');
+  carregarFinanceiro();
+}
+window.removerDespesaFixa = removerDespesaFixa;
+
+document.getElementById('btn-nova-despesa-fixa').addEventListener('click', ()=>abrirModalDespesaFixa(null));
+
+/* ---------- RECEITA DO SERVIÇO (produtos usados) ---------- */
+function abrirModalReceita(servicoId){
+  const s = cacheServicos.find(x=>x.id===servicoId);
+  if(!s) return;
+  renderModalReceita(servicoId);
+}
+window.abrirModalReceita = abrirModalReceita;
+
+function renderModalReceita(servicoId){
+  const s = cacheServicos.find(x=>x.id===servicoId);
+  const itens = cacheReceitaServico.filter(r=>r.servico_id===servicoId);
+  const custoTotal = custoProdutoServico(servicoId);
+  const lucroBruto = Number(s.preco||0) - custoTotal;
+
+  abrirModal(`
+    <h3>Receita — ${escapeHtml(s.nome)}</h3>
+    <p class="modal-sub">Produtos usados nesse serviço. Isso é usado pra calcular o lucro bruto na aba Financeiro.</p>
+
+    <div id="receita-itens-lista">
+      ${itens.length===0 ? '<p class="fin-vazio">Nenhum produto adicionado ainda.</p>' : itens.map(item=>{
+        const p = cacheProdutos.find(x=>x.id===item.produto_id);
+        const custoItem = p ? Number(item.quantidade)*Number(p.custo_unitario||0) : 0;
+        return `
+          <div class="receita-item">
+            <div>
+              <div class="receita-item-nome">${p?escapeHtml(p.nome):'Produto removido'}</div>
+              <div class="receita-item-qtd">${item.quantidade} ${p?escapeHtml(p.unidade||'un'):''} · ${formatarMoeda(custoItem)}</div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="removerItemReceita('${item.id}', '${servicoId}')">Remover</button>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div class="receita-total-linha">
+      <span>Custo total de produto</span>
+      <span>${formatarMoeda(custoTotal)}</span>
+    </div>
+    <p class="config-texto-ajuda" style="margin-top:8px;">Lucro bruto estimado: <b style="color:${lucroBruto>=0?'var(--green)':'var(--red)'};">${formatarMoeda(lucroBruto)}</b> (preço do serviço − custo de produto)</p>
+
+    <div class="linha-2" style="margin-top:18px;">
+      <div>
+        <label>Produto</label>
+        <select id="receita-produto-select">
+          ${cacheProdutos.map(p=>`<option value="${p.id}">${escapeHtml(p.nome)}</option>`).join('') || '<option value="">Cadastre um produto no Estoque primeiro</option>'}
+        </select>
+      </div>
+      <div><label>Quantidade usada</label><input id="receita-produto-qtd" type="number" step="0.01" min="0" value="1" /></div>
+    </div>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Fechar</button>
+      <button class="btn btn-primary" onclick="adicionarItemReceita('${servicoId}')">Adicionar produto</button>
+    </div>
+  `);
+}
+
+async function adicionarItemReceita(servicoId){
+  const produto_id = document.getElementById('receita-produto-select').value;
+  const quantidade = parseFloat(document.getElementById('receita-produto-qtd').value)||0;
+  if(!produto_id){ toast('Escolha um produto'); return; }
+  if(quantidade<=0){ toast('Informe uma quantidade válida'); return; }
+  const { error } = await sb.from('receita_servico').insert({servico_id: servicoId, produto_id, quantidade});
+  if(error){ toast('Erro ao adicionar produto'); return; }
+  const { data } = await sb.from('receita_servico').select('*');
+  cacheReceitaServico = data || [];
+  renderModalReceita(servicoId);
+  renderFinanceiro();
+}
+window.adicionarItemReceita = adicionarItemReceita;
+
+async function removerItemReceita(id, servicoId){
+  const { error } = await sb.from('receita_servico').delete().eq('id', id);
+  if(error){ toast('Erro ao remover'); return; }
+  const { data } = await sb.from('receita_servico').select('*');
+  cacheReceitaServico = data || [];
+  renderModalReceita(servicoId);
+  renderFinanceiro();
+}
+window.removerItemReceita = removerItemReceita;
+
 /* ---------- START ---------- */
 iniciarConexao();
+
 
 </script>
 </body>
