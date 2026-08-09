@@ -436,6 +436,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
   .grid-semana{grid-template-columns:1fr;}
 }
 
+@media (max-width:600px){
+  .fin-tabela .col-hora{display:none;}
+  .fin-tabela{font-size:12px;}
+  .fin-tabela th, .fin-tabela td{padding:8px 6px;}
+}
+
 </style>
 </head>
 <body>
@@ -2503,8 +2509,8 @@ function renderTabelaLucroFinanceiro(concluidos, valorAgendamento){
   box.innerHTML = `
     <table class="fin-tabela">
       <thead><tr>
-        <th>Serviço</th><th class="num">Qtd</th><th class="num">Custo produto (un.)</th>
-        <th class="num">Lucro bruto</th><th class="num">Lucro/hora</th>
+        <th>Serviço</th><th class="num">Qtd</th><th class="num">Custo</th>
+        <th class="num">Lucro bruto</th><th class="num col-hora">Lucro/hora</th>
       </tr></thead>
       <tbody>
         ${linhas.map(d=>`
@@ -2513,7 +2519,7 @@ function renderTabelaLucroFinanceiro(concluidos, valorAgendamento){
             <td class="num">${d.qtd}</td>
             <td class="num">${formatarMoeda(d.custoUnitario)}</td>
             <td class="num ${d.lucroTotal>=0?'pos':'neg'}">${formatarMoeda(d.lucroTotal)}</td>
-            <td class="num">${formatarMoeda(d.lucroPorHora)}</td>
+            <td class="num col-hora">${formatarMoeda(d.lucroPorHora)}</td>
           </tr>
         `).join('')}
       </tbody>
