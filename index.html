@@ -131,6 +131,9 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
   padding:18px; display:flex; flex-direction:column; gap:2px; flex:1; min-width:200px;
 }
 .mini-card.alerta{border-color:var(--gold-dim);}
+.mini-card.lucro{border-color:var(--gold-dim);}
+.mini-card.lucro .mini-num{font-family:var(--font-mono); font-size:21px; color:var(--gold);}
+.mini-card.lucro.negativo .mini-num{color:var(--red);}
 .mini-num{font-family:var(--font-display); font-size:32px; color:var(--gold);}
 .mini-label{font-size:12px; color:var(--text-muted);}
 .lista-alertas{display:flex; flex-direction:column; gap:8px;}
@@ -479,6 +482,10 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
               <span class="mini-num" id="num-estoque-baixo">0</span>
               <span class="mini-label">itens com estoque baixo</span>
             </div>
+            <div class="mini-card lucro">
+              <span class="mini-num" id="num-lucro-mes">R$ 0</span>
+              <span class="mini-label">lucro do mês</span>
+            </div>
           </div>
           <div id="lista-estoque-baixo" class="lista-alertas"></div>
           <div class="painel-lista">
@@ -585,7 +592,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <div class="fin-cards" id="fin-cards"></div>
 
         <div class="fin-secao">
-          <div class="fin-secao-header"><h3>Faturamento por dia</h3></div>
+          <div class="fin-secao-header"><h3>Faturamento da semana</h3></div>
           <div class="fin-grafico" id="fin-grafico"></div>
         </div>
 
@@ -1380,6 +1387,32 @@ function renderDashboard(){
   document.getElementById('lista-estoque-baixo').innerHTML = baixos.map(p=>`
     <div class="item-alerta"><span>${escapeHtml(p.nome)}</span> <b>${p.quantidade} ${p.unidade}</b></div>
   `).join('');
+
+  renderLucroMesPainel();
+}
+
+function renderLucroMesPainel(){
+  const cardLucro = document.getElementById('num-lucro-mes');
+  if(!cardLucro) return;
+  const { inicio, fim } = intervaloMesAtual();
+
+  const valorAgendamento = a => {
+    if(a.valor_cobrado !== null && a.valor_cobrado !== undefined) return Number(a.valor_cobrado);
+    const s = cacheServicos.find(x=>x.id===a.servico_id);
+    return s ? Number(s.preco||0) : 0;
+  };
+
+  const receitaMes = cacheAgendamentos
+    .filter(a => a.status==='concluido' && a.data>=inicio && a.data<=fim)
+    .reduce((soma,a)=>soma+valorAgendamento(a), 0);
+
+  const despesaMes = (cacheDespesas||[])
+    .filter(d => d.data>=inicio && d.data<=fim)
+    .reduce((soma,d)=>soma+Number(d.valor_total||0), 0);
+
+  const lucroMes = receitaMes - despesaMes;
+  cardLucro.textContent = formatarMoeda(lucroMes);
+  cardLucro.closest('.mini-card').classList.toggle('negativo', lucroMes<0);
 }
 
 function renderAgendaCompleta(){
@@ -1577,6 +1610,49 @@ async function removerAgendamento(id){
   renderFinanceiro();
 }
 window.removerAgendamento = removerAgendamento;
+
+/* ---------- EDIÇÃO RÁPIDA DE VALOR (serviços concluídos) ---------- */
+function abrirModalEditarValor(id){
+  const a = cacheAgendamentos.find(x=>x.id===id);
+  if(!a) return;
+  const servico = cacheServicos.find(s=>s.id===a.servico_id);
+  const valorAtual = (a.valor_cobrado!==null && a.valor_cobrado!==undefined) ? a.valor_cobrado : (servico?servico.preco:0);
+  abrirModal(`
+    <h3>Editar valor do serviço</h3>
+    <p class="modal-sub">${escapeHtml(nomeCliente(a.cliente_id))} · ${escapeHtml(nomeServico(a.servico_id))} · ${formatarData(a.data)}</p>
+    <div class="linha-2">
+      <div><label>Valor cobrado (R$)</label><input id="m-valor-cobrado-rapido" type="number" step="0.01" value="${valorAtual}" /></div>
+      <div><label>Forma de pagamento</label>
+        <select id="m-forma-pagamento-rapido">
+          <option value="dinheiro" ${a.forma_pagamento==='dinheiro'?'selected':''}>Dinheiro</option>
+          <option value="pix" ${!a.forma_pagamento || a.forma_pagamento==='pix'?'selected':''}>Pix</option>
+          <option value="debito" ${a.forma_pagamento==='debito'?'selected':''}>Cartão débito</option>
+          <option value="credito" ${a.forma_pagamento==='credito'?'selected':''}>Cartão crédito</option>
+          <option value="outro" ${a.forma_pagamento==='outro'?'selected':''}>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarValorRapido('${a.id}')">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalEditarValor = abrirModalEditarValor;
+
+async function salvarValorRapido(id){
+  const valor_cobrado = parseFloat(document.getElementById('m-valor-cobrado-rapido').value)||0;
+  const forma_pagamento = document.getElementById('m-forma-pagamento-rapido').value;
+  const { error } = await sb.from('agendamentos').update({valor_cobrado, forma_pagamento}).eq('id', id);
+  if(error){ toast('Erro ao salvar valor'); return; }
+  fecharModal();
+  toast('Valor atualizado!');
+  await carregarAgendamentos();
+  renderFinanceiro();
+  renderHistorico();
+}
+window.salvarValorRapido = salvarValorRapido;
+
 
 /* ---------- MUDANÇA DE ETAPA (status) DIRETO NA LISTA ---------- */
 function horaAtual(){
@@ -1962,16 +2038,19 @@ function ticketHistoricoHtml(a){
   const linhaHorarios = (inicio || fim)
     ? `<span class="ticket-detalhe">${inicio ? 'Início: '+inicio : ''}${inicio && fim ? ' · ' : ''}${fim ? 'Fim: '+fim : ''}</span>`
     : '';
+  const servico = cacheServicos.find(s=>s.id===a.servico_id);
+  const valorCobrado = (a.valor_cobrado!==null && a.valor_cobrado!==undefined) ? Number(a.valor_cobrado) : (servico?Number(servico.preco||0):0);
   return `
     <div class="ticket">
       <div class="ticket-info">
         <span class="ticket-hora">${formatarHora(a.hora_inicio)} · ${formatarData(a.data)}</span>
         <span class="ticket-cliente">${escapeHtml(nomeCliente(a.cliente_id))}</span>
-        <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}</span>
+        <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))} · <b style="color:var(--gold);">${formatarMoeda(valorCobrado)}</b></span>
         ${linhaHorarios}
       </div>
       <div class="ticket-acoes">
         <span class="ticket-status status-${a.status}">${rotuloStatus(a.status)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalEditarValor('${a.id}')">Editar valor</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirModalAgendamento('${a.id}')">Editar</button>
         <button class="btn btn-danger btn-sm" onclick="removerAgendamento('${a.id}')">Excluir</button>
       </div>
@@ -2248,13 +2327,33 @@ async function garantirDespesasFixasDoMes(){
   }
 }
 
+function intervaloMesAtual(){
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = hoje.getMonth()+1;
+  return { inicio: dataISO(ano, mes, 1), fim: dataISO(ano, mes, diasNoMes(ano, mes)) };
+}
+
+function intervaloSemanaAtual(){
+  const hoje = new Date();
+  const diaSemana = hoje.getDay();
+  const seg = new Date(hoje);
+  seg.setDate(hoje.getDate() - ((diaSemana+6)%7));
+  const dom = new Date(seg);
+  dom.setDate(seg.getDate()+6);
+  return {
+    inicio: dataISO(seg.getFullYear(), seg.getMonth()+1, seg.getDate()),
+    fim: dataISO(dom.getFullYear(), dom.getMonth()+1, dom.getDate())
+  };
+}
+
 function calcularIntervaloFinanceiro(){
   const hoje = new Date();
   const ano = hoje.getFullYear();
   const mes = hoje.getMonth()+1;
 
   if(finPeriodoTipo === 'mes-atual'){
-    return { inicio: dataISO(ano, mes, 1), fim: dataISO(ano, mes, diasNoMes(ano, mes)) };
+    return intervaloMesAtual();
   }
   if(finPeriodoTipo === 'mes-passado'){
     const mesPassado = mes === 1 ? 12 : mes-1;
@@ -2262,15 +2361,7 @@ function calcularIntervaloFinanceiro(){
     return { inicio: dataISO(anoPassado, mesPassado, 1), fim: dataISO(anoPassado, mesPassado, diasNoMes(anoPassado, mesPassado)) };
   }
   if(finPeriodoTipo === 'semana'){
-    const diaSemana = hoje.getDay();
-    const seg = new Date(hoje);
-    seg.setDate(hoje.getDate() - ((diaSemana+6)%7));
-    const dom = new Date(seg);
-    dom.setDate(seg.getDate()+6);
-    return {
-      inicio: dataISO(seg.getFullYear(), seg.getMonth()+1, seg.getDate()),
-      fim: dataISO(dom.getFullYear(), dom.getMonth()+1, dom.getDate())
-    };
+    return intervaloSemanaAtual();
   }
   // personalizado
   const inicio = document.getElementById('fin-data-inicio').value || dataISO(ano, mes, 1);
@@ -2323,54 +2414,41 @@ function renderFinanceiro(){
     <div class="fin-card"><div class="fin-card-label">Ticket médio</div><div class="fin-card-valor">${formatarMoeda(ticketMedio)}</div></div>
   `;
 
-  renderGraficoFinanceiro(concluidosPeriodo, valorAgendamento, inicio, fim);
+  renderGraficoFinanceiro(valorAgendamento);
   renderTabelaServicosFinanceiro(concluidosPeriodo, valorAgendamento);
   renderTabelaLucroFinanceiro(concluidosPeriodo, valorAgendamento);
   renderListaDespesasFinanceiro(despesasPeriodo);
   renderListaDespesasFixas();
+  renderLucroMesPainel();
 }
 
-function renderGraficoFinanceiro(concluidos, valorAgendamento, inicio, fim){
+function renderGraficoFinanceiro(valorAgendamento){
   const el = document.getElementById('fin-grafico');
+  const { inicio } = intervaloSemanaAtual();
   const dIni = new Date(inicio+'T00:00:00');
-  const dFim = new Date(fim+'T00:00:00');
-  const totalDias = Math.round((dFim-dIni)/86400000)+1;
+
+  const concluidosSemana = cacheAgendamentos.filter(a=>{
+    if(a.status !== 'concluido') return false;
+    const { inicio: ini, fim } = intervaloSemanaAtual();
+    return a.data >= ini && a.data <= fim;
+  });
 
   const porDia = {};
-  concluidos.forEach(a=>{
+  concluidosSemana.forEach(a=>{
     porDia[a.data] = (porDia[a.data]||0) + valorAgendamento(a);
   });
 
-  let chaves = [];
-  if(totalDias <= 45){
-    for(let i=0;i<totalDias;i++){
-      const d = new Date(dIni); d.setDate(dIni.getDate()+i);
-      chaves.push(dataISO(d.getFullYear(), d.getMonth()+1, d.getDate()));
-    }
-  }else{
-    // agrupa por semana pra não poluir o gráfico
-    const semanas = {};
-    Object.keys(porDia).forEach(dt=>{
-      const d = new Date(dt+'T00:00:00');
-      const seg = new Date(d); seg.setDate(d.getDate()-((d.getDay()+6)%7));
-      const chave = dataISO(seg.getFullYear(), seg.getMonth()+1, seg.getDate());
-      semanas[chave] = (semanas[chave]||0) + porDia[dt];
-    });
-    chaves = Object.keys(semanas).sort();
-    const max = Math.max(1, ...Object.values(semanas));
-    el.innerHTML = chaves.map(k=>{
-      const v = semanas[k];
-      const [,mm,dd] = k.split('-');
-      return `<div class="fin-barra-wrap"><div class="fin-barra" style="height:${(v/max*100)||1}%" title="R$ ${v.toFixed(2)}"></div><span class="fin-barra-label">${dd}/${mm}</span></div>`;
-    }).join('');
-    return;
+  const chaves = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(dIni); d.setDate(dIni.getDate()+i);
+    chaves.push(dataISO(d.getFullYear(), d.getMonth()+1, d.getDate()));
   }
 
+  const diasSemana = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
   const max = Math.max(1, ...chaves.map(k=>porDia[k]||0));
-  el.innerHTML = chaves.map(k=>{
+  el.innerHTML = chaves.map((k,i)=>{
     const v = porDia[k]||0;
-    const [,mm,dd] = k.split('-');
-    return `<div class="fin-barra-wrap"><div class="fin-barra" style="height:${(v/max*100)||1}%" title="R$ ${v.toFixed(2)}"></div><span class="fin-barra-label">${dd}/${mm}</span></div>`;
+    return `<div class="fin-barra-wrap"><div class="fin-barra" style="height:${(v/max*100)||1}%" title="R$ ${v.toFixed(2)}"></div><span class="fin-barra-label">${diasSemana[i]}</span></div>`;
   }).join('');
 }
 
