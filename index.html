@@ -142,6 +142,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 
 /* ---------- TICKET DE AGENDAMENTO (elemento assinatura) ---------- */
 .lista-agendamentos{display:flex; flex-direction:column; gap:14px;}
+.lista-agendamentos .lista-extra{display:flex; flex-direction:column; gap:14px;}
 .ticket{
   position:relative;
   background:var(--surface);
@@ -273,6 +274,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 
 /* ---------- HISTÓRICO ---------- */
 .lista-historico{display:flex; flex-direction:column; gap:12px;}
+.lista-historico .lista-extra{display:flex; flex-direction:column; gap:12px;}
 .historico-item{
   background:var(--surface); border:1px solid var(--line); border-radius:10px;
   padding:14px 18px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
@@ -422,6 +424,9 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .modal-box h3{font-size:20px; margin-bottom:4px;}
 .modal-sub{color:var(--text-muted); font-size:13px; margin:0 0 10px;}
 .modal-acoes{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
+.m-sub-servicos-lista{display:flex; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:14px;}
+.m-sub-servico-item{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text); font-weight:400;}
+.m-sub-servico-item input{width:auto;}
 .modal-foto-preview{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; margin-top:8px; background:var(--surface-2);}
 .linha-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 .duracao-seletor{display:flex; gap:8px;}
@@ -1446,15 +1451,26 @@ window.removerServico = removerServico;
    AGENDAMENTOS
    ========================================================= */
 let cacheAgendamentos = [];
+let cacheAgendamentoSubServicos = [];
 
 async function carregarAgendamentos(){
   const { data, error } = await sb.from('agendamentos').select('*').order('data').order('hora_inicio');
   if(error){ toast('Erro ao carregar agenda'); return; }
   cacheAgendamentos = data || [];
+  const { data: vinculos, error: errVinc } = await sb.from('agendamento_sub_servicos').select('*');
+  if(!errVinc) cacheAgendamentoSubServicos = vinculos || [];
   renderAgendaCompleta();
   if(modoAgenda === 'semana') renderAgendaSemana();
   renderDashboard();
   renderHistorico();
+}
+
+function subServicoIdsDoAgendamento(agendamentoId){
+  return cacheAgendamentoSubServicos.filter(v=>v.agendamento_id===agendamentoId).map(v=>v.sub_servico_id);
+}
+function nomesSubServicosDoAgendamento(agendamentoId){
+  const ids = subServicoIdsDoAgendamento(agendamentoId);
+  return ids.map(id=>cacheSubServicos.find(s=>s.id===id)?.nome).filter(Boolean);
 }
 
 function nomeCliente(id){ return cacheClientes.find(c=>c.id===id)?.nome || '—'; }
@@ -1468,12 +1484,13 @@ function veiculoTxt(id){
 function nomeServico(id){ return cacheServicos.find(s=>s.id===id)?.nome || '—'; }
 
 function ticketHtml(a){
+  const subNomes = nomesSubServicosDoAgendamento(a.id);
   return `
     <div class="ticket">
       <div class="ticket-info">
         <span class="ticket-hora">${formatarHora(a.hora_inicio)} · ${formatarData(a.data)}</span>
         <span class="ticket-cliente">${escapeHtml(nomeCliente(a.cliente_id))}</span>
-        <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}</span>
+        <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}${subNomes.length?' + '+escapeHtml(subNomes.join(', ')):''}</span>
       </div>
       <div class="ticket-acoes">
         <select class="ticket-status ticket-status-select status-${a.status}" onchange="mudarStatusAgendamento('${a.id}', this.value)">
@@ -1665,6 +1682,13 @@ function abrirModalAgendamento(id){
     <select id="m-servico">
       ${cacheServicos.filter(s=>s.ativo).map(s=>`<option value="${s.id}" ${a&&a.servico_id===s.id?'selected':''}>${escapeHtml(s.nome)}</option>`).join('')}
     </select>
+    <label>Sub serviços (opcional)</label>
+    <div class="m-sub-servicos-lista">
+      ${cacheSubServicos.length ? cacheSubServicos.map(s=>{
+        const marcado = a ? subServicoIdsDoAgendamento(a.id).includes(s.id) : false;
+        return `<label class="m-sub-servico-item"><input type="checkbox" class="m-sub-servico-check" value="${s.id}" ${marcado?'checked':''}/> ${escapeHtml(s.nome)}${s.preco?` — R$ ${Number(s.preco).toFixed(2)}`:''}</label>`;
+      }).join('') : '<p class="vazio">Nenhum sub serviço cadastrado.</p>'}
+    </div>
     <div class="linha-2">
       <div><label>Data</label><input id="m-data" type="date" value="${a?a.data:hojeISO()}" /></div>
       <div><label>Hora início</label><input id="m-hora" type="time" value="${a?formatarHora(a.hora_inicio):'09:00'}" /></div>
@@ -1720,15 +1744,24 @@ async function salvarAgendamento(id){
   const valor_cobrado = parseFloat(document.getElementById('m-valor-cobrado').value) || null;
   const forma_pagamento = document.getElementById('m-forma-pagamento').value || null;
   const observacoes = document.getElementById('m-obs-agend').value.trim();
+  const subServicoIds = [...document.querySelectorAll('.m-sub-servico-check:checked')].map(el=>el.value);
   if(!cliente_id || !data || !hora_inicio){ toast('Preencha cliente, data e hora'); return; }
   const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, hora_inicio_real, hora_fim, valor_cobrado, forma_pagamento, observacoes};
-  let error;
+  let error, agendamentoId = id;
   if(id){
     ({error} = await sb.from('agendamentos').update(payload).eq('id', id));
   }else{
-    ({error} = await sb.from('agendamentos').insert(payload));
+    const resultado = await sb.from('agendamentos').insert(payload).select().single();
+    error = resultado.error;
+    agendamentoId = resultado.data?.id;
   }
   if(error){ toast('Erro ao salvar agendamento'); return; }
+  if(agendamentoId){
+    await sb.from('agendamento_sub_servicos').delete().eq('agendamento_id', agendamentoId);
+    if(subServicoIds.length){
+      await sb.from('agendamento_sub_servicos').insert(subServicoIds.map(sub_servico_id=>({agendamento_id: agendamentoId, sub_servico_id})));
+    }
+  }
   fecharModal();
   toast('Agendamento salvo!');
   await carregarAgendamentos();
@@ -2151,6 +2184,30 @@ function renderHistorico(){
   renderHistoricoProdutos();
 }
 
+const LIMITE_HISTORICO = 15;
+
+function renderComVerMais(containerId, itens, itemHtmlFn, limite){
+  const box = document.getElementById(containerId);
+  if(!box) return;
+  const visiveis = itens.slice(0, limite);
+  const extras = itens.slice(limite);
+  let html = visiveis.map(itemHtmlFn).join('');
+  if(extras.length > 0){
+    html += `<div class="lista-extra" id="extra-${containerId}" style="display:none" data-total="${extras.length}">${extras.map(itemHtmlFn).join('')}</div>`;
+    html += `<button class="link-add" onclick="toggleListaExtra('${containerId}', this)">ver mais ${extras.length}</button>`;
+  }
+  box.innerHTML = html;
+}
+
+function toggleListaExtra(containerId, btn){
+  const box = document.getElementById('extra-'+containerId);
+  if(!box) return;
+  const aberto = box.style.display !== 'none';
+  box.style.display = aberto ? 'none' : 'flex';
+  btn.textContent = aberto ? ('ver mais ' + box.dataset.total) : 'ver menos';
+}
+window.toggleListaExtra = toggleListaExtra;
+
 function renderHistoricoServicos(){
   const box = document.getElementById('lista-historico-servicos');
   if(!box) return;
@@ -2164,7 +2221,7 @@ function renderHistoricoServicos(){
     const chaveB = b.data + ' ' + (b.hora_inicio||'');
     return chaveB.localeCompare(chaveA);
   });
-  box.innerHTML = ordenado.map(ticketHistoricoHtml).join('');
+  renderComVerMais('lista-historico-servicos', ordenado, ticketHistoricoHtml, LIMITE_HISTORICO);
 }
 
 function ticketHistoricoHtml(a){
@@ -2175,12 +2232,13 @@ function ticketHistoricoHtml(a){
     : '';
   const servico = cacheServicos.find(s=>s.id===a.servico_id);
   const valorCobrado = (a.valor_cobrado!==null && a.valor_cobrado!==undefined) ? Number(a.valor_cobrado) : (servico?Number(servico.preco||0):0);
+  const subNomes = nomesSubServicosDoAgendamento(a.id);
   return `
     <div class="ticket">
       <div class="ticket-info">
         <span class="ticket-hora">${formatarHora(a.hora_inicio)} · ${formatarData(a.data)}</span>
         <span class="ticket-cliente">${escapeHtml(nomeCliente(a.cliente_id))}</span>
-        <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))} · <b style="color:var(--gold);">${formatarMoeda(valorCobrado)}</b></span>
+        <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}${subNomes.length?' + '+escapeHtml(subNomes.join(', ')):''} · <b style="color:var(--gold);">${formatarMoeda(valorCobrado)}</b></span>
         ${linhaHorarios}
       </div>
       <div class="ticket-acoes">
@@ -2191,19 +2249,12 @@ function ticketHistoricoHtml(a){
   `;
 }
 
-function renderHistoricoProdutos(){
-  const box = document.getElementById('lista-historico-produtos');
-  if(!box) return;
-  if(cacheMovimentacoes.length===0){
-    box.innerHTML = '<p class="vazio">Nenhuma movimentação de estoque registrada ainda.</p>';
-    return;
-  }
-  box.innerHTML = cacheMovimentacoes.map(m=>{
-    const produto = cacheProdutos.find(p=>p.id===m.produto_id);
-    const nomeProduto = produto ? produto.nome : 'Produto removido';
-    const unidade = produto ? (produto.unidade||'un') : '';
-    const tipoTxt = m.tipo === 'entrada' ? 'Entrada' : 'Saída';
-    return `
+function movimentacaoHistoricoHtml(m){
+  const produto = cacheProdutos.find(p=>p.id===m.produto_id);
+  const nomeProduto = produto ? produto.nome : 'Produto removido';
+  const unidade = produto ? (produto.unidade||'un') : '';
+  const tipoTxt = m.tipo === 'entrada' ? 'Entrada' : 'Saída';
+  return `
     <div class="historico-item">
       <div class="historico-info">
         <span class="historico-data">${formatarDataHora(m.criado_em)}</span>
@@ -2211,7 +2262,17 @@ function renderHistoricoProdutos(){
       </div>
       <span class="ticket-status badge-${m.tipo}">${tipoTxt}</span>
     </div>`;
-  }).join('');
+}
+
+function renderHistoricoProdutos(){
+  const box = document.getElementById('lista-historico-produtos');
+  if(!box) return;
+  if(cacheMovimentacoes.length===0){
+    box.innerHTML = '<p class="vazio">Nenhuma movimentação de estoque registrada ainda.</p>';
+    return;
+  }
+  const ordenado = [...cacheMovimentacoes].sort((a,b)=> (b.criado_em||'').localeCompare(a.criado_em||''));
+  renderComVerMais('lista-historico-produtos', ordenado, movimentacaoHistoricoHtml, LIMITE_HISTORICO);
 }
 
 /* =========================================================
