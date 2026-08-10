@@ -424,9 +424,39 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .modal-box h3{font-size:20px; margin-bottom:4px;}
 .modal-sub{color:var(--text-muted); font-size:13px; margin:0 0 10px;}
 .modal-acoes{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
-.m-sub-servicos-lista{display:flex; flex-direction:column; gap:8px; max-height:180px; overflow-y:auto; border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:14px;}
-.m-sub-servico-item{display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text); font-weight:400;}
-.m-sub-servico-item input{width:auto;}
+.m-sub-servicos-lista{display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; padding-right:2px; margin-bottom:14px;}
+.m-sub-servico-item{
+  position:relative; display:flex; align-items:center; gap:10px;
+  background:var(--surface); border:1px solid var(--line); border-radius:10px;
+  padding:12px 14px; cursor:pointer; margin:0; transition:border-color .15s, background .15s;
+}
+.m-sub-servico-item:hover{border-color:var(--gold-dim);}
+.m-sub-servico-item.marcado{border-color:var(--gold); background:var(--surface-2);}
+.m-sub-servico-item .m-sub-servico-check{position:absolute; opacity:0; width:0; height:0;}
+.m-sub-servico-check-visual{
+  flex-shrink:0; width:18px; height:18px; border-radius:5px; border:1.5px solid var(--line);
+  background:var(--surface-2); display:flex; align-items:center; justify-content:center; transition:border-color .15s, background .15s;
+}
+.m-sub-servico-item.marcado .m-sub-servico-check-visual{background:var(--gold); border-color:var(--gold);}
+.m-sub-servico-item.marcado .m-sub-servico-check-visual::after{content:''; width:5px; height:9px; border:solid var(--bg); border-width:0 2px 2px 0; transform:rotate(45deg) translate(-1px,-1px);}
+.m-sub-servico-nome{flex:1; font-family:'Inter',sans-serif; font-size:14px; font-weight:500; color:var(--text); text-transform:none; letter-spacing:0;}
+.m-sub-servico-preco{font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--gold); flex-shrink:0;}
+#m-disponibilidade-dia{margin:-4px 0 14px;}
+.m-disponibilidade-vazia{font-size:13px; color:var(--green); margin:0;}
+.m-disponibilidade-titulo{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin:0 0 8px;}
+.m-disponibilidade-conflito{
+  background:rgba(217,83,79,0.12); border:1px solid var(--red); color:var(--red);
+  border-radius:8px; padding:10px 12px; font-size:13px; margin:0 0 10px; font-weight:500;
+}
+.m-disponibilidade-lista{display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;}
+.m-disponibilidade-item{
+  display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line);
+  border-radius:8px; padding:8px 12px; font-size:13px;
+}
+.m-disponibilidade-item.conflito{border-color:var(--red);}
+.m-disponibilidade-hora{font-family:'IBM Plex Mono',monospace; color:var(--gold); flex-shrink:0;}
+.m-disponibilidade-cliente{flex:1; color:var(--text); font-weight:500;}
+.m-disponibilidade-servico{color:var(--text-muted);}
 .modal-foto-preview{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; margin-top:8px; background:var(--surface-2);}
 .linha-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 .duracao-seletor{display:flex; gap:8px;}
@@ -1686,13 +1716,19 @@ function abrirModalAgendamento(id){
     <div class="m-sub-servicos-lista">
       ${cacheSubServicos.length ? cacheSubServicos.map(s=>{
         const marcado = a ? subServicoIdsDoAgendamento(a.id).includes(s.id) : false;
-        return `<label class="m-sub-servico-item"><input type="checkbox" class="m-sub-servico-check" value="${s.id}" ${marcado?'checked':''}/> ${escapeHtml(s.nome)}${s.preco?` — R$ ${Number(s.preco).toFixed(2)}`:''}</label>`;
+        return `<label class="m-sub-servico-item ${marcado?'marcado':''}">
+          <input type="checkbox" class="m-sub-servico-check" value="${s.id}" ${marcado?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked)"/>
+          <span class="m-sub-servico-check-visual"></span>
+          <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
+          ${s.preco?`<span class="m-sub-servico-preco">R$ ${Number(s.preco).toFixed(2)}</span>`:''}
+        </label>`;
       }).join('') : '<p class="vazio">Nenhum sub serviço cadastrado.</p>'}
     </div>
     <div class="linha-2">
-      <div><label>Data</label><input id="m-data" type="date" value="${a?a.data:hojeISO()}" /></div>
-      <div><label>Hora início</label><input id="m-hora" type="time" value="${a?formatarHora(a.hora_inicio):'09:00'}" /></div>
+      <div><label>Data</label><input id="m-data" type="date" value="${a?a.data:hojeISO()}" oninput="atualizarDisponibilidadeModal()" /></div>
+      <div><label>Hora início</label><input id="m-hora" type="time" value="${a?formatarHora(a.hora_inicio):'09:00'}" oninput="atualizarDisponibilidadeModal()" /></div>
     </div>
+    <div id="m-disponibilidade-dia"></div>
     <label>Status</label>
     <select id="m-status">
       ${['agendado','em_andamento','concluido','cancelado'].map(s=>`<option value="${s}" ${a&&a.status===s?'selected':''}>${rotuloStatus(s)}</option>`).join('')}
@@ -1721,8 +1757,44 @@ function abrirModalAgendamento(id){
       <button class="btn btn-primary" onclick="salvarAgendamento(${a?`'${a.id}'`:'null'})">Salvar</button>
     </div>
   `);
+  document.getElementById('m-disponibilidade-dia').dataset.editandoId = a ? a.id : '';
+  atualizarDisponibilidadeModal();
 }
 window.abrirModalAgendamento = abrirModalAgendamento;
+
+function atualizarDisponibilidadeModal(){
+  const box = document.getElementById('m-disponibilidade-dia');
+  if(!box) return;
+  const data = document.getElementById('m-data').value;
+  const horaSelecionada = document.getElementById('m-hora').value;
+  const editandoId = box.dataset.editandoId || '';
+  if(!data){ box.innerHTML = ''; return; }
+  const doDia = cacheAgendamentos
+    .filter(x => x.data === data && x.status !== 'cancelado' && x.id !== editandoId)
+    .sort((x,y)=> (x.hora_inicio||'').localeCompare(y.hora_inicio||''));
+  if(doDia.length === 0){
+    box.innerHTML = `<p class="m-disponibilidade-vazia">Nenhum outro agendamento nesse dia. Horário livre.</p>`;
+    return;
+  }
+  const conflito = doDia.find(x => formatarHora(x.hora_inicio) === horaSelecionada);
+  const aviso = conflito
+    ? `<p class="m-disponibilidade-conflito">Já tem ${escapeHtml(nomeCliente(conflito.cliente_id))} marcado às ${formatarHora(conflito.hora_inicio)} nesse dia.</p>`
+    : '';
+  box.innerHTML = `
+    ${aviso}
+    <p class="m-disponibilidade-titulo">Já marcados nesse dia (${doDia.length}):</p>
+    <div class="m-disponibilidade-lista">
+      ${doDia.map(x => `
+        <div class="m-disponibilidade-item ${formatarHora(x.hora_inicio)===horaSelecionada?'conflito':''}">
+          <span class="m-disponibilidade-hora">${formatarHora(x.hora_inicio)}</span>
+          <span class="m-disponibilidade-cliente">${escapeHtml(nomeCliente(x.cliente_id))}</span>
+          <span class="m-disponibilidade-servico">${escapeHtml(nomeServico(x.servico_id))}</span>
+          <span class="ticket-status status-${x.status}">${rotuloStatus(x.status)}</span>
+        </div>`).join('')}
+    </div>
+  `;
+}
+window.atualizarDisponibilidadeModal = atualizarDisponibilidadeModal;
 
 function atualizarVeiculosModal(){
   const clienteId = document.getElementById('m-cliente').value;
@@ -1746,6 +1818,8 @@ async function salvarAgendamento(id){
   const observacoes = document.getElementById('m-obs-agend').value.trim();
   const subServicoIds = [...document.querySelectorAll('.m-sub-servico-check:checked')].map(el=>el.value);
   if(!cliente_id || !data || !hora_inicio){ toast('Preencha cliente, data e hora'); return; }
+  const conflito = cacheAgendamentos.find(x => x.data===data && formatarHora(x.hora_inicio)===hora_inicio && x.status!=='cancelado' && x.id!==id);
+  if(conflito && !confirm(`Já tem ${nomeCliente(conflito.cliente_id)} marcado às ${hora_inicio} nesse dia. Marcar mesmo assim?`)) return;
   const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, hora_inicio_real, hora_fim, valor_cobrado, forma_pagamento, observacoes};
   let error, agendamentoId = id;
   if(id){
@@ -2900,6 +2974,8 @@ window.toggleDespesaFixaAtiva = toggleDespesaFixaAtiva;
 
 async function removerDespesaFixa(id){
   if(!confirm('Excluir essa despesa fixa? Lançamentos já gerados continuam no histórico.')) return;
+  const { error: errUnlink } = await sb.from('despesas').update({despesa_fixa_id: null}).eq('despesa_fixa_id', id);
+  if(errUnlink){ toast('Erro ao excluir'); return; }
   const { error } = await sb.from('despesas_fixas').delete().eq('id', id);
   if(error){ toast('Erro ao excluir'); return; }
   toast('Despesa fixa excluída');
