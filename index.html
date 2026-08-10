@@ -228,6 +228,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .cliente-nome{font-size:16px; font-weight:600;}
 .cliente-fone{font-family:var(--font-mono); font-size:13px; color:var(--text-muted);}
 .veiculos-mini{margin-top:10px; display:flex; flex-direction:column; gap:6px;}
+.veiculos-extra{display:flex; flex-direction:column; gap:6px;}
 .veiculo-linha{
   display:flex; justify-content:space-between; align-items:center;
   background:var(--surface-2); border-radius:6px; padding:8px 12px; font-size:13px;
@@ -767,6 +768,9 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
               <input id="cfg-fidelidade-premio" type="text" placeholder="Lavagem simples" />
             </div>
           </div>
+          <label>Mensagem enviada por WhatsApp com o link do cartão</label>
+          <p class="config-texto-ajuda">Variáveis disponíveis: <br/> <code>{cliente}</code> <code>{link}</code> <code>{premio}</code></p>
+          <textarea id="cfg-fidelidade-mensagem" rows="5"></textarea>
           <button class="btn btn-primary" id="btn-salvar-fidelidade">Salvar</button>
         </div>
 
@@ -909,6 +913,27 @@ async function carregarClientes(){
   renderClientes();
 }
 
+function veiculoLinhaHtml(v, clienteId){
+  return `
+          <div class="veiculo-linha">
+            <span>${v.placa ? `<span class="placa">${escapeHtml(v.placa)}</span> ` : ''}${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')} ${v.cor?('· '+escapeHtml(v.cor)):''}</span>
+            <span>
+              <button class="link-add" onclick="editarVeiculo('${v.id}','${clienteId}')">editar</button>
+              <button class="link-add" onclick="removerVeiculo('${v.id}')">excluir</button>
+            </span>
+          </div>`;
+}
+
+function toggleVeiculosExtra(clienteId, btn){
+  const box = document.getElementById('veiculos-extra-'+clienteId);
+  if(!box) return;
+  const aberto = box.style.display !== 'none';
+  box.style.display = aberto ? 'none' : 'flex';
+  const total = box.querySelectorAll('.veiculo-linha').length;
+  btn.textContent = aberto ? `ver mais ${total} veículo${total>1?'s':''}` : 'ver menos';
+}
+window.toggleVeiculosExtra = toggleVeiculosExtra;
+
 function renderClientes(){
   const box = document.getElementById('lista-clientes');
   if(cacheClientes.length === 0){
@@ -931,14 +956,13 @@ function renderClientes(){
         </div>
       </div>
       <div class="veiculos-mini">
-        ${veic.map(v=>`
-          <div class="veiculo-linha">
-            <span>${v.placa ? `<span class="placa">${escapeHtml(v.placa)}</span> ` : ''}${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')} ${v.cor?('· '+escapeHtml(v.cor)):''}</span>
-            <span>
-              <button class="link-add" onclick="editarVeiculo('${v.id}','${c.id}')">editar</button>
-              <button class="link-add" onclick="removerVeiculo('${v.id}')">excluir</button>
-            </span>
-          </div>`).join('')}
+        ${veic.slice(0,1).map(v=>veiculoLinhaHtml(v,c.id)).join('')}
+        ${veic.length>1 ? `
+          <div class="veiculos-extra" id="veiculos-extra-${c.id}" style="display:none">
+            ${veic.slice(1).map(v=>veiculoLinhaHtml(v,c.id)).join('')}
+          </div>
+          <button class="link-add" onclick="toggleVeiculosExtra('${c.id}', this)">ver mais ${veic.length-1} veículo${veic.length-1>1?'s':''}</button>
+        ` : ''}
         <button class="link-add" onclick="abrirModalVeiculo(null, '${c.id}')">+ adicionar veículo</button>
       </div>
     </div>`;
@@ -987,7 +1011,12 @@ function abrirModalFidelidade(clienteId){
   const base = location.href.replace(/[^\/]*$/, '');
   const link = base + 'fidelidade.html?cliente=' + clienteId;
   const fone = c.telefone;
-  const msgWhats = `Olá, ${c.nome}! Aqui está o seu cartão fidelidade da Estética Manager:\n${link}\n\nAcompanhe ali quantas lavagens já fez e quantas faltam pra ganhar a próxima grátis!`;
+  const templateFid = (cacheConfig && cacheConfig.fidelidade_mensagem) ||
+    'Olá, {cliente}! Aqui está o seu cartão fidelidade da Estética Manager:\n{link}\n\nAcompanhe ali quantas lavagens já fez e quantas faltam pra ganhar {premio} grátis!';
+  const msgWhats = templateFid
+    .replace(/{cliente}/g, c.nome)
+    .replace(/{link}/g, link)
+    .replace(/{premio}/g, premio);
 
   const historico = concluidos.slice(0,10).map(a => `
     <div class="fid-historico-item">
@@ -2228,6 +2257,8 @@ function renderConfiguracoes(){
   if(fidMetaBox) fidMetaBox.value = cacheConfig.fidelidade_meta || 10;
   const fidPremioBox = document.getElementById('cfg-fidelidade-premio');
   if(fidPremioBox) fidPremioBox.value = cacheConfig.fidelidade_premio || 'Lavagem simples';
+  const fidMensagemBox = document.getElementById('cfg-fidelidade-mensagem');
+  if(fidMensagemBox) fidMensagemBox.value = cacheConfig.fidelidade_mensagem || 'Olá, {cliente}! Aqui está o seu cartão fidelidade da Estética Manager:\n{link}\n\nAcompanhe ali quantas lavagens já fez e quantas faltam pra ganhar {premio} grátis!';
 
   const foneBox = document.getElementById('cfg-telefone-negocio');
   if(foneBox) foneBox.value = cacheConfig.telefone_negocio || '';
@@ -2278,10 +2309,12 @@ document.getElementById('btn-salvar-mensagem-lembrete').addEventListener('click'
 document.getElementById('btn-salvar-fidelidade').addEventListener('click', async ()=>{
   const meta = Math.max(2, parseInt(document.getElementById('cfg-fidelidade-meta').value) || 10);
   const premio = document.getElementById('cfg-fidelidade-premio').value.trim() || 'Lavagem simples';
-  const { error } = await sb.from('configuracoes').update({fidelidade_meta: meta, fidelidade_premio: premio}).eq('id','unica');
+  const mensagem = document.getElementById('cfg-fidelidade-mensagem').value;
+  const { error } = await sb.from('configuracoes').update({fidelidade_meta: meta, fidelidade_premio: premio, fidelidade_mensagem: mensagem}).eq('id','unica');
   if(error){ toast('Erro ao salvar o cartão fidelidade'); return; }
   cacheConfig.fidelidade_meta = meta;
   cacheConfig.fidelidade_premio = premio;
+  cacheConfig.fidelidade_mensagem = mensagem;
   toast('Cartão fidelidade salvo!');
 });
 
