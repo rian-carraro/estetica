@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cartão Fidelidade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #15171B;
+  --surface: #1E2126;
+  --surface-2: #262A31;
+  --line: #2C3038;
+  --text: #F2F1ED;
+  --text-muted: #9A9FA6;
+  --gold: #E8A33D;
+  --blue: #3DA5D9;
+  --red: #D9534F;
+  --green: #5FB86A;
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); -webkit-font-smoothing:antialiased;
+  display:flex; justify-content:center; padding:24px 16px;
+}
+h1,h2,h3{font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.03em; margin:0;}
+.oculto{display:none !important;}
+
+.wrap{width:100%; max-width:460px;}
+.cabecalho{text-align:center; margin-bottom:22px;}
+.cabecalho h1{font-size:20px; letter-spacing:0.05em;}
+.cabecalho p{color:var(--text-muted); font-size:13px; margin:4px 0 0;}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:26px 22px; margin-bottom:16px;}
+
+.fid-saudacao{font-size:15px; color:var(--text-muted); text-align:center; margin-bottom:4px;}
+.fid-nome{font-family:var(--font-display); font-size:22px; text-align:center; letter-spacing:0.03em; margin-bottom:22px;}
+
+.fid-anel-wrap{display:flex; justify-content:center; margin-bottom:6px;}
+.fid-anel{position:relative; width:180px; height:180px;}
+.fid-anel svg{transform:rotate(-90deg);}
+.fid-anel-fundo{fill:none; stroke:var(--surface-2); stroke-width:14;}
+.fid-anel-progresso{fill:none; stroke:var(--gold); stroke-width:14; stroke-linecap:round; transition:stroke-dashoffset .4s ease;}
+.fid-anel-texto{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.fid-anel-numero{font-family:var(--font-mono); font-size:38px; color:var(--gold); font-weight:600; line-height:1;}
+.fid-anel-meta{font-size:12px; color:var(--text-muted); margin-top:4px;}
+
+.fid-legenda{text-align:center; color:var(--text-muted); font-size:13px; margin-top:14px;}
+.fid-premio{background:rgba(95,184,106,0.1); border:1px solid var(--green); color:var(--green); border-radius:8px; padding:14px 16px; font-size:14px; text-align:center; margin-top:18px; line-height:1.5;}
+.fid-info{background:var(--surface-2); border-radius:8px; padding:12px 14px; font-size:13px; color:var(--text-muted); text-align:center; margin-top:18px; line-height:1.5;}
+
+.card h2{font-size:16px; margin-bottom:14px;}
+.fid-item{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
+.fid-item:last-child{border-bottom:none; padding-bottom:0;}
+.fid-item-esq{display:flex; flex-direction:column; gap:2px;}
+.fid-item-data{font-family:var(--font-mono); font-size:13px; color:var(--gold);}
+.fid-item-veiculo{font-size:12px; color:var(--text-muted);}
+.fid-item-servico{font-size:13px; text-align:right; max-width:55%;}
+.fid-item-badge{display:inline-block; background:var(--gold); color:#1A1200; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:2px 7px; border-radius:4px; margin-top:4px;}
+
+.aviso{font-size:14px; color:var(--text-muted); text-align:center; padding:40px 16px;}
+.aviso.erro{color:var(--red);}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="cabecalho">
+    <h1>Estética Manager</h1>
+    <p>Cartão fidelidade</p>
+  </div>
+
+  <div id="conteudo">
+    <p class="aviso">Carregando...</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://djwgrdugpirgubjynoih.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YnyyjQKnO2Euf7E-9BPwPA_l4bAKFPv';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function escapeHtml(str){
+  if(str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function formatarData(d){
+  if(!d) return '';
+  const [ano,mes,dia] = d.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+async function iniciar(){
+  const params = new URLSearchParams(location.search);
+  const clienteId = params.get('cliente');
+  const box = document.getElementById('conteudo');
+
+  if(!clienteId){
+    box.innerHTML = '<p class="aviso erro">Link inválido. Peça um novo link pra estética.</p>';
+    return;
+  }
+
+  const [{data:cliente, error:erroCliente}, {data:config}, {data:veiculos}] = await Promise.all([
+    sb.from('clientes').select('*').eq('id', clienteId).maybeSingle(),
+    sb.from('configuracoes').select('*').eq('id','unica').maybeSingle(),
+    sb.from('veiculos').select('*').eq('cliente_id', clienteId),
+  ]);
+
+  if(erroCliente || !cliente){
+    box.innerHTML = '<p class="aviso erro">Não encontramos esse cartão fidelidade. Peça um novo link pra estética.</p>';
+    return;
+  }
+
+  const { data: servicos } = await sb.from('servicos').select('*');
+  const { data: agendamentos } = await sb.from('agendamentos')
+    .select('*')
+    .eq('cliente_id', clienteId)
+    .eq('status', 'concluido')
+    .order('data', {ascending:false})
+    .order('hora_inicio', {ascending:false});
+
+  const meta = (config && config.fidelidade_meta) || 10;
+  const premio = (config && config.fidelidade_premio) || 'Lavagem simples';
+  const lista = agendamentos || [];
+  const total = lista.length;
+  const posicao = total % meta;
+  const completou = total > 0 && posicao === 0;
+  const faltam = completou ? 0 : (meta - posicao);
+
+  const raio = 76;
+  const circ = 2 * Math.PI * raio;
+  const fracao = completou ? 1 : (posicao/meta);
+  const offset = circ * (1 - fracao);
+
+  function veiculoTxt(id){
+    const v = (veiculos||[]).find(x=>x.id===id);
+    if(!v) return '';
+    const nomeModelo = `${v.marca||''} ${v.modelo||''}`.trim();
+    return v.placa ? `${nomeModelo}${nomeModelo?' · ':''}${v.placa}` : nomeModelo;
+  }
+  function nomeServico(id){
+    return (servicos||[]).find(s=>s.id===id)?.nome || '—';
+  }
+
+  const historicoHtml = lista.length === 0
+    ? '<p class="aviso">Você ainda não tem lavagens concluídas por aqui. Assim que a primeira for finalizada, ela aparece nessa lista.</p>'
+    : lista.map(a => {
+        const foiGratis = a.valor_cobrado !== null && a.valor_cobrado !== undefined && Number(a.valor_cobrado) === 0;
+        return `
+        <div class="fid-item">
+          <div class="fid-item-esq">
+            <span class="fid-item-data">${formatarData(a.data)}</span>
+            <span class="fid-item-veiculo">${escapeHtml(veiculoTxt(a.veiculo_id))}</span>
+          </div>
+          <div class="fid-item-servico">
+            ${escapeHtml(nomeServico(a.servico_id))}
+            ${foiGratis ? '<div class="fid-item-badge">Grátis</div>' : ''}
+          </div>
+        </div>`;
+      }).join('');
+
+  box.innerHTML = `
+    <div class="card">
+      <p class="fid-saudacao">Olá,</p>
+      <p class="fid-nome">${escapeHtml(cliente.nome)}</p>
+
+      <div class="fid-anel-wrap">
+        <div class="fid-anel">
+          <svg width="180" height="180" viewBox="0 0 180 180">
+            <circle class="fid-anel-fundo" cx="90" cy="90" r="${raio}"></circle>
+            <circle class="fid-anel-progresso" cx="90" cy="90" r="${raio}"
+              stroke-dasharray="${circ}" stroke-dashoffset="${offset}"></circle>
+          </svg>
+          <div class="fid-anel-texto">
+            <div class="fid-anel-numero">${completou ? meta : posicao}/${meta}</div>
+            <div class="fid-anel-meta">lavagens</div>
+          </div>
+        </div>
+      </div>
+
+      ${completou
+        ? `<div class="fid-premio">Parabéns! Você completou ${meta} lavagens.<br>Sua próxima lavagem é <b>grátis</b> (${escapeHtml(premio)}).</div>`
+        : `<p class="fid-legenda">Faltam <b style="color:var(--gold);">${faltam}</b> lavagem${faltam===1?'':'s'} para ganhar ${escapeHtml(premio)} grátis</p>`
+      }
+
+      <div class="fid-info">A cada ${meta} lavagens (carro ou moto, tanto faz), a próxima sai de graça: ${escapeHtml(premio)}.</div>
+    </div>
+
+    <div class="card">
+      <h2>Suas lavagens</h2>
+      ${historicoHtml}
+    </div>
+  `;
+}
+
+iniciar();
+</script>
+</body>
+</html>
