@@ -177,6 +177,16 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .status-concluido{background:rgba(95,184,106,0.15); color:var(--green);}
 .status-cancelado{background:rgba(217,83,79,0.15); color:var(--red);}
 .ticket-acoes{display:flex; gap:8px; align-items:center;}
+.acoes-lista{display:flex; flex-direction:column; gap:8px;}
+.acoes-lista .btn{width:100%; text-align:center;}
+.fid-numero{font-family:var(--font-mono); font-size:32px; color:var(--gold); text-align:center; margin:6px 0 2px;}
+.fid-legenda{text-align:center; color:var(--text-muted); font-size:13px; margin-bottom:14px;}
+.fid-barra-wrap{background:var(--surface-2); border:1px solid var(--line); border-radius:8px; height:14px; overflow:hidden; margin-bottom:16px;}
+.fid-barra-fill{background:var(--gold); height:100%; transition:width .25s ease;}
+.fid-premio{background:rgba(95,184,106,0.1); border:1px solid var(--green); color:var(--green); border-radius:8px; padding:10px 14px; font-size:13px; text-align:center; margin-bottom:16px;}
+.fid-historico{max-height:220px; overflow-y:auto; margin-bottom:16px;}
+.fid-historico-item{display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;}
+.fid-historico-item:last-child{border-bottom:none;}
 .vazio{color:var(--text-muted); font-size:14px; padding:20px 0;}
 
 /* ---------- AGENDA FILTRO ---------- */
@@ -745,6 +755,22 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         </div>
 
         <div class="config-secao">
+          <h3>Cartão fidelidade</h3>
+          <p class="config-texto-ajuda">Conta lavagens concluídas do cliente (carro e moto juntos). Ao completar a meta, a próxima lavagem sai grátis e o contador reinicia.</p>
+          <div class="linha-2">
+            <div>
+              <label>Lavagens para ganhar a grátis</label>
+              <input id="cfg-fidelidade-meta" type="number" min="2" step="1" placeholder="10" />
+            </div>
+            <div>
+              <label>Prêmio (o que o cliente ganha)</label>
+              <input id="cfg-fidelidade-premio" type="text" placeholder="Lavagem simples" />
+            </div>
+          </div>
+          <button class="btn btn-primary" id="btn-salvar-fidelidade">Salvar</button>
+        </div>
+
+        <div class="config-secao">
           <h3>Dias e horários de trabalho</h3>
           <p class="config-texto-ajuda">Define quais dias você atende e em qual faixa de horário — usado na Agenda e no link público de agendamento.</p>
           <div class="linha-2">
@@ -899,6 +925,7 @@ function renderClientes(){
           <div class="cliente-fone">${escapeHtml(c.telefone)}</div>
         </div>
         <div class="ticket-acoes">
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalFidelidade('${c.id}')">Fidelidade</button>
           <button class="btn btn-ghost btn-sm" onclick="editarCliente('${c.id}')">Editar</button>
           <button class="btn btn-danger btn-sm" onclick="removerCliente('${c.id}')">Excluir</button>
         </div>
@@ -938,6 +965,60 @@ function abrirModalCliente(id){
 }
 window.abrirModalCliente = abrirModalCliente;
 window.editarCliente = (id)=>abrirModalCliente(id);
+
+function abrirModalFidelidade(clienteId){
+  const c = cacheClientes.find(x=>x.id===clienteId);
+  if(!c) return;
+  const meta = (cacheConfig && cacheConfig.fidelidade_meta) || 10;
+  const premio = (cacheConfig && cacheConfig.fidelidade_premio) || 'Lavagem simples';
+  const concluidos = cacheAgendamentos
+    .filter(a => a.cliente_id === clienteId && a.status === 'concluido')
+    .sort((a,b)=>{
+      const chaveA = a.data + ' ' + (a.hora_inicio||'');
+      const chaveB = b.data + ' ' + (b.hora_inicio||'');
+      return chaveB.localeCompare(chaveA);
+    });
+  const total = concluidos.length;
+  const posicao = total % meta;
+  const completou = total > 0 && posicao === 0;
+  const faltam = completou ? 0 : (meta - posicao);
+  const pct = completou ? 100 : Math.round((posicao/meta)*100);
+
+  const base = location.href.replace(/[^\/]*$/, '');
+  const link = base + 'fidelidade.html?cliente=' + clienteId;
+  const fone = c.telefone;
+  const msgWhats = `Olá, ${c.nome}! Aqui está o seu cartão fidelidade da Estética Manager:\n${link}\n\nAcompanhe ali quantas lavagens já fez e quantas faltam pra ganhar a próxima grátis!`;
+
+  const historico = concluidos.slice(0,10).map(a => `
+    <div class="fid-historico-item">
+      <span>${formatarData(a.data)} · ${escapeHtml(veiculoTxt(a.veiculo_id))}</span>
+      <span>${escapeHtml(nomeServico(a.servico_id))}</span>
+    </div>
+  `).join('') || '<p class="vazio">Nenhuma lavagem concluída ainda.</p>';
+
+  abrirModal(`
+    <h3>Fidelidade — ${escapeHtml(c.nome)}</h3>
+    <div class="fid-numero">${total}</div>
+    <p class="fid-legenda">lavagens concluídas no total</p>
+    ${completou ? `<div class="fid-premio">Meta completa! A próxima lavagem é grátis (${escapeHtml(premio)}).</div>` : ''}
+    <div class="fid-barra-wrap"><div class="fid-barra-fill" style="width:${pct}%;"></div></div>
+    <p class="fid-legenda" style="margin-top:-10px;">${completou ? 'Prêmio liberado' : `${posicao} de ${meta} — faltam ${faltam} para ganhar ${escapeHtml(premio)} grátis`}</p>
+
+    <label>Link do cartão fidelidade</label>
+    <div class="linha-copiar">
+      <input type="text" readonly value="${link}" onclick="this.select();" />
+      <button class="btn btn-ghost" onclick="navigator.clipboard.writeText('${link}'); toast('Link copiado!');">Copiar</button>
+    </div>
+
+    <div class="fid-historico" style="margin-top:16px;">${historico}</div>
+
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Fechar</button>
+      ${fone ? `<button class="btn btn-whats" onclick="window.open('https://wa.me/${fone}?text=${encodeURIComponent(msgWhats)}','_blank')">Enviar por WhatsApp</button>` : ''}
+    </div>
+  `);
+}
+window.abrirModalFidelidade = abrirModalFidelidade;
 
 async function salvarCliente(id){
   const nome = document.getElementById('m-nome').value.trim();
@@ -1369,14 +1450,33 @@ function ticketHtml(a){
         <select class="ticket-status ticket-status-select status-${a.status}" onchange="mudarStatusAgendamento('${a.id}', this.value)">
           ${['agendado','em_andamento','concluido','cancelado'].map(s=>`<option value="${s}" ${a.status===s?'selected':''}>${rotuloStatus(s)}</option>`).join('')}
         </select>
-        <button class="btn btn-whats btn-sm" onclick="enviarWhatsapp('${a.id}')">WhatsApp</button>
-        <button class="btn btn-ghost btn-sm" onclick="enviarLembrete('${a.id}')">Lembrete</button>
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalAgendamento('${a.id}')">Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="removerAgendamento('${a.id}')">Excluir</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirAcoesTicket('${a.id}')">Ver mais</button>
       </div>
     </div>
   `;
 }
+
+function abrirAcoesTicket(id){
+  const a = cacheAgendamentos.find(x=>x.id===id);
+  if(!a) return;
+  const botoes = a.status === 'concluido' ? `
+    <button class="btn btn-ghost" onclick="fecharModal(); abrirModalEditarValor('${a.id}')">Editar valor</button>
+    <button class="btn btn-ghost" onclick="fecharModal(); abrirModalAgendamento('${a.id}')">Editar</button>
+    <button class="btn btn-danger" onclick="fecharModal(); removerAgendamento('${a.id}')">Excluir</button>
+  ` : `
+    <button class="btn btn-whats" onclick="fecharModal(); enviarWhatsapp('${a.id}')">WhatsApp</button>
+    <button class="btn btn-ghost" onclick="fecharModal(); enviarLembrete('${a.id}')">Lembrete</button>
+    <button class="btn btn-ghost" onclick="fecharModal(); abrirModalAgendamento('${a.id}')">Editar</button>
+    <button class="btn btn-danger" onclick="fecharModal(); removerAgendamento('${a.id}')">Excluir</button>
+  `;
+  abrirModal(`
+    <h3>${escapeHtml(nomeCliente(a.cliente_id))}</h3>
+    <p class="config-texto-ajuda">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}</p>
+    <div class="acoes-lista">${botoes}</div>
+  `);
+}
+window.abrirAcoesTicket = abrirAcoesTicket;
+
 function rotuloStatus(s){
   return {agendado:'Agendado', em_andamento:'Em andamento', concluido:'Concluído', cancelado:'Cancelado'}[s] || s;
 }
@@ -2056,9 +2156,7 @@ function ticketHistoricoHtml(a){
       </div>
       <div class="ticket-acoes">
         <span class="ticket-status status-${a.status}">${rotuloStatus(a.status)}</span>
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalEditarValor('${a.id}')">Editar valor</button>
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalAgendamento('${a.id}')">Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="removerAgendamento('${a.id}')">Excluir</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirAcoesTicket('${a.id}')">Ver mais</button>
       </div>
     </div>
   `;
@@ -2126,6 +2224,11 @@ function renderConfiguracoes(){
   const msgLembreteBox = document.getElementById('cfg-mensagem-lembrete');
   if(msgLembreteBox) msgLembreteBox.value = cacheConfig.mensagem_lembrete || '';
 
+  const fidMetaBox = document.getElementById('cfg-fidelidade-meta');
+  if(fidMetaBox) fidMetaBox.value = cacheConfig.fidelidade_meta || 10;
+  const fidPremioBox = document.getElementById('cfg-fidelidade-premio');
+  if(fidPremioBox) fidPremioBox.value = cacheConfig.fidelidade_premio || 'Lavagem simples';
+
   const foneBox = document.getElementById('cfg-telefone-negocio');
   if(foneBox) foneBox.value = cacheConfig.telefone_negocio || '';
 
@@ -2170,6 +2273,16 @@ document.getElementById('btn-salvar-mensagem-lembrete').addEventListener('click'
   if(error){ toast('Erro ao salvar a mensagem de lembrete'); return; }
   cacheConfig.mensagem_lembrete = mensagem;
   toast('Mensagem de lembrete salva!');
+});
+
+document.getElementById('btn-salvar-fidelidade').addEventListener('click', async ()=>{
+  const meta = Math.max(2, parseInt(document.getElementById('cfg-fidelidade-meta').value) || 10);
+  const premio = document.getElementById('cfg-fidelidade-premio').value.trim() || 'Lavagem simples';
+  const { error } = await sb.from('configuracoes').update({fidelidade_meta: meta, fidelidade_premio: premio}).eq('id','unica');
+  if(error){ toast('Erro ao salvar o cartão fidelidade'); return; }
+  cacheConfig.fidelidade_meta = meta;
+  cacheConfig.fidelidade_premio = premio;
+  toast('Cartão fidelidade salvo!');
 });
 
 /* =========================================================
