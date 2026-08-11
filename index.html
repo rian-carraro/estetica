@@ -480,9 +480,8 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .horario-btn.ocupado::after{content:''; position:absolute; top:5px; right:5px; width:6px; height:6px; border-radius:50%; background:var(--red);}
 .horario-btn.selecionado.ocupado::after{background:#1A1200;}
 
-.m-servico-radio{border-radius:50%;}
 .m-sub-servico-item.marcado .m-servico-radio{position:relative; background:var(--gold); border-color:var(--gold);}
-.m-sub-servico-item.marcado .m-servico-radio::after{content:''; position:absolute; inset:4px; border-radius:50%; background:var(--bg); border:none; transform:none;}
+.m-sub-servico-item.marcado .m-servico-radio::after{content:''; width:5px; height:9px; border:solid var(--bg); border-width:0 2px 2px 0; transform:rotate(45deg) translate(-1px,-1px); inset:auto;}
 .modal-foto-preview{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; margin-top:8px; background:var(--surface-2);}
 .linha-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 .duracao-seletor{display:flex; gap:8px;}
