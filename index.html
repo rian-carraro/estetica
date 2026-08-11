@@ -1878,6 +1878,8 @@ function escolherServicoModal(servicoId){
   mAgendaServicoSel = servicoId;
   document.getElementById('m-servico').value = servicoId;
   renderServicosModal();
+  renderGridHorariosModal();
+  atualizarDisponibilidadeModal();
 }
 window.escolherServicoModal = escolherServicoModal;
 
@@ -1924,6 +1926,14 @@ function escolherDataModal(iso){
 }
 window.escolherDataModal = escolherDataModal;
 
+function duracaoServicoMinutos(servicoId){
+  const s = cacheServicos.find(sv=>sv.id===servicoId);
+  return (s && s.duracao_minutos) || 60;
+}
+function intervalosSeSobrepoem(inicioA, duracaoA, inicioB, duracaoB){
+  return inicioA < (inicioB+duracaoB) && (inicioA+duracaoA) > inicioB;
+}
+
 function renderGridHorariosModal(){
   const grid = document.getElementById('m-grid-horarios');
   if(!grid) return;
@@ -1933,20 +1943,24 @@ function renderGridHorariosModal(){
   const duracaoSlot = (cacheConfig && cacheConfig.duracao_slot_minutos) || 30;
   const inicioMin = horaParaMinutosModal(cfgDia.inicio||'08:00');
   const fimMin = horaParaMinutosModal(cfgDia.fim||'18:00');
-  const ocupados = new Set(
-    cacheAgendamentos
-      .filter(x=>x.data===mAgendaDataSel && x.status!=='cancelado' && x.id!==mAgendaEditandoId)
-      .map(x=>formatarHora(x.hora_inicio))
-  );
+  const duracaoSelecionada = duracaoServicoMinutos(mAgendaServicoSel);
+  const ocupacoes = cacheAgendamentos
+    .filter(x=>x.data===mAgendaDataSel && x.status!=='cancelado' && x.id!==mAgendaEditandoId)
+    .map(x=>{
+      const ini = horaParaMinutosModal(formatarHora(x.hora_inicio));
+      return {inicio: ini, duracao: duracaoServicoMinutos(x.servico_id)};
+    });
   const horarios = [];
   for(let t=inicioMin; t<fimMin; t+=duracaoSlot){
     horarios.push(minutosParaHoraModal(t));
   }
   if(mAgendaHoraSel && !horarios.includes(mAgendaHoraSel)) horarios.push(mAgendaHoraSel);
   horarios.sort();
-  grid.innerHTML = horarios.map(h=>`
-    <button type="button" class="horario-btn ${h===mAgendaHoraSel?'selecionado':''} ${ocupados.has(h)?'ocupado':''}" onclick="escolherHoraModal('${h}')">${h}</button>
-  `).join('') || '<p class="vazio">Nenhum horário configurado para esse dia.</p>';
+  grid.innerHTML = horarios.map(h=>{
+    const hMin = horaParaMinutosModal(h);
+    const conflita = ocupacoes.some(o => intervalosSeSobrepoem(hMin, duracaoSelecionada, o.inicio, o.duracao));
+    return `<button type="button" class="horario-btn ${h===mAgendaHoraSel?'selecionado':''} ${conflita?'ocupado':''}" onclick="escolherHoraModal('${h}')">${h}</button>`;
+  }).join('') || '<p class="vazio">Nenhum horário configurado para esse dia.</p>';
 }
 
 function horaParaMinutosModal(h){
@@ -1981,21 +1995,30 @@ function atualizarDisponibilidadeModal(){
     box.innerHTML = `<p class="m-disponibilidade-vazia">Nenhum outro agendamento nesse dia. Horário livre.</p>`;
     return;
   }
-  const conflito = doDia.find(x => formatarHora(x.hora_inicio) === horaSelecionada);
+  const duracaoSelecionada = duracaoServicoMinutos(mAgendaServicoSel);
+  const inicioSelMin = horaSelecionada ? horaParaMinutosModal(horaSelecionada) : null;
+  const conflito = inicioSelMin===null ? null : doDia.find(x => {
+    const iniX = horaParaMinutosModal(formatarHora(x.hora_inicio));
+    return intervalosSeSobrepoem(inicioSelMin, duracaoSelecionada, iniX, duracaoServicoMinutos(x.servico_id));
+  });
   const aviso = conflito
-    ? `<p class="m-disponibilidade-conflito">Já tem ${escapeHtml(nomeCliente(conflito.cliente_id))} marcado às ${formatarHora(conflito.hora_inicio)} nesse dia.</p>`
+    ? `<p class="m-disponibilidade-conflito">Esse horário bate com ${escapeHtml(nomeCliente(conflito.cliente_id))}, marcado às ${formatarHora(conflito.hora_inicio)} (${formatarDuracao(duracaoServicoMinutos(conflito.servico_id))}) nesse dia.</p>`
     : '';
   box.innerHTML = `
     ${aviso}
     <p class="m-disponibilidade-titulo">Já marcados nesse dia (${doDia.length}):</p>
     <div class="m-disponibilidade-lista">
-      ${doDia.map(x => `
-        <div class="m-disponibilidade-item ${formatarHora(x.hora_inicio)===horaSelecionada?'conflito':''}">
+      ${doDia.map(x => {
+        const iniX = horaParaMinutosModal(formatarHora(x.hora_inicio));
+        const bate = inicioSelMin!==null && intervalosSeSobrepoem(inicioSelMin, duracaoSelecionada, iniX, duracaoServicoMinutos(x.servico_id));
+        return `
+        <div class="m-disponibilidade-item ${bate?'conflito':''}">
           <span class="m-disponibilidade-hora">${formatarHora(x.hora_inicio)}</span>
           <span class="m-disponibilidade-cliente">${escapeHtml(nomeCliente(x.cliente_id))}</span>
-          <span class="m-disponibilidade-servico">${escapeHtml(nomeServico(x.servico_id))}</span>
+          <span class="m-disponibilidade-servico">${escapeHtml(nomeServico(x.servico_id))} · ${formatarDuracao(duracaoServicoMinutos(x.servico_id))}</span>
           <span class="ticket-status status-${x.status}">${rotuloStatus(x.status)}</span>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
     </div>
   `;
 }
@@ -2023,7 +2046,13 @@ async function salvarAgendamento(id){
   const observacoes = document.getElementById('m-obs-agend').value.trim();
   const subServicoIds = [...document.querySelectorAll('.m-sub-servico-check:checked')].map(el=>el.value);
   if(!cliente_id || !data || !hora_inicio){ toast('Preencha cliente, data e hora'); return; }
-  const conflito = cacheAgendamentos.find(x => x.data===data && formatarHora(x.hora_inicio)===hora_inicio && x.status!=='cancelado' && x.id!==id);
+  const duracaoNovo = duracaoServicoMinutos(servico_id);
+  const inicioNovoMin = horaParaMinutosModal(hora_inicio);
+  const conflito = cacheAgendamentos.find(x => {
+    if(x.data!==data || x.status==='cancelado' || x.id===id) return false;
+    const iniX = horaParaMinutosModal(formatarHora(x.hora_inicio));
+    return intervalosSeSobrepoem(inicioNovoMin, duracaoNovo, iniX, duracaoServicoMinutos(x.servico_id));
+  });
   if(conflito && !confirm(`Já tem ${nomeCliente(conflito.cliente_id)} marcado às ${hora_inicio} nesse dia. Marcar mesmo assim?`)) return;
   const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, hora_inicio_real, hora_fim, valor_cobrado, forma_pagamento, observacoes};
   let error, agendamentoId = id;
