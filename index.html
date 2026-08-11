@@ -457,6 +457,32 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .m-disponibilidade-hora{font-family:'IBM Plex Mono',monospace; color:var(--gold); flex-shrink:0;}
 .m-disponibilidade-cliente{flex:1; color:var(--text); font-weight:500;}
 .m-disponibilidade-servico{color:var(--text-muted);}
+
+.mes-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+.mes-label{font-family:var(--font-display); font-size:15px; letter-spacing:0.04em; text-transform:uppercase;}
+.btn-mes{background:var(--surface-2); border:1px solid var(--line); color:var(--text); width:36px; height:36px; border-radius:6px; font-size:18px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+.btn-mes:hover{border-color:var(--gold);}
+.grid-dias{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-height:240px; overflow-y:auto; padding-right:2px; margin-bottom:14px;}
+.dia-btn{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:11px 4px;
+  color:var(--text); font-family:var(--font-mono,'IBM Plex Mono',monospace); font-size:13px; text-align:center; cursor:pointer;
+}
+.dia-btn:hover{border-color:var(--gold);}
+.dia-btn.selecionado{background:var(--gold); color:#1A1200; border-color:var(--gold); font-weight:600;}
+
+.grid-horarios{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px;}
+.horario-btn{
+  position:relative; background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:10px 4px;
+  color:var(--text); font-family:var(--font-mono,'IBM Plex Mono',monospace); font-size:13px; text-align:center; cursor:pointer;
+}
+.horario-btn:hover{border-color:var(--gold);}
+.horario-btn.selecionado{background:var(--gold); color:#1A1200; border-color:var(--gold); font-weight:600;}
+.horario-btn.ocupado::after{content:''; position:absolute; top:5px; right:5px; width:6px; height:6px; border-radius:50%; background:var(--red);}
+.horario-btn.selecionado.ocupado::after{background:#1A1200;}
+
+.m-servico-radio{border-radius:50%;}
+.m-sub-servico-item.marcado .m-servico-radio{position:relative; background:var(--gold); border-color:var(--gold);}
+.m-sub-servico-item.marcado .m-servico-radio::after{content:''; position:absolute; inset:4px; border-radius:50%; background:var(--bg); border:none; transform:none;}
 .modal-foto-preview{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; margin-top:8px; background:var(--surface-2);}
 .linha-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
 .duracao-seletor{display:flex; gap:8px;}
@@ -1695,9 +1721,26 @@ window.semanaHoje = semanaHoje;
 
 document.getElementById('btn-novo-agendamento').addEventListener('click', ()=>abrirModalAgendamento(null));
 
+const NOMES_DIAS_JS = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
+const ABREV_DIAS_JS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const NOMES_MESES_JS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+let mAgendaMes = null;
+let mAgendaDataSel = null;
+let mAgendaHoraSel = null;
+let mAgendaServicoSel = null;
+let mAgendaEditandoId = '';
+
 function abrirModalAgendamento(id){
   const a = id ? cacheAgendamentos.find(x=>x.id===id) : null;
   const clienteAtual = a ? a.cliente_id : (cacheClientes[0]?.id || '');
+  const dataInicial = a ? a.data : hojeISO();
+  mAgendaDataSel = dataInicial;
+  mAgendaHoraSel = a ? formatarHora(a.hora_inicio) : null;
+  mAgendaServicoSel = a ? a.servico_id : (cacheServicos.find(s=>s.ativo)?.id || null);
+  mAgendaEditandoId = a ? a.id : '';
+  const [anoIni, mesIni] = dataInicial.split('-').map(Number);
+  mAgendaMes = new Date(anoIni, mesIni-1, 1);
+
   abrirModal(`
     <h3>${a?'Editar agendamento':'Novo agendamento'}</h3>
     <label>Cliente</label>
@@ -1709,9 +1752,8 @@ function abrirModalAgendamento(id){
       ${cacheVeiculos.filter(v=>v.cliente_id===clienteAtual).map(v=>`<option value="${v.id}" ${a&&a.veiculo_id===v.id?'selected':''}>${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')}${v.placa?' - '+escapeHtml(v.placa):''}</option>`).join('')}
     </select>
     <label>Serviço</label>
-    <select id="m-servico">
-      ${cacheServicos.filter(s=>s.ativo).map(s=>`<option value="${s.id}" ${a&&a.servico_id===s.id?'selected':''}>${escapeHtml(s.nome)}</option>`).join('')}
-    </select>
+    <input type="hidden" id="m-servico" value="${mAgendaServicoSel||''}" />
+    <div class="m-sub-servicos-lista" id="m-servicos-lista"></div>
     <label>Sub serviços (opcional)</label>
     <div class="m-sub-servicos-lista">
       ${cacheSubServicos.length ? cacheSubServicos.map(s=>{
@@ -1724,10 +1766,17 @@ function abrirModalAgendamento(id){
         </label>`;
       }).join('') : '<p class="vazio">Nenhum sub serviço cadastrado.</p>'}
     </div>
-    <div class="linha-2">
-      <div><label>Data</label><input id="m-data" type="date" value="${a?a.data:hojeISO()}" oninput="atualizarDisponibilidadeModal()" /></div>
-      <div><label>Hora início</label><input id="m-hora" type="time" value="${a?formatarHora(a.hora_inicio):'09:00'}" oninput="atualizarDisponibilidadeModal()" /></div>
+    <label>Data</label>
+    <input type="hidden" id="m-data" value="${dataInicial}" />
+    <div class="mes-nav">
+      <button type="button" class="btn-mes" onclick="mudarMesModal(-1)">‹</button>
+      <span class="mes-label" id="m-mes-label"></span>
+      <button type="button" class="btn-mes" onclick="mudarMesModal(1)">›</button>
     </div>
+    <div class="grid-dias" id="m-grid-dias"></div>
+    <label>Horário</label>
+    <input type="hidden" id="m-hora" value="${mAgendaHoraSel||''}" />
+    <div class="grid-horarios" id="m-grid-horarios"></div>
     <div id="m-disponibilidade-dia"></div>
     <label>Status</label>
     <select id="m-status">
@@ -1757,17 +1806,111 @@ function abrirModalAgendamento(id){
       <button class="btn btn-primary" onclick="salvarAgendamento(${a?`'${a.id}'`:'null'})">Salvar</button>
     </div>
   `);
-  document.getElementById('m-disponibilidade-dia').dataset.editandoId = a ? a.id : '';
+  renderServicosModal();
+  renderGridDiasModal();
+  renderGridHorariosModal();
   atualizarDisponibilidadeModal();
 }
 window.abrirModalAgendamento = abrirModalAgendamento;
+
+function renderServicosModal(){
+  const box = document.getElementById('m-servicos-lista');
+  if(!box) return;
+  box.innerHTML = cacheServicos.filter(s=>s.ativo).map(s=>`
+    <label class="m-sub-servico-item ${mAgendaServicoSel===s.id?'marcado':''}" onclick="escolherServicoModal('${s.id}')">
+      <span class="m-sub-servico-check-visual m-servico-radio"></span>
+      <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
+      ${s.preco?`<span class="m-sub-servico-preco">R$ ${Number(s.preco).toFixed(2)}</span>`:''}
+    </label>
+  `).join('') || '<p class="vazio">Cadastre um serviço primeiro.</p>';
+}
+
+function escolherServicoModal(servicoId){
+  mAgendaServicoSel = servicoId;
+  document.getElementById('m-servico').value = servicoId;
+  renderServicosModal();
+}
+window.escolherServicoModal = escolherServicoModal;
+
+function mudarMesModal(delta){
+  mAgendaMes.setMonth(mAgendaMes.getMonth()+delta);
+  renderGridDiasModal();
+}
+window.mudarMesModal = mudarMesModal;
+
+function renderGridDiasModal(){
+  const label = document.getElementById('m-mes-label');
+  if(!label) return;
+  label.textContent = `${NOMES_MESES_JS[mAgendaMes.getMonth()]} de ${mAgendaMes.getFullYear()}`;
+  const diasNoMes = new Date(mAgendaMes.getFullYear(), mAgendaMes.getMonth()+1, 0).getDate();
+  const botoes = [];
+  for(let d=1; d<=diasNoMes; d++){
+    const dataObj = new Date(mAgendaMes.getFullYear(), mAgendaMes.getMonth(), d);
+    const iso = dataParaISO(dataObj);
+    botoes.push({iso, label:`${ABREV_DIAS_JS[dataObj.getDay()]} - ${String(d).padStart(2,'0')}`});
+  }
+  const grid = document.getElementById('m-grid-dias');
+  grid.innerHTML = botoes.map(b=>`<button type="button" class="dia-btn ${b.iso===mAgendaDataSel?'selecionado':''}" onclick="escolherDataModal('${b.iso}')">${b.label}</button>`).join('');
+}
+
+function escolherDataModal(iso){
+  mAgendaDataSel = iso;
+  document.getElementById('m-data').value = iso;
+  renderGridDiasModal();
+  renderGridHorariosModal();
+  atualizarDisponibilidadeModal();
+}
+window.escolherDataModal = escolherDataModal;
+
+function renderGridHorariosModal(){
+  const grid = document.getElementById('m-grid-horarios');
+  if(!grid) return;
+  if(!mAgendaDataSel){ grid.innerHTML = ''; return; }
+  const diaSemana = NOMES_DIAS_JS[new Date(mAgendaDataSel+'T12:00:00').getDay()];
+  const cfgDia = (cacheConfig && cacheConfig.dias_trabalho && cacheConfig.dias_trabalho[diaSemana]) || {ativo:true, inicio:'08:00', fim:'18:00'};
+  const duracaoSlot = (cacheConfig && cacheConfig.duracao_slot_minutos) || 30;
+  const inicioMin = horaParaMinutosModal(cfgDia.inicio||'08:00');
+  const fimMin = horaParaMinutosModal(cfgDia.fim||'18:00');
+  const ocupados = new Set(
+    cacheAgendamentos
+      .filter(x=>x.data===mAgendaDataSel && x.status!=='cancelado' && x.id!==mAgendaEditandoId)
+      .map(x=>formatarHora(x.hora_inicio))
+  );
+  const horarios = [];
+  for(let t=inicioMin; t<fimMin; t+=duracaoSlot){
+    horarios.push(minutosParaHoraModal(t));
+  }
+  if(mAgendaHoraSel && !horarios.includes(mAgendaHoraSel)) horarios.push(mAgendaHoraSel);
+  horarios.sort();
+  grid.innerHTML = horarios.map(h=>`
+    <button type="button" class="horario-btn ${h===mAgendaHoraSel?'selecionado':''} ${ocupados.has(h)?'ocupado':''}" onclick="escolherHoraModal('${h}')">${h}</button>
+  `).join('') || '<p class="vazio">Nenhum horário configurado para esse dia.</p>';
+}
+
+function horaParaMinutosModal(h){
+  const [hh,mm] = h.split(':').map(Number);
+  return hh*60+mm;
+}
+function minutosParaHoraModal(min){
+  const hh = String(Math.floor(min/60)).padStart(2,'0');
+  const mm = String(min%60).padStart(2,'0');
+  return `${hh}:${mm}`;
+}
+
+function escolherHoraModal(hora){
+  mAgendaHoraSel = hora;
+  document.getElementById('m-hora').value = hora;
+  renderGridHorariosModal();
+  atualizarDisponibilidadeModal();
+}
+window.escolherHoraModal = escolherHoraModal;
 
 function atualizarDisponibilidadeModal(){
   const box = document.getElementById('m-disponibilidade-dia');
   if(!box) return;
   const data = document.getElementById('m-data').value;
   const horaSelecionada = document.getElementById('m-hora').value;
-  const editandoId = box.dataset.editandoId || '';
+  const editandoId = mAgendaEditandoId || '';
   if(!data){ box.innerHTML = ''; return; }
   const doDia = cacheAgendamentos
     .filter(x => x.data === data && x.status !== 'cancelado' && x.id !== editandoId)
