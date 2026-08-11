@@ -400,6 +400,32 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .linha-copiar{display:flex; gap:10px;}
 .linha-copiar input{font-family:var(--font-mono); font-size:12px;}
 .dias-trabalho-lista{display:flex; flex-direction:column; gap:10px; margin-top:16px;}
+
+.excecao-form{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; margin-top:14px;}
+.excecao-form-linha{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.excecao-tipo-toggle{display:flex; gap:8px; margin-top:6px;}
+.excecao-tipo-btn{
+  flex:1; padding:9px 10px; border-radius:8px; border:1.5px solid var(--line); background:var(--surface-2);
+  color:var(--text-muted); font-family:'Inter',sans-serif; font-size:13px; font-weight:600; cursor:pointer;
+  transition:border-color .15s, color .15s, background .15s;
+}
+.excecao-tipo-btn.selecionado[data-tipo="folga"]{border-color:var(--red); color:var(--red); background:rgba(217,83,79,0.12);}
+.excecao-tipo-btn.selecionado[data-tipo="extra"]{border-color:var(--green); color:var(--green); background:rgba(95,184,106,0.12);}
+#btn-add-excecao{margin-top:14px;}
+.lista-excecoes{display:flex; flex-direction:column; gap:8px; margin-top:16px;}
+.excecao-item{
+  display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--line);
+  border-radius:10px; padding:12px 16px;
+}
+.excecao-bolinha{width:12px; height:12px; border-radius:50%; flex-shrink:0;}
+.excecao-item.tipo-folga .excecao-bolinha{background:var(--red);}
+.excecao-item.tipo-extra .excecao-bolinha{background:var(--green);}
+.excecao-info{flex:1; display:flex; flex-direction:column; gap:2px;}
+.excecao-data{font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--text); font-weight:600;}
+.excecao-motivo{font-size:13px; color:var(--text-muted);}
+.excecao-tag{font-size:11px; text-transform:uppercase; letter-spacing:0.04em; font-weight:700; padding:3px 8px; border-radius:6px; flex-shrink:0;}
+.excecao-item.tipo-folga .excecao-tag{color:var(--red); background:rgba(217,83,79,0.12);}
+.excecao-item.tipo-extra .excecao-tag{color:var(--green); background:rgba(95,184,106,0.12);}
 .dia-trabalho-linha{
   display:flex; align-items:center; gap:12px; background:var(--surface-2); border-radius:8px; padding:10px 14px; flex-wrap:wrap;
 }
@@ -849,6 +875,30 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
           </div>
           <div id="dias-trabalho-lista" class="dias-trabalho-lista"></div>
           <button class="btn btn-primary" id="btn-salvar-dias">Salvar dias e horários</button>
+        </div>
+
+        <div class="config-secao">
+          <h3>Datas especiais</h3>
+          <p class="config-texto-ajuda">Marque um dia específico como folga (feriado, viagem, etc.) ou como um dia extra de trabalho, mesmo fora da sua rotina normal.</p>
+          <div class="excecao-form">
+            <div class="excecao-form-linha">
+              <div>
+                <label>Data</label>
+                <input type="date" id="excecao-data" />
+              </div>
+              <div>
+                <label>Tipo</label>
+                <div class="excecao-tipo-toggle">
+                  <button type="button" class="excecao-tipo-btn selecionado" data-tipo="folga" onclick="selecionarTipoExcecao('folga', this)">Não vou trabalhar</button>
+                  <button type="button" class="excecao-tipo-btn" data-tipo="extra" onclick="selecionarTipoExcecao('extra', this)">Vou trabalhar</button>
+                </div>
+              </div>
+            </div>
+            <label>Motivo (opcional)</label>
+            <input type="text" id="excecao-motivo" placeholder="Ex: Natal, viagem, feira de carros..." />
+            <button class="btn btn-primary" id="btn-add-excecao">+ Adicionar data especial</button>
+          </div>
+          <div id="lista-excecoes" class="lista-excecoes"></div>
         </div>
       </section>
 
@@ -1837,6 +1887,15 @@ function mudarMesModal(delta){
 }
 window.mudarMesModal = mudarMesModal;
 
+function diaPermiteAgendamento(iso){
+  const excecoes = (cacheConfig && cacheConfig.excecoes_data) || [];
+  const excecao = excecoes.find(e=>e.data===iso);
+  if(excecao) return excecao.tipo === 'extra';
+  const diaSemana = NOMES_DIAS_JS[new Date(iso+'T12:00:00').getDay()];
+  const cfgDia = (cacheConfig && cacheConfig.dias_trabalho && cacheConfig.dias_trabalho[diaSemana]) || {ativo:true};
+  return cfgDia.ativo !== false;
+}
+
 function renderGridDiasModal(){
   const label = document.getElementById('m-mes-label');
   if(!label) return;
@@ -1846,10 +1905,14 @@ function renderGridDiasModal(){
   for(let d=1; d<=diasNoMes; d++){
     const dataObj = new Date(mAgendaMes.getFullYear(), mAgendaMes.getMonth(), d);
     const iso = dataParaISO(dataObj);
-    botoes.push({iso, label:`${ABREV_DIAS_JS[dataObj.getDay()]} - ${String(d).padStart(2,'0')}`});
+    if(!diaPermiteAgendamento(iso) && iso!==mAgendaDataSel) continue;
+    const excecao = (cacheConfig.excecoes_data||[]).find(e=>e.data===iso);
+    botoes.push({iso, label:`${ABREV_DIAS_JS[dataObj.getDay()]} - ${String(d).padStart(2,'0')}`, especial: excecao ? excecao.tipo : null});
   }
   const grid = document.getElementById('m-grid-dias');
-  grid.innerHTML = botoes.map(b=>`<button type="button" class="dia-btn ${b.iso===mAgendaDataSel?'selecionado':''}" onclick="escolherDataModal('${b.iso}')">${b.label}</button>`).join('');
+  grid.innerHTML = botoes.length
+    ? botoes.map(b=>`<button type="button" class="dia-btn ${b.iso===mAgendaDataSel?'selecionado':''} ${b.especial==='extra'?'dia-especial':''}" onclick="escolherDataModal('${b.iso}')" title="${b.especial==='extra'?'Data extra de trabalho':''}">${b.label}</button>`).join('')
+    : '<p class="vazio">Nenhum dia de trabalho configurado nesse mês.</p>';
 }
 
 function escolherDataModal(iso){
@@ -2560,7 +2623,62 @@ function renderConfiguracoes(){
       </div>`;
     }).join('');
   }
+
+  renderListaExcecoes();
 }
+
+function renderListaExcecoes(){
+  const box = document.getElementById('lista-excecoes');
+  if(!box) return;
+  const excecoes = [...(cacheConfig.excecoes_data || [])].sort((a,b)=>a.data.localeCompare(b.data));
+  if(excecoes.length===0){
+    box.innerHTML = '<p class="vazio">Nenhuma data especial cadastrada.</p>';
+    return;
+  }
+  box.innerHTML = excecoes.map(e=>`
+    <div class="excecao-item tipo-${e.tipo}">
+      <span class="excecao-bolinha"></span>
+      <div class="excecao-info">
+        <span class="excecao-data">${formatarData(e.data)}</span>
+        ${e.motivo ? `<span class="excecao-motivo">${escapeHtml(e.motivo)}</span>` : ''}
+      </div>
+      <span class="excecao-tag">${e.tipo==='folga'?'Folga':'Extra'}</span>
+      <button class="link-add" onclick="removerExcecao('${e.data}')">excluir</button>
+    </div>
+  `).join('');
+}
+
+let tipoExcecaoSelecionado = 'folga';
+function selecionarTipoExcecao(tipo, btn){
+  tipoExcecaoSelecionado = tipo;
+  btn.parentElement.querySelectorAll('.excecao-tipo-btn').forEach(b=>b.classList.toggle('selecionado', b===btn));
+}
+window.selecionarTipoExcecao = selecionarTipoExcecao;
+
+async function removerExcecao(data){
+  const novas = (cacheConfig.excecoes_data || []).filter(e=>e.data!==data);
+  const { error } = await sb.from('configuracoes').update({excecoes_data: novas}).eq('id','unica');
+  if(error){ toast('Erro ao remover data especial'); return; }
+  cacheConfig.excecoes_data = novas;
+  renderListaExcecoes();
+  toast('Data especial removida');
+}
+window.removerExcecao = removerExcecao;
+
+document.getElementById('btn-add-excecao').addEventListener('click', async ()=>{
+  const data = document.getElementById('excecao-data').value;
+  const motivo = document.getElementById('excecao-motivo').value.trim();
+  if(!data){ toast('Escolha uma data'); return; }
+  const atuais = (cacheConfig.excecoes_data || []).filter(e=>e.data!==data);
+  const novas = [...atuais, {data, tipo: tipoExcecaoSelecionado, motivo}];
+  const { error } = await sb.from('configuracoes').update({excecoes_data: novas}).eq('id','unica');
+  if(error){ toast('Erro ao adicionar data especial'); return; }
+  cacheConfig.excecoes_data = novas;
+  document.getElementById('excecao-data').value = '';
+  document.getElementById('excecao-motivo').value = '';
+  renderListaExcecoes();
+  toast('Data especial adicionada!');
+});
 
 function toggleDiaTrabalho(checkbox){
   checkbox.closest('.dia-trabalho-linha').classList.toggle('dia-inativo', !checkbox.checked);
