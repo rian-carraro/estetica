@@ -1782,13 +1782,13 @@ let mAgendaEditandoId = '';
 function abrirModalAgendamento(id){
   const a = id ? cacheAgendamentos.find(x=>x.id===id) : null;
   const clienteAtual = a ? a.cliente_id : (cacheClientes[0]?.id || '');
-  const dataInicial = a ? a.data : hojeISO();
-  mAgendaDataSel = dataInicial;
+  const dataInicial = a ? a.data : '';
+  mAgendaDataSel = a ? a.data : null;
   mAgendaHoraSel = a ? formatarHora(a.hora_inicio) : null;
-  mAgendaServicoSel = a ? a.servico_id : (cacheServicos.find(s=>s.ativo)?.id || null);
+  mAgendaServicoSel = a ? a.servico_id : null;
   mAgendaEditandoId = a ? a.id : '';
-  const [anoIni, mesIni] = dataInicial.split('-').map(Number);
-  mAgendaMes = new Date(anoIni, mesIni-1, 1);
+  const baseMes = a ? new Date(...a.data.split('-').map((v,i)=>i===1?Number(v)-1:Number(v))) : new Date();
+  mAgendaMes = new Date(baseMes.getFullYear(), baseMes.getMonth(), 1);
 
   abrirModal(`
     <h3>${a?'Editar agendamento':'Novo agendamento'}</h3>
@@ -2045,7 +2045,7 @@ async function salvarAgendamento(id){
   const forma_pagamento = document.getElementById('m-forma-pagamento').value || null;
   const observacoes = document.getElementById('m-obs-agend').value.trim();
   const subServicoIds = [...document.querySelectorAll('.m-sub-servico-check:checked')].map(el=>el.value);
-  if(!cliente_id || !data || !hora_inicio){ toast('Preencha cliente, data e hora'); return; }
+  if(!cliente_id || !servico_id || !data || !hora_inicio){ toast('Preencha cliente, serviço, data e hora'); return; }
   const duracaoNovo = duracaoServicoMinutos(servico_id);
   const inicioNovoMin = horaParaMinutosModal(hora_inicio);
   const conflito = cacheAgendamentos.find(x => {
