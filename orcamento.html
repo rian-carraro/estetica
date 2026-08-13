@@ -179,6 +179,25 @@ function render(nomeCliente, foneNegocio){
        <a class="btn btn-whats" href="${linkWhats}" target="_blank">Falar no WhatsApp</a>
        <button class="btn btn-recusar" onclick="responderOrcamento('recusado')">Recusar</button>`;
 
+  function aplicarDesconto(valor, desconto){
+    if(!desconto || !desconto.tipo) return valor;
+    if(desconto.tipo==='percentual') return Math.max(0, valor - (valor*Number(desconto.valor)/100));
+    return Math.max(0, valor - Number(desconto.valor));
+  }
+
+  const formasHtml = (o.formas_pagamento||[]).length ? `
+    <div class="card">
+      <h2>Formas de pagamento</h2>
+      ${o.formas_pagamento.map(f => {
+        const valorForma = aplicarDesconto(o.total, f);
+        const temDesconto = f.desconto_tipo && f.desconto_valor;
+        return `<div class="orc-item">
+          <span>${escapeHtml(f.label)}${temDesconto ? `<br><span style="color:var(--green); font-size:12px;">${f.desconto_tipo==='percentual'?f.desconto_valor+'%':formatarMoeda(f.desconto_valor)} de desconto</span>` : ''}</span>
+          <span class="orc-item-preco">${formatarMoeda(valorForma)}</span>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
   box.innerHTML = `
     <div class="card">
       <span class="status-badge status-${statusEf}">${rotuloStatus(statusEf)}</span>
@@ -194,6 +213,8 @@ function render(nomeCliente, foneNegocio){
       <div class="orc-linha total"><span>Total</span><span>${formatarMoeda(o.total)}</span></div>
       ${o.observacoes ? `<div class="orc-obs">${escapeHtml(o.observacoes)}</div>` : ''}
     </div>
+
+    ${formasHtml}
 
     <div class="acoes-resposta">${acoesHtml}</div>
   `;

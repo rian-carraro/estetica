@@ -553,6 +553,14 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .cupom-card-acoes{display:flex; gap:8px; flex-wrap:wrap;}
 @media (max-width: 640px){
   .linha-2, .linha-3{grid-template-columns:1fr;}
+  .modal-overlay{padding:0;}
+  .modal-box{max-width:100%; min-height:100vh; margin-top:0; border-radius:0; padding:20px 16px 28px;}
+  .cupom-form, .desconto-servico-form{padding:12px;}
+  .desconto-valor-linha select{width:70px;}
+  .orc-forma-desconto{flex-wrap:wrap;}
+  .orc-forma-desconto select{width:90px;}
+  .config-secao-cabecalho{flex-direction:column; align-items:stretch;}
+  .config-secao-cabecalho button{width:100%;}
 }
 .cupom-uso-container{display:flex; flex-direction:column; gap:14px; max-height:60vh; overflow-y:auto;}
 .cupom-uso-bloco{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px;}
@@ -571,6 +579,16 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .orc-resumo-linha{display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); padding:3px 0;}
 .orc-resumo-linha.total{font-size:17px; color:var(--gold); font-weight:700; font-family:'IBM Plex Mono',monospace; border-top:1px solid var(--line); margin-top:8px; padding-top:10px;}
 .orc-resumo-linha.desconto{color:var(--green);}
+.orc-resumo-formas{border-top:1px dashed var(--line); margin-top:10px; padding-top:8px;}
+.orc-resumo-linha.forma{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text);}
+.orc-forma-pagamento-linha{
+  display:flex; flex-direction:column; gap:8px; background:var(--surface); border:1px solid var(--line);
+  border-radius:10px; padding:12px; margin-bottom:8px;
+}
+.orc-forma-desconto{display:flex; gap:8px;}
+.orc-forma-desconto select{width:110px; flex-shrink:0;}
+.orc-forma-desconto .orc-forma-valor{flex:1; min-width:0;}
+.orc-forma-desconto .btn{flex-shrink:0; width:auto; padding:8px 12px;}
 #orc-cupom-status.valido{color:var(--green);}
 #orc-cupom-status.invalido{color:var(--red);}
 .orc-card{
@@ -1272,6 +1290,13 @@ function enviarWhatsappOrcamento(id){
     msg += `\nDesconto${o.cupom_codigo?(' ('+o.cupom_codigo+')'):''}: -${descTxt}`;
   }
   msg += `\nTotal: ${formatarMoeda(o.total)}`;
+  if((o.formas_pagamento||[]).length){
+    msg += `\n\nFormas de pagamento:`;
+    o.formas_pagamento.forEach(f=>{
+      const valorForma = aplicarDesconto(o.total, f.desconto_tipo ? {tipo:f.desconto_tipo, valor:f.desconto_valor} : null);
+      msg += `\n- ${f.label}: ${formatarMoeda(valorForma)}`;
+    });
+  }
   if(o.validade) msg += `\n\nVálido até ${formatarData(o.validade)}`;
   msg += `\n\nVeja os detalhes e responda por aqui:\n${linkOrcamento(o.id)}`;
   const foneLimpo = (fone||'').replace(/\D/g,'');
@@ -1358,6 +1383,10 @@ function abrirModalOrcamento(id){
       <input type="text" id="orc-cupom-codigo" placeholder="Código do cupom" style="text-transform:uppercase;" oninput="validarCupomOrcamento()" value="${o&&o.cupom_codigo?escapeHtml(o.cupom_codigo):''}" />
       <p id="orc-cupom-status" class="config-texto-ajuda"></p>
     </div>
+    <label>Formas de pagamento (opcional)</label>
+    <p class="config-texto-ajuda">Mostra pro cliente as opções de pagamento com o desconto de cada uma (ex: à vista com desconto, cartão parcelado sem desconto). Ajuste livremente em cada orçamento.</p>
+    <div id="orc-formas-lista"></div>
+    <button type="button" class="btn btn-ghost" style="margin:8px 0 14px; width:100%;" onclick="adicionarFormaPagamento()">+ Adicionar forma de pagamento</button>
     <label>Válido até</label>
     <input type="date" id="orc-validade" value="${validadeInicial||''}" />
     <label>Observações</label>
@@ -1370,10 +1399,48 @@ function abrirModalOrcamento(id){
   `);
   renderServicosOrcamento(o);
   renderSubServicosOrcamento(o);
+  renderFormasPagamentoOrcamento(o && o.formas_pagamento ? o.formas_pagamento : []);
   if(orcModoDesconto==='cupom') validarCupomOrcamento();
   recalcularOrcamento();
 }
 window.abrirModalOrcamento = abrirModalOrcamento;
+
+function renderFormasPagamentoOrcamento(formas){
+  const box = document.getElementById('orc-formas-lista');
+  if(!box) return;
+  box.innerHTML = '';
+  (formas.length ? formas : []).forEach(f => adicionarFormaPagamento(f.label, f.desconto_tipo, f.desconto_valor));
+}
+
+function adicionarFormaPagamento(label, tipo, valor){
+  const box = document.getElementById('orc-formas-lista');
+  if(!box) return;
+  const linha = document.createElement('div');
+  linha.className = 'orc-forma-pagamento-linha';
+  linha.innerHTML = `
+    <input type="text" class="orc-forma-label" placeholder="Ex: À vista (Pix/Dinheiro)" value="${label?escapeHtml(label):''}" oninput="recalcularOrcamento()" />
+    <div class="orc-forma-desconto">
+      <select class="orc-forma-tipo" onchange="recalcularOrcamento()">
+        <option value="" ${!tipo?'selected':''}>Sem desconto</option>
+        <option value="percentual" ${tipo==='percentual'?'selected':''}>%</option>
+        <option value="fixo" ${tipo==='fixo'?'selected':''}>R$</option>
+      </select>
+      <input type="number" step="0.01" min="0" class="orc-forma-valor" placeholder="0" value="${valor?valor:''}" oninput="recalcularOrcamento()" />
+      <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('.orc-forma-pagamento-linha').remove(); recalcularOrcamento();">✕</button>
+    </div>
+  `;
+  box.appendChild(linha);
+}
+window.adicionarFormaPagamento = adicionarFormaPagamento;
+
+function formasPagamentoSelecionadas(){
+  return [...document.querySelectorAll('.orc-forma-pagamento-linha')].map(linha => {
+    const label = linha.querySelector('.orc-forma-label').value.trim();
+    const tipo = linha.querySelector('.orc-forma-tipo').value || null;
+    const valor = parseFloat(linha.querySelector('.orc-forma-valor').value) || null;
+    return {label, desconto_tipo: tipo, desconto_valor: (tipo && valor) ? valor : null};
+  }).filter(f => f.label);
+}
 
 function alternarClienteOrcamento(modo, btn){
   orcModoCliente = modo;
@@ -1491,10 +1558,19 @@ function recalcularOrcamento(){
     }
   }
   const total = Math.max(0, subtotal - descontoTotal);
+  const formas = document.getElementById('orc-formas-lista') ? formasPagamentoSelecionadas() : [];
+  const formasHtml = formas.length ? `
+    <div class="orc-resumo-formas">
+      ${formas.map(f => {
+        const valorForma = aplicarDesconto(total, f.desconto_tipo ? {tipo:f.desconto_tipo, valor:f.desconto_valor} : null);
+        return `<div class="orc-resumo-linha forma"><span>${escapeHtml(f.label)}</span><span>${formatarMoeda(valorForma)}</span></div>`;
+      }).join('')}
+    </div>` : '';
   box.innerHTML = `
     <div class="orc-resumo-linha"><span>Subtotal (${itens.length} item${itens.length!==1?'s':''})</span><span>${formatarMoeda(subtotal)}</span></div>
     ${descontoTotal>0?`<div class="orc-resumo-linha desconto"><span>Desconto${cupomTxt}</span><span>-${formatarMoeda(descontoTotal)}</span></div>`:''}
     <div class="orc-resumo-linha total"><span>Total</span><span>${formatarMoeda(total)}</span></div>
+    ${formasHtml}
   `;
   box.dataset.subtotal = subtotal;
   box.dataset.descontoTipo = descontoTipo || '';
@@ -1526,7 +1602,8 @@ async function salvarOrcamento(id){
   const cupom_codigo = (orcModoDesconto==='cupom' && orcCupomValido) ? orcCupomValido.codigo : null;
   const validade = document.getElementById('orc-validade').value || null;
   const observacoes = document.getElementById('orc-observacoes').value.trim();
-  const payload = {cliente_id, cliente_nome, cliente_whatsapp, veiculo_id, itens, subtotal, desconto_tipo, desconto_valor, cupom_id, cupom_codigo, total, validade, observacoes};
+  const formas_pagamento = formasPagamentoSelecionadas();
+  const payload = {cliente_id, cliente_nome, cliente_whatsapp, veiculo_id, itens, subtotal, desconto_tipo, desconto_valor, cupom_id, cupom_codigo, total, validade, observacoes, formas_pagamento};
   let error, orcamentoId = id;
   if(id){
     ({error} = await sb.from('orcamentos').update(payload).eq('id', id));
@@ -1535,7 +1612,7 @@ async function salvarOrcamento(id){
     error = resultado.error;
     orcamentoId = resultado.data?.id;
   }
-  if(error){ toast('Erro ao salvar orçamento'); return; }
+  if(error){ console.error(error); toast('Erro ao salvar: ' + (error.message || error.code || 'desconhecido')); return; }
   if(cupom_id && orcamentoId){
     const nomeParaUso = cliente_id ? nomeCliente(cliente_id) : cliente_nome;
     await sb.from('cupom_usos').insert({cupom_id, orcamento_id: orcamentoId, cliente_nome: nomeParaUso});
