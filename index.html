@@ -450,14 +450,14 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 }
 .modal-box{
   background:var(--surface); border:1px solid var(--line); border-radius:12px;
-  padding:28px; width:100%; max-width:480px; margin-top:20px;
+  padding:28px; width:100%; max-width:480px; margin-top:20px; overflow-x:hidden;
 }
 .modal-box h3{font-size:20px; margin-bottom:4px;}
 .modal-sub{color:var(--text-muted); font-size:13px; margin:0 0 10px;}
 .modal-acoes{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
-.m-sub-servicos-lista{display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; padding-right:2px; margin-bottom:14px;}
+.m-sub-servicos-lista{display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; overflow-x:hidden; padding-right:2px; margin-bottom:14px;}
 .m-sub-servico-item{
-  position:relative; display:flex; align-items:center; gap:10px;
+  position:relative; display:flex; align-items:center; gap:10px; min-width:0;
   background:var(--surface); border:1px solid var(--line); border-radius:10px;
   padding:12px 14px; cursor:pointer; margin:0; transition:border-color .15s, background .15s;
 }
@@ -470,8 +470,8 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 }
 .m-sub-servico-item.marcado .m-sub-servico-check-visual{background:var(--gold); border-color:var(--gold);}
 .m-sub-servico-item.marcado .m-sub-servico-check-visual::after{content:''; width:5px; height:9px; border:solid var(--bg); border-width:0 2px 2px 0; transform:rotate(45deg) translate(-1px,-1px);}
-.m-sub-servico-nome{flex:1; font-family:'Inter',sans-serif; font-size:14px; font-weight:500; color:var(--text); text-transform:none; letter-spacing:0;}
-.m-sub-servico-preco{font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--gold); flex-shrink:0;}
+.m-sub-servico-nome{flex:1; min-width:0; overflow-wrap:break-word; font-family:'Inter',sans-serif; font-size:14px; font-weight:500; color:var(--text); text-transform:none; letter-spacing:0;}
+.m-sub-servico-preco{font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--gold); flex-shrink:0; white-space:nowrap;}
 .orc-filtros{display:flex; gap:8px; flex-wrap:wrap; margin:16px 0;}
 .orc-filtro-btn{
   background:var(--surface); border:1px solid var(--line); color:var(--text-muted);
