@@ -449,10 +449,18 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
   display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; z-index:50;
 }
 .modal-box{
+  position:relative;
   background:var(--surface); border:1px solid var(--line); border-radius:12px;
   padding:28px; width:100%; max-width:480px; margin-top:20px; overflow-x:hidden;
 }
-.modal-box h3{font-size:20px; margin-bottom:4px;}
+.modal-fechar-x{
+  position:absolute; top:14px; right:14px; width:32px; height:32px; flex-shrink:0;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:50%;
+  color:var(--text-muted); font-size:15px; line-height:1; cursor:pointer; z-index:5;
+  display:flex; align-items:center; justify-content:center;
+}
+.modal-fechar-x:hover{color:var(--text); border-color:var(--gold);}
+.modal-box h3{font-size:20px; margin-bottom:4px; padding-right:36px;}
 .modal-sub{color:var(--text-muted); font-size:13px; margin:0 0 10px;}
 .modal-acoes{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
 .m-sub-servicos-lista{display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; overflow-x:hidden; padding-right:2px; margin-bottom:14px;}
@@ -588,7 +596,9 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .orc-forma-desconto{display:flex; gap:8px;}
 .orc-forma-desconto select{width:110px; flex-shrink:0;}
 .orc-forma-desconto .orc-forma-valor{flex:1; min-width:0;}
-.orc-forma-desconto .btn{flex-shrink:0; width:auto; padding:8px 12px;}
+.orc-forma-parcelas{display:flex; gap:8px; align-items:center;}
+.orc-forma-parcelas-input{flex:1; min-width:0;}
+.orc-forma-parcelas .btn{flex-shrink:0; width:auto; padding:8px 12px; white-space:nowrap;}
 #orc-cupom-status.valido{color:var(--green);}
 #orc-cupom-status.invalido{color:var(--red);}
 .orc-card{
@@ -1124,7 +1134,7 @@ document.getElementById('modal-overlay').addEventListener('click', (e)=>{
 });
 
 function abrirModal(html){
-  document.getElementById('modal-box').innerHTML = html;
+  document.getElementById('modal-box').innerHTML = `<button type="button" class="modal-fechar-x" onclick="fecharModal()" aria-label="Fechar">✕</button>` + html;
   document.getElementById('modal-overlay').classList.remove('oculto');
 }
 
@@ -1294,7 +1304,9 @@ function enviarWhatsappOrcamento(id){
     msg += `\n\nFormas de pagamento:`;
     o.formas_pagamento.forEach(f=>{
       const valorForma = aplicarDesconto(o.total, f.desconto_tipo ? {tipo:f.desconto_tipo, valor:f.desconto_valor} : null);
-      msg += `\n- ${f.label}: ${formatarMoeda(valorForma)}`;
+      const parcelas = f.parcelas > 1 ? f.parcelas : 1;
+      const txt = parcelas > 1 ? `${parcelas}x de ${formatarMoeda(valorForma/parcelas)} (total ${formatarMoeda(valorForma)})` : formatarMoeda(valorForma);
+      msg += `\n- ${f.label}: ${txt}`;
     });
   }
   if(o.validade) msg += `\n\nVálido até ${formatarData(o.validade)}`;
@@ -1409,10 +1421,10 @@ function renderFormasPagamentoOrcamento(formas){
   const box = document.getElementById('orc-formas-lista');
   if(!box) return;
   box.innerHTML = '';
-  (formas.length ? formas : []).forEach(f => adicionarFormaPagamento(f.label, f.desconto_tipo, f.desconto_valor));
+  (formas.length ? formas : []).forEach(f => adicionarFormaPagamento(f.label, f.desconto_tipo, f.desconto_valor, f.parcelas));
 }
 
-function adicionarFormaPagamento(label, tipo, valor){
+function adicionarFormaPagamento(label, tipo, valor, parcelas){
   const box = document.getElementById('orc-formas-lista');
   if(!box) return;
   const linha = document.createElement('div');
@@ -1426,7 +1438,10 @@ function adicionarFormaPagamento(label, tipo, valor){
         <option value="fixo" ${tipo==='fixo'?'selected':''}>R$</option>
       </select>
       <input type="number" step="0.01" min="0" class="orc-forma-valor" placeholder="0" value="${valor?valor:''}" oninput="recalcularOrcamento()" />
-      <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('.orc-forma-pagamento-linha').remove(); recalcularOrcamento();">✕</button>
+    </div>
+    <div class="orc-forma-parcelas">
+      <input type="number" step="1" min="1" class="orc-forma-parcelas-input" placeholder="Parcelas (ex: 2)" value="${parcelas&&parcelas>1?parcelas:''}" oninput="recalcularOrcamento()" />
+      <button type="button" class="btn btn-ghost btn-sm" onclick="this.closest('.orc-forma-pagamento-linha').remove(); recalcularOrcamento();">✕ Remover</button>
     </div>
   `;
   box.appendChild(linha);
@@ -1438,7 +1453,8 @@ function formasPagamentoSelecionadas(){
     const label = linha.querySelector('.orc-forma-label').value.trim();
     const tipo = linha.querySelector('.orc-forma-tipo').value || null;
     const valor = parseFloat(linha.querySelector('.orc-forma-valor').value) || null;
-    return {label, desconto_tipo: tipo, desconto_valor: (tipo && valor) ? valor : null};
+    const parcelas = parseInt(linha.querySelector('.orc-forma-parcelas-input').value) || 1;
+    return {label, desconto_tipo: tipo, desconto_valor: (tipo && valor) ? valor : null, parcelas};
   }).filter(f => f.label);
 }
 
@@ -1527,12 +1543,12 @@ function itensSelecionadosOrcamento(){
     if(!s) return;
     const desconto = descontoAtivoDoServico(s.id);
     const precoFinal = aplicarDesconto(Number(s.preco||0), desconto);
-    itens.push({tipo:'servico', id:s.id, nome:s.nome, preco:Number(s.preco||0), preco_final:precoFinal});
+    itens.push({tipo:'servico', id:s.id, nome:s.nome, descricao:s.descricao||'', preco:Number(s.preco||0), preco_final:precoFinal});
   });
   document.querySelectorAll('.orc-sub-servico-check:checked').forEach(el=>{
     const s = cacheSubServicos.find(sv=>sv.id===el.value);
     if(!s) return;
-    itens.push({tipo:'sub_servico', id:s.id, nome:s.nome, preco:Number(s.preco||0), preco_final:Number(s.preco||0)});
+    itens.push({tipo:'sub_servico', id:s.id, nome:s.nome, descricao:s.descricao||'', preco:Number(s.preco||0), preco_final:Number(s.preco||0)});
   });
   return itens;
 }
@@ -1563,7 +1579,9 @@ function recalcularOrcamento(){
     <div class="orc-resumo-formas">
       ${formas.map(f => {
         const valorForma = aplicarDesconto(total, f.desconto_tipo ? {tipo:f.desconto_tipo, valor:f.desconto_valor} : null);
-        return `<div class="orc-resumo-linha forma"><span>${escapeHtml(f.label)}</span><span>${formatarMoeda(valorForma)}</span></div>`;
+        const parcelas = f.parcelas > 1 ? f.parcelas : 1;
+        const txt = parcelas > 1 ? `${parcelas}x de ${formatarMoeda(valorForma/parcelas)}` : formatarMoeda(valorForma);
+        return `<div class="orc-resumo-linha forma"><span>${escapeHtml(f.label)}</span><span>${txt}</span></div>`;
       }).join('')}
     </div>` : '';
   box.innerHTML = `

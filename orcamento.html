@@ -51,6 +51,7 @@ h1,h2,h3{font-family:var(--font-display); text-transform:uppercase; letter-spaci
 .orc-validade{font-size:12px; color:var(--text-muted); margin-bottom:6px;}
 
 .orc-item{display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); font-size:14px;}
+.orc-item-desc{font-size:12px; color:var(--text-muted); font-weight:400;}
 .orc-item:last-child{border-bottom:none;}
 .orc-item-preco{font-family:var(--font-mono); color:var(--text); flex-shrink:0;}
 
@@ -155,14 +156,17 @@ function render(nomeCliente, foneNegocio){
 
   const itensHtml = (o.itens||[]).map(it => `
     <div class="orc-item">
-      <span>${escapeHtml(it.nome)}</span>
+      <span>${escapeHtml(it.nome)}${it.descricao ? `<br><span class="orc-item-desc">${escapeHtml(it.descricao)}</span>` : ''}</span>
       <span class="orc-item-preco">${formatarMoeda(it.preco_final!=null?it.preco_final:it.preco)}</span>
     </div>`).join('');
 
   let descontoHtml = '';
+  const descontoReal = Number(o.subtotal||0) - Number(o.total||0);
   if(o.desconto_valor){
     const descTxt = o.desconto_tipo==='percentual' ? `${o.desconto_valor}%` : formatarMoeda(o.desconto_valor);
     descontoHtml = `<div class="orc-linha desconto"><span>Desconto${o.cupom_codigo?(' ('+o.cupom_codigo+')'):''}</span><span>-${descTxt}</span></div>`;
+  } else if(descontoReal > 0.009){
+    descontoHtml = `<div class="orc-linha desconto"><span>Desconto</span><span>-${formatarMoeda(descontoReal)}</span></div>`;
   }
 
   const mensagemWhats = `Olá! Sobre o orçamento (${formatarMoeda(o.total)}), gostaria de agendar.`;
@@ -191,9 +195,13 @@ function render(nomeCliente, foneNegocio){
       ${o.formas_pagamento.map(f => {
         const valorForma = aplicarDesconto(o.total, f);
         const temDesconto = f.desconto_tipo && f.desconto_valor;
+        const parcelas = f.parcelas > 1 ? f.parcelas : 1;
+        const precoTxt = parcelas > 1
+          ? `${parcelas}x de ${formatarMoeda(valorForma/parcelas)}`
+          : formatarMoeda(valorForma);
         return `<div class="orc-item">
-          <span>${escapeHtml(f.label)}${temDesconto ? `<br><span style="color:var(--green); font-size:12px;">${f.desconto_tipo==='percentual'?f.desconto_valor+'%':formatarMoeda(f.desconto_valor)} de desconto</span>` : ''}</span>
-          <span class="orc-item-preco">${formatarMoeda(valorForma)}</span>
+          <span>${escapeHtml(f.label)}${temDesconto ? `<br><span class="orc-item-desc" style="color:var(--green);">${f.desconto_tipo==='percentual'?f.desconto_valor+'%':formatarMoeda(f.desconto_valor)} de desconto</span>` : ''}</span>
+          <span class="orc-item-preco">${precoTxt}</span>
         </div>`;
       }).join('')}
     </div>` : '';
