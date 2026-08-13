@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Orçamento</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #15171B;
+  --surface: #1E2126;
+  --surface-2: #262A31;
+  --line: #2C3038;
+  --text: #F2F1ED;
+  --text-muted: #9A9FA6;
+  --gold: #E8A33D;
+  --blue: #3DA5D9;
+  --red: #D9534F;
+  --green: #5FB86A;
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); -webkit-font-smoothing:antialiased;
+  display:flex; justify-content:center; padding:24px 16px;
+}
+h1,h2,h3{font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.03em; margin:0;}
+.oculto{display:none !important;}
+
+.wrap{width:100%; max-width:460px;}
+.cabecalho{text-align:center; margin-bottom:22px;}
+.cabecalho h1{font-size:20px; letter-spacing:0.05em;}
+.cabecalho p{color:var(--text-muted); font-size:13px; margin:4px 0 0;}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:22px; margin-bottom:16px;}
+.card h2{font-size:15px; margin-bottom:14px;}
+
+.status-badge{display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:5px 12px; border-radius:20px; margin-bottom:14px;}
+.status-enviado{background:rgba(61,165,217,0.15); color:var(--blue);}
+.status-visualizado{background:rgba(232,163,61,0.15); color:var(--gold);}
+.status-aceito{background:rgba(95,184,106,0.15); color:var(--green);}
+.status-recusado{background:rgba(217,83,79,0.15); color:var(--red);}
+.status-expirado{background:rgba(154,159,166,0.15); color:var(--text-muted);}
+
+.orc-nome{font-family:var(--font-display); font-size:20px; margin-bottom:4px;}
+.orc-validade{font-size:12px; color:var(--text-muted); margin-bottom:6px;}
+
+.orc-item{display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); font-size:14px;}
+.orc-item:last-child{border-bottom:none;}
+.orc-item-preco{font-family:var(--font-mono); color:var(--text); flex-shrink:0;}
+
+.orc-linha{display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); padding:4px 0;}
+.orc-linha.desconto{color:var(--green);}
+.orc-linha.total{font-size:19px; color:var(--gold); font-weight:700; font-family:var(--font-mono); border-top:1px solid var(--line); margin-top:8px; padding-top:12px;}
+
+.orc-obs{background:var(--surface-2); border-radius:8px; padding:12px 14px; font-size:13px; color:var(--text-muted); margin-top:14px; line-height:1.5;}
+
+.btn{display:block; width:100%; text-align:center; border:none; border-radius:10px; padding:14px; font-family:var(--font-body); font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; margin-bottom:10px;}
+.btn-aceitar{background:var(--green); color:#0d1f10;}
+.btn-whats{background:#25D366; color:#06210f;}
+.btn-recusar{background:transparent; border:1px solid var(--line); color:var(--text-muted);}
+.btn:last-child{margin-bottom:0;}
+.acoes-resposta{margin-top:6px;}
+
+.aviso{font-size:14px; color:var(--text-muted); text-align:center; padding:40px 16px;}
+.aviso.erro{color:var(--red);}
+.confirmacao{text-align:center; padding:16px; font-size:14px; color:var(--green);}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="cabecalho">
+    <h1>Estética Manager</h1>
+    <p>Orçamento</p>
+  </div>
+
+  <div id="conteudo">
+    <p class="aviso">Carregando...</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://djwgrdugpirgubjynoih.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YnyyjQKnO2Euf7E-9BPwPA_l4bAKFPv';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let orcamentoAtual = null;
+
+function escapeHtml(str){
+  if(str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function formatarData(d){
+  if(!d) return '';
+  const [ano,mes,dia] = d.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+function formatarMoeda(v){
+  return 'R$ ' + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function rotuloStatus(s){
+  return {enviado:'Enviado', visualizado:'Visualizado', aceito:'Aceito', recusado:'Recusado', expirado:'Expirado'}[s] || s;
+}
+function statusEfetivo(o){
+  const hoje = new Date().toISOString().slice(0,10);
+  if(o.status === 'enviado' && o.validade && o.validade < hoje) return 'expirado';
+  return o.status;
+}
+
+async function iniciar(){
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const box = document.getElementById('conteudo');
+
+  if(!id){
+    box.innerHTML = '<p class="aviso erro">Link inválido. Peça um novo link pra estética.</p>';
+    return;
+  }
+
+  const { data: orcamento, error } = await sb.from('orcamentos').select('*').eq('id', id).maybeSingle();
+  if(error || !orcamento){
+    box.innerHTML = '<p class="aviso erro">Não encontramos esse orçamento. Peça um novo link pra estética.</p>';
+    return;
+  }
+  orcamentoAtual = orcamento;
+
+  let nomeCliente = orcamento.cliente_nome || '';
+  let foneNegocio = '';
+  if(orcamento.cliente_id){
+    const { data: cliente } = await sb.from('clientes').select('nome').eq('id', orcamento.cliente_id).maybeSingle();
+    if(cliente) nomeCliente = cliente.nome;
+  }
+  const { data: config } = await sb.from('configuracoes').select('telefone_negocio').eq('id','unica').maybeSingle();
+  foneNegocio = (config && config.telefone_negocio) || '';
+
+  if(orcamento.status === 'enviado'){
+    await sb.from('orcamentos').update({status:'visualizado'}).eq('id', id);
+    orcamentoAtual.status = 'visualizado';
+  }
+
+  render(nomeCliente, foneNegocio);
+}
+
+function render(nomeCliente, foneNegocio){
+  const o = orcamentoAtual;
+  const box = document.getElementById('conteudo');
+  const statusEf = statusEfetivo(o);
+
+  const itensHtml = (o.itens||[]).map(it => `
+    <div class="orc-item">
+      <span>${escapeHtml(it.nome)}</span>
+      <span class="orc-item-preco">${formatarMoeda(it.preco_final!=null?it.preco_final:it.preco)}</span>
+    </div>`).join('');
+
+  let descontoHtml = '';
+  if(o.desconto_valor){
+    const descTxt = o.desconto_tipo==='percentual' ? `${o.desconto_valor}%` : formatarMoeda(o.desconto_valor);
+    descontoHtml = `<div class="orc-linha desconto"><span>Desconto${o.cupom_codigo?(' ('+o.cupom_codigo+')'):''}</span><span>-${descTxt}</span></div>`;
+  }
+
+  const mensagemWhats = `Olá! Sobre o orçamento (${formatarMoeda(o.total)}), gostaria de agendar.`;
+  const foneLimpo = (foneNegocio||'').replace(/\D/g,'');
+  const linkWhats = foneLimpo ? `https://wa.me/${foneLimpo}?text=${encodeURIComponent(mensagemWhats)}` : `https://wa.me/?text=${encodeURIComponent(mensagemWhats)}`;
+
+  const acoesHtml = (statusEf==='aceito' || statusEf==='recusado')
+    ? `<div class="confirmacao">${statusEf==='aceito' ? 'Você já aceitou esse orçamento. Fale com a gente pelo WhatsApp pra combinar o dia.' : 'Esse orçamento foi marcado como recusado.'}</div>
+       <a class="btn btn-whats" href="${linkWhats}" target="_blank">Falar no WhatsApp</a>`
+    : statusEf==='expirado'
+    ? `<div class="confirmacao" style="color:var(--text-muted);">Esse orçamento venceu. Peça um novo pra estética.</div>
+       <a class="btn btn-whats" href="${linkWhats}" target="_blank">Falar no WhatsApp</a>`
+    : `<button class="btn btn-aceitar" onclick="responderOrcamento('aceito')">Aceitar orçamento</button>
+       <a class="btn btn-whats" href="${linkWhats}" target="_blank">Falar no WhatsApp</a>
+       <button class="btn btn-recusar" onclick="responderOrcamento('recusado')">Recusar</button>`;
+
+  box.innerHTML = `
+    <div class="card">
+      <span class="status-badge status-${statusEf}">${rotuloStatus(statusEf)}</span>
+      ${nomeCliente ? `<p class="orc-nome">${escapeHtml(nomeCliente)}</p>` : ''}
+      ${o.validade ? `<p class="orc-validade">Válido até ${formatarData(o.validade)}</p>` : ''}
+    </div>
+
+    <div class="card">
+      <h2>Itens</h2>
+      ${itensHtml}
+      <div class="orc-linha"><span>Subtotal</span><span>${formatarMoeda(o.subtotal)}</span></div>
+      ${descontoHtml}
+      <div class="orc-linha total"><span>Total</span><span>${formatarMoeda(o.total)}</span></div>
+      ${o.observacoes ? `<div class="orc-obs">${escapeHtml(o.observacoes)}</div>` : ''}
+    </div>
+
+    <div class="acoes-resposta">${acoesHtml}</div>
+  `;
+}
+
+async function responderOrcamento(novoStatus){
+  const { error } = await sb.from('orcamentos').update({status: novoStatus}).eq('id', orcamentoAtual.id);
+  if(error){ alert('Não deu pra registrar sua resposta agora. Tenta de novo ou chama no WhatsApp.'); return; }
+  iniciar();
+}
+window.responderOrcamento = responderOrcamento;
+
+iniciar();
+</script>
+</body>
+</html>

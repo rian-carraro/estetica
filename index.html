@@ -177,6 +177,11 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .status-em_andamento{background:rgba(232,163,61,0.15); color:var(--gold);}
 .status-concluido{background:rgba(95,184,106,0.15); color:var(--green);}
 .status-cancelado{background:rgba(217,83,79,0.15); color:var(--red);}
+.status-enviado{background:rgba(61,165,217,0.15); color:var(--blue);}
+.status-visualizado{background:rgba(232,163,61,0.15); color:var(--gold);}
+.status-aceito{background:rgba(95,184,106,0.15); color:var(--green);}
+.status-recusado{background:rgba(217,83,79,0.15); color:var(--red);}
+.status-expirado{background:rgba(154,159,166,0.15); color:var(--text-muted);}
 .ticket-acoes{display:flex; gap:8px; align-items:center;}
 .acoes-lista{display:flex; flex-direction:column; gap:8px;}
 .acoes-lista .btn{width:100%; text-align:center;}
@@ -467,6 +472,27 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .m-sub-servico-item.marcado .m-sub-servico-check-visual::after{content:''; width:5px; height:9px; border:solid var(--bg); border-width:0 2px 2px 0; transform:rotate(45deg) translate(-1px,-1px);}
 .m-sub-servico-nome{flex:1; font-family:'Inter',sans-serif; font-size:14px; font-weight:500; color:var(--text); text-transform:none; letter-spacing:0;}
 .m-sub-servico-preco{font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--gold); flex-shrink:0;}
+.orc-filtros{display:flex; gap:8px; flex-wrap:wrap; margin:16px 0;}
+.orc-filtro-btn{
+  background:var(--surface); border:1px solid var(--line); color:var(--text-muted);
+  border-radius:20px; padding:7px 14px; font-size:13px; font-weight:500; cursor:pointer;
+}
+.orc-filtro-btn.ativo{background:var(--gold-dim); border-color:var(--gold); color:var(--gold);}
+.orc-status-badge{
+  display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;
+  text-transform:uppercase; letter-spacing:0.03em;
+}
+.orc-status-enviado{background:var(--blue-dim); color:var(--blue);}
+.orc-status-visualizado{background:var(--gold-dim); color:var(--gold);}
+.orc-status-aceito{background:rgba(95,184,106,0.15); color:var(--green);}
+.orc-status-recusado{background:rgba(217,83,79,0.15); color:var(--red);}
+.orc-status-expirado{background:var(--surface-2); color:var(--text-muted);}
+.orc-itens-lista{display:flex; flex-direction:column; gap:6px; margin:10px 0;}
+.orc-item-linha{display:flex; justify-content:space-between; font-size:14px; color:var(--text);}
+.orc-linha-total{display:flex; justify-content:space-between; font-size:15px; padding-top:10px; border-top:1px solid var(--line); margin-top:6px;}
+.orc-desconto-linha{display:flex; justify-content:space-between; font-size:13px; color:var(--red);}
+.orc-link-box{display:flex; gap:8px; margin:10px 0;}
+.orc-link-box input{flex:1;}
 #m-disponibilidade-dia{margin:-4px 0 14px;}
 .m-disponibilidade-vazia{font-size:13px; color:var(--green); margin:0;}
 .m-disponibilidade-titulo{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin:0 0 8px;}
@@ -510,6 +536,52 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .m-sub-servico-item.marcado .m-servico-radio::after{content:''; width:5px; height:9px; border:solid var(--bg); border-width:0 2px 2px 0; transform:rotate(45deg) translate(-1px,-1px); inset:auto;}
 .modal-foto-preview{width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:8px; margin-top:8px; background:var(--surface-2);}
 .linha-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.linha-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;}
+.config-secao-cabecalho{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+.desconto-valor-linha{display:flex; gap:8px;}
+.desconto-valor-linha select{width:80px; flex-shrink:0;}
+.cupom-form, .desconto-servico-form{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:14px; margin:10px 0;}
+.lista-cupons{display:flex; flex-direction:column; gap:8px; margin-top:14px;}
+.cupom-card{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+}
+.cupom-card.inativo{opacity:0.55;}
+.cupom-card-info{display:flex; flex-direction:column; gap:2px;}
+.cupom-card-codigo{font-family:'IBM Plex Mono',monospace; font-weight:700; color:var(--gold); font-size:14px; letter-spacing:0.03em;}
+.cupom-card-detalhe{font-size:12px; color:var(--text-muted);}
+.cupom-card-acoes{display:flex; gap:8px; flex-wrap:wrap;}
+@media (max-width: 640px){
+  .linha-2, .linha-3{grid-template-columns:1fr;}
+}
+.cupom-uso-container{display:flex; flex-direction:column; gap:14px; max-height:60vh; overflow-y:auto;}
+.cupom-uso-bloco{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px;}
+.cupom-uso-cabecalho{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+.cupom-uso-contagem{font-size:12px; color:var(--text-muted); background:var(--surface-2); border-radius:20px; padding:3px 10px;}
+.cupom-uso-lista{display:flex; flex-direction:column; gap:6px;}
+.cupom-uso-item{display:flex; align-items:center; justify-content:space-between; font-size:13px; color:var(--text); border-top:1px solid var(--line); padding-top:6px;}
+.cupom-uso-data{color:var(--text-muted); font-family:'IBM Plex Mono',monospace; font-size:12px;}
+.orc-cliente-toggle, .orc-desconto-toggle{display:flex; gap:8px; margin:0 0 14px;}
+.orc-toggle-btn{
+  flex:1; background:var(--surface); border:1px solid var(--line); color:var(--text-muted);
+  border-radius:8px; padding:10px; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; cursor:pointer;
+}
+.orc-toggle-btn.selecionado{background:var(--gold-dim); border-color:var(--gold); color:var(--gold);}
+.orc-resumo{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:14px; margin:14px 0;}
+.orc-resumo-linha{display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); padding:3px 0;}
+.orc-resumo-linha.total{font-size:17px; color:var(--gold); font-weight:700; font-family:'IBM Plex Mono',monospace; border-top:1px solid var(--line); margin-top:8px; padding-top:10px;}
+.orc-resumo-linha.desconto{color:var(--green);}
+#orc-cupom-status.valido{color:var(--green);}
+#orc-cupom-status.invalido{color:var(--red);}
+.orc-card{
+  display:flex; flex-direction:column; gap:8px; background:var(--surface); border:1px solid var(--line);
+  border-radius:10px; padding:14px 16px;
+}
+.orc-card-topo{display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+.orc-card-cliente{font-weight:600; color:var(--text); font-size:15px;}
+.orc-card-detalhe{font-size:12px; color:var(--text-muted);}
+.orc-card-total{font-family:'IBM Plex Mono',monospace; color:var(--gold); font-weight:700; font-size:15px;}
+.orc-card-rodape{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:4px;}
 .duracao-seletor{display:flex; gap:8px;}
 .duracao-seletor select{width:100%;}
 
@@ -555,6 +627,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
       <nav class="nav">
         <button class="nav-item ativo" data-tab="dashboard">Painel</button>
         <button class="nav-item" data-tab="agenda">Agenda</button>
+        <button class="nav-item" data-tab="orcamentos">Orçamentos</button>
         <button class="nav-item" data-tab="clientes">Clientes</button>
         <button class="nav-item" data-tab="servicos">Serviços</button>
         <button class="nav-item" data-tab="estoque">Estoque</button>
@@ -626,6 +699,26 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
           <div id="grid-semana" class="grid-semana"></div>
         </div>
         <div id="lista-agenda-completa" class="lista-agendamentos"></div>
+      </section>
+
+      <!-- ORÇAMENTOS -->
+      <section id="tab-orcamentos" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Propostas para clientes</p>
+            <h2>Orçamentos</h2>
+          </div>
+          <button class="btn btn-primary" id="btn-novo-orcamento">+ Novo orçamento</button>
+        </header>
+        <div class="orc-filtros" id="orc-filtros">
+          <button class="orc-filtro-btn ativo" data-status="">Todos</button>
+          <button class="orc-filtro-btn" data-status="enviado">Enviado</button>
+          <button class="orc-filtro-btn" data-status="visualizado">Visualizado</button>
+          <button class="orc-filtro-btn" data-status="aceito">Aceito</button>
+          <button class="orc-filtro-btn" data-status="recusado">Recusado</button>
+          <button class="orc-filtro-btn" data-status="expirado">Expirado</button>
+        </div>
+        <div id="lista-orcamentos" class="lista-agendamentos"></div>
       </section>
 
       <!--  -->
@@ -900,6 +993,53 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
           </div>
           <div id="lista-excecoes" class="lista-excecoes"></div>
         </div>
+
+        <div class="config-secao">
+          <div class="config-secao-cabecalho">
+            <div>
+              <h3>Cupons de parceiro</h3>
+              <p class="config-texto-ajuda">Códigos de desconto pra usar nos orçamentos. Dá pra saber quantas vezes cada um foi usado e quem usou.</p>
+            </div>
+            <button class="btn btn-ghost" id="btn-ver-usos-cupons">Ver usos</button>
+          </div>
+          <div class="cupom-form">
+            <div class="linha-3">
+              <div><label>Código</label><input type="text" id="cupom-codigo" placeholder="Ex: JOAO10" style="text-transform:uppercase;" /></div>
+              <div><label>Parceiro</label><input type="text" id="cupom-parceiro" placeholder="Nome de quem indica" /></div>
+              <div>
+                <label>Desconto</label>
+                <div class="desconto-valor-linha">
+                  <select id="cupom-tipo"><option value="percentual">%</option><option value="fixo">R$</option></select>
+                  <input type="number" step="0.01" min="0" id="cupom-valor" placeholder="0" />
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="btn-add-cupom">+ Adicionar cupom</button>
+          </div>
+          <div id="lista-cupons" class="lista-cupons"></div>
+        </div>
+
+        <div class="config-secao">
+          <h3>Desconto promocional por serviço</h3>
+          <p class="config-texto-ajuda">Deixe um serviço específico com preço promocional dentro de um período (ex: uma data comemorativa). É aplicado automaticamente no orçamento enquanto estiver dentro do período.</p>
+          <div class="desconto-servico-form">
+            <label>Serviço</label>
+            <select id="descserv-servico"></select>
+            <div class="linha-3">
+              <div>
+                <label>Desconto</label>
+                <div class="desconto-valor-linha">
+                  <select id="descserv-tipo"><option value="percentual">%</option><option value="fixo">R$</option></select>
+                  <input type="number" step="0.01" min="0" id="descserv-valor" placeholder="0" />
+                </div>
+              </div>
+              <div><label>Data início</label><input type="date" id="descserv-inicio" /></div>
+              <div><label>Data fim</label><input type="date" id="descserv-fim" /></div>
+            </div>
+            <button class="btn btn-primary" id="btn-add-descserv">+ Adicionar desconto</button>
+          </div>
+          <div id="lista-descontos-servico" class="lista-cupons"></div>
+        </div>
       </section>
 
     </main>
@@ -944,6 +1084,7 @@ document.querySelectorAll('.nav-item').forEach(btn=>{
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('ativo'));
     document.getElementById('tab-'+btn.dataset.tab).classList.add('ativo');
     if(btn.dataset.tab === 'financeiro') renderFinanceiro();
+    if(btn.dataset.tab === 'orcamentos') renderOrcamentos();
   });
 });
 
@@ -1000,11 +1141,415 @@ let cacheClientes = [];
 let cacheVeiculos = [];
 let cacheServicos = [];
 let cacheProdutos = [];
+let cacheCupons = [];
+let cacheOrcamentos = [];
+
+async function carregarCupons(){
+  const { data, error } = await sb.from('cupons').select('*').order('codigo');
+  if(error){ console.error(error); return; }
+  cacheCupons = data || [];
+}
+
+async function carregarOrcamentos(){
+  const { data, error } = await sb.from('orcamentos').select('*').order('criado_em', {ascending:false});
+  if(error){ console.error(error); return; }
+  cacheOrcamentos = data || [];
+  if(document.getElementById('lista-orcamentos')) renderOrcamentos();
+}
+
+/* ---------- ORÇAMENTOS ---------- */
+let filtroStatusOrcamento = '';
+let orcModoCliente = 'existente';
+let orcModoDesconto = 'manual';
+let orcCupomValido = null;
+
+function statusEfetivoOrcamento(o){
+  if(o.status === 'enviado' && o.validade && o.validade < hojeISO()) return 'expirado';
+  return o.status;
+}
+
+function rotuloStatusOrcamento(s){
+  return {enviado:'Enviado', visualizado:'Visualizado', aceito:'Aceito', recusado:'Recusado', expirado:'Expirado'}[s] || s;
+}
+
+function renderOrcamentos(){
+  const box = document.getElementById('lista-orcamentos');
+  if(!box) return;
+  let lista = [...cacheOrcamentos];
+  if(filtroStatusOrcamento) lista = lista.filter(o => statusEfetivoOrcamento(o) === filtroStatusOrcamento);
+  box.innerHTML = lista.length ? lista.map(orcamentoCardHtml).join('') : '<p class="vazio">Nenhum orçamento encontrado.</p>';
+}
+
+function orcamentoCardHtml(o){
+  const statusEf = statusEfetivoOrcamento(o);
+  const nome = o.cliente_id ? nomeCliente(o.cliente_id) : (o.cliente_nome || 'Cliente avulso');
+  const qtdItens = (o.itens||[]).length;
+  return `
+    <div class="orc-card">
+      <div class="orc-card-topo">
+        <div>
+          <div class="orc-card-cliente">${escapeHtml(nome)}</div>
+          <div class="orc-card-detalhe">${qtdItens} item${qtdItens!==1?'s':''} · criado em ${formatarDataHora(o.criado_em)}${o.validade?(' · válido até '+formatarData(o.validade)):''}</div>
+        </div>
+        <span class="ticket-status status-${statusEf}">${rotuloStatusOrcamento(statusEf)}</span>
+      </div>
+      <div class="orc-card-rodape">
+        <span class="orc-card-total">${formatarMoeda(o.total)}</span>
+        <button class="btn btn-ghost btn-sm" onclick="abrirAcoesOrcamento('${o.id}')">Ver mais</button>
+      </div>
+    </div>`;
+}
+
+document.querySelectorAll('.orc-filtro-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.orc-filtro-btn').forEach(b=>b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    filtroStatusOrcamento = btn.dataset.status;
+    renderOrcamentos();
+  });
+});
+
+function abrirAcoesOrcamento(id){
+  const o = cacheOrcamentos.find(x=>x.id===id);
+  if(!o) return;
+  const nome = o.cliente_id ? nomeCliente(o.cliente_id) : (o.cliente_nome || 'Cliente avulso');
+  const statusEf = statusEfetivoOrcamento(o);
+  const botoesStatus = statusEf==='aceito' ? '' : `
+    <button class="btn btn-ghost" onclick="fecharModal(); marcarStatusOrcamento('${o.id}','aceito')">Marcar como aceito</button>
+    ${statusEf!=='recusado' ? `<button class="btn btn-ghost" onclick="fecharModal(); marcarStatusOrcamento('${o.id}','recusado')">Marcar como recusado</button>` : ''}
+  `;
+  abrirModal(`
+    <h3>${escapeHtml(nome)}</h3>
+    <p class="config-texto-ajuda">${formatarMoeda(o.total)} · ${rotuloStatusOrcamento(statusEf)}</p>
+    <div class="acoes-lista">
+      <button class="btn btn-whats" onclick="fecharModal(); enviarWhatsappOrcamento('${o.id}')">Enviar por WhatsApp</button>
+      <button class="btn btn-ghost" onclick="copiarLinkOrcamento('${o.id}')">Copiar link</button>
+      ${botoesStatus}
+      <button class="btn btn-ghost" onclick="fecharModal(); converterOrcamentoEmAgendamento('${o.id}')">Agendar a partir daqui</button>
+      <button class="btn btn-ghost" onclick="fecharModal(); abrirModalOrcamento('${o.id}')">Editar</button>
+      <button class="btn btn-danger" onclick="fecharModal(); removerOrcamento('${o.id}')">Excluir</button>
+    </div>
+  `);
+}
+window.abrirAcoesOrcamento = abrirAcoesOrcamento;
+
+function copiarLinkOrcamento(id){
+  navigator.clipboard.writeText(linkOrcamento(id)).then(()=>toast('Link copiado!'));
+}
+window.copiarLinkOrcamento = copiarLinkOrcamento;
+
+async function marcarStatusOrcamento(id, status){
+  const { error } = await sb.from('orcamentos').update({status}).eq('id', id);
+  if(error){ toast('Erro ao atualizar orçamento'); return; }
+  await carregarOrcamentos();
+  toast('Orçamento atualizado!');
+}
+window.marcarStatusOrcamento = marcarStatusOrcamento;
+
+async function removerOrcamento(id){
+  if(!confirm('Excluir esse orçamento?')) return;
+  const { error } = await sb.from('orcamentos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir orçamento'); return; }
+  await carregarOrcamentos();
+  toast('Orçamento excluído');
+}
+window.removerOrcamento = removerOrcamento;
+
+function linkOrcamento(id){
+  const base = location.href.replace(/[^\/]*$/, '');
+  return base + 'orcamento.html?id=' + id;
+}
+
+function enviarWhatsappOrcamento(id){
+  const o = cacheOrcamentos.find(x=>x.id===id);
+  if(!o) return;
+  const nome = o.cliente_id ? nomeCliente(o.cliente_id) : (o.cliente_nome || '');
+  const fone = o.cliente_id ? (cacheClientes.find(c=>c.id===o.cliente_id)?.telefone || '') : (o.cliente_whatsapp || '');
+  const linhasItens = (o.itens||[]).map(it => `- ${it.nome} — ${formatarMoeda(it.preco_final!=null?it.preco_final:it.preco)}`).join('\n');
+  let msg = `Olá${nome?', '+nome:''}! Segue seu orçamento da Estética Manager:\n\n${linhasItens}\n\nSubtotal: ${formatarMoeda(o.subtotal)}`;
+  if(o.desconto_valor){
+    const descTxt = o.desconto_tipo==='percentual' ? `${o.desconto_valor}%` : formatarMoeda(o.desconto_valor);
+    msg += `\nDesconto${o.cupom_codigo?(' ('+o.cupom_codigo+')'):''}: -${descTxt}`;
+  }
+  msg += `\nTotal: ${formatarMoeda(o.total)}`;
+  if(o.validade) msg += `\n\nVálido até ${formatarData(o.validade)}`;
+  msg += `\n\nVeja os detalhes e responda por aqui:\n${linkOrcamento(o.id)}`;
+  const foneLimpo = (fone||'').replace(/\D/g,'');
+  const url = foneLimpo ? `https://wa.me/${foneLimpo}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+window.enviarWhatsappOrcamento = enviarWhatsappOrcamento;
+
+async function converterOrcamentoEmAgendamento(id){
+  const o = cacheOrcamentos.find(x=>x.id===id);
+  if(!o) return;
+  if(o.status !== 'aceito') await marcarStatusOrcamento(id, 'aceito');
+  abrirModalAgendamento(null);
+  if(o.cliente_id){
+    const sel = document.getElementById('m-cliente');
+    if(sel){ sel.value = o.cliente_id; atualizarVeiculosModal(); }
+    if(o.veiculo_id){
+      const selV = document.getElementById('m-veiculo');
+      if(selV) selV.value = o.veiculo_id;
+    }
+  }
+  const primeiroServico = (o.itens||[]).find(it=>it.tipo==='servico');
+  if(primeiroServico) escolherServicoModal(primeiroServico.id);
+  const subIds = (o.itens||[]).filter(it=>it.tipo==='sub_servico').map(it=>it.id);
+  subIds.forEach(subId=>{
+    const check = document.querySelector(`.m-sub-servico-check[value="${subId}"]`);
+    if(check){ check.checked = true; check.closest('.m-sub-servico-item').classList.add('marcado'); }
+  });
+  toast('Orçamento aceito! Complete a data e horário do agendamento.');
+}
+window.converterOrcamentoEmAgendamento = converterOrcamentoEmAgendamento;
+
+document.getElementById('btn-novo-orcamento').addEventListener('click', ()=>abrirModalOrcamento(null));
+
+function abrirModalOrcamento(id){
+  const o = id ? cacheOrcamentos.find(x=>x.id===id) : null;
+  orcModoCliente = (o && !o.cliente_id) ? 'avulso' : 'existente';
+  orcModoDesconto = (o && o.cupom_id) ? 'cupom' : 'manual';
+  orcCupomValido = (o && o.cupom_id) ? cacheCupons.find(c=>c.id===o.cupom_id) : null;
+  const validadeInicial = o ? o.validade : dataParaISO(new Date(Date.now()+7*86400000));
+
+  abrirModal(`
+    <h3>${o?'Editar orçamento':'Novo orçamento'}</h3>
+    <div class="orc-cliente-toggle">
+      <button type="button" class="orc-toggle-btn ${orcModoCliente==='existente'?'selecionado':''}" onclick="alternarClienteOrcamento('existente', this)">Cliente cadastrado</button>
+      <button type="button" class="orc-toggle-btn ${orcModoCliente==='avulso'?'selecionado':''}" onclick="alternarClienteOrcamento('avulso', this)">Cliente avulso</button>
+    </div>
+    <div id="orc-bloco-cliente-existente" class="${orcModoCliente==='avulso'?'oculto':''}">
+      <label>Cliente</label>
+      <select id="orc-cliente" onchange="atualizarVeiculosOrcamento()">
+        ${cacheClientes.map(c=>`<option value="${c.id}" ${o&&o.cliente_id===c.id?'selected':''}>${escapeHtml(c.nome)}</option>`).join('') || '<option value="">Cadastre um cliente primeiro</option>'}
+      </select>
+      <label>Veículo (opcional)</label>
+      <select id="orc-veiculo">
+        <option value="">—</option>
+        ${cacheVeiculos.filter(v=>v.cliente_id===(o?o.cliente_id:cacheClientes[0]?.id)).map(v=>`<option value="${v.id}" ${o&&o.veiculo_id===v.id?'selected':''}>${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')}${v.placa?' - '+escapeHtml(v.placa):''}</option>`).join('')}
+      </select>
+    </div>
+    <div id="orc-bloco-cliente-avulso" class="${orcModoCliente==='existente'?'oculto':''}">
+      <label>Nome</label>
+      <input type="text" id="orc-cliente-nome" value="${o&&!o.cliente_id?escapeHtml(o.cliente_nome||''):''}" />
+      <label>WhatsApp</label>
+      <input type="text" id="orc-cliente-whatsapp" placeholder="5514999999999" value="${o&&!o.cliente_id?escapeHtml(o.cliente_whatsapp||''):''}" />
+    </div>
+    <label>Serviços</label>
+    <div class="m-sub-servicos-lista" id="orc-servicos-lista"></div>
+    <label>Sub serviços (opcional)</label>
+    <div class="m-sub-servicos-lista" id="orc-sub-servicos-lista"></div>
+    <label>Desconto</label>
+    <div class="orc-desconto-toggle">
+      <button type="button" class="orc-toggle-btn ${orcModoDesconto==='manual'?'selecionado':''}" onclick="alternarDescontoOrcamento('manual', this)">Desconto manual</button>
+      <button type="button" class="orc-toggle-btn ${orcModoDesconto==='cupom'?'selecionado':''}" onclick="alternarDescontoOrcamento('cupom', this)">Cupom</button>
+    </div>
+    <div id="orc-bloco-desconto-manual" class="${orcModoDesconto==='cupom'?'oculto':''}">
+      <div class="desconto-valor-linha">
+        <select id="orc-desconto-tipo">
+          <option value="percentual" ${o&&o.desconto_tipo==='percentual'?'selected':''}>%</option>
+          <option value="fixo" ${o&&o.desconto_tipo==='fixo'?'selected':''}>R$</option>
+        </select>
+        <input type="number" step="0.01" min="0" id="orc-desconto-valor" oninput="recalcularOrcamento()" placeholder="0" value="${o&&!o.cupom_id&&o.desconto_valor?o.desconto_valor:''}" />
+      </div>
+    </div>
+    <div id="orc-bloco-cupom" class="${orcModoDesconto==='manual'?'oculto':''}">
+      <input type="text" id="orc-cupom-codigo" placeholder="Código do cupom" style="text-transform:uppercase;" oninput="validarCupomOrcamento()" value="${o&&o.cupom_codigo?escapeHtml(o.cupom_codigo):''}" />
+      <p id="orc-cupom-status" class="config-texto-ajuda"></p>
+    </div>
+    <label>Válido até</label>
+    <input type="date" id="orc-validade" value="${validadeInicial||''}" />
+    <label>Observações</label>
+    <textarea id="orc-observacoes" rows="2">${o?escapeHtml(o.observacoes||''):''}</textarea>
+    <div class="orc-resumo" id="orc-resumo"></div>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarOrcamento(${o?`'${o.id}'`:'null'})">Salvar orçamento</button>
+    </div>
+  `);
+  renderServicosOrcamento(o);
+  renderSubServicosOrcamento(o);
+  if(orcModoDesconto==='cupom') validarCupomOrcamento();
+  recalcularOrcamento();
+}
+window.abrirModalOrcamento = abrirModalOrcamento;
+
+function alternarClienteOrcamento(modo, btn){
+  orcModoCliente = modo;
+  btn.parentElement.querySelectorAll('.orc-toggle-btn').forEach(b=>b.classList.remove('selecionado'));
+  btn.classList.add('selecionado');
+  document.getElementById('orc-bloco-cliente-existente').classList.toggle('oculto', modo!=='existente');
+  document.getElementById('orc-bloco-cliente-avulso').classList.toggle('oculto', modo!=='avulso');
+}
+window.alternarClienteOrcamento = alternarClienteOrcamento;
+
+function alternarDescontoOrcamento(modo, btn){
+  orcModoDesconto = modo;
+  btn.parentElement.querySelectorAll('.orc-toggle-btn').forEach(b=>b.classList.remove('selecionado'));
+  btn.classList.add('selecionado');
+  document.getElementById('orc-bloco-desconto-manual').classList.toggle('oculto', modo!=='manual');
+  document.getElementById('orc-bloco-cupom').classList.toggle('oculto', modo!=='cupom');
+  if(modo==='manual'){ orcCupomValido = null; document.getElementById('orc-cupom-status').textContent=''; }
+  else document.getElementById('orc-desconto-valor').value = '';
+  recalcularOrcamento();
+}
+window.alternarDescontoOrcamento = alternarDescontoOrcamento;
+
+function atualizarVeiculosOrcamento(){
+  const clienteId = document.getElementById('orc-cliente').value;
+  const sel = document.getElementById('orc-veiculo');
+  sel.innerHTML = '<option value="">—</option>' + cacheVeiculos.filter(v=>v.cliente_id===clienteId).map(v=>`<option value="${v.id}">${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')}${v.placa?' - '+escapeHtml(v.placa):''}</option>`).join('');
+}
+window.atualizarVeiculosOrcamento = atualizarVeiculosOrcamento;
+
+function renderServicosOrcamento(o){
+  const box = document.getElementById('orc-servicos-lista');
+  if(!box) return;
+  const marcados = o ? (o.itens||[]).filter(it=>it.tipo==='servico').map(it=>it.id) : [];
+  box.innerHTML = cacheServicos.filter(s=>s.ativo).map(s=>{
+    const desconto = descontoAtivoDoServico(s.id);
+    const precoFinal = aplicarDesconto(Number(s.preco||0), desconto);
+    const marcado = marcados.includes(s.id);
+    return `<label class="m-sub-servico-item ${marcado?'marcado':''}">
+      <input type="checkbox" class="orc-servico-check" value="${s.id}" ${marcado?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked); recalcularOrcamento()"/>
+      <span class="m-sub-servico-check-visual"></span>
+      <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
+      ${desconto ? `<span class="m-sub-servico-preco"><s style="color:var(--text-muted);">R$ ${Number(s.preco).toFixed(2)}</s> R$ ${precoFinal.toFixed(2)}</span>` : (s.preco?`<span class="m-sub-servico-preco">R$ ${Number(s.preco).toFixed(2)}</span>`:'')}
+    </label>`;
+  }).join('') || '<p class="vazio">Cadastre um serviço primeiro.</p>';
+}
+
+function renderSubServicosOrcamento(o){
+  const box = document.getElementById('orc-sub-servicos-lista');
+  if(!box) return;
+  const marcados = o ? (o.itens||[]).filter(it=>it.tipo==='sub_servico').map(it=>it.id) : [];
+  box.innerHTML = cacheSubServicos.length ? cacheSubServicos.map(s=>{
+    const marcado = marcados.includes(s.id);
+    return `<label class="m-sub-servico-item ${marcado?'marcado':''}">
+      <input type="checkbox" class="orc-sub-servico-check" value="${s.id}" ${marcado?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked); recalcularOrcamento()"/>
+      <span class="m-sub-servico-check-visual"></span>
+      <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
+      ${s.preco?`<span class="m-sub-servico-preco">R$ ${Number(s.preco).toFixed(2)}</span>`:''}
+    </label>`;
+  }).join('') : '<p class="vazio">Nenhum sub serviço cadastrado.</p>';
+}
+
+function validarCupomOrcamento(){
+  const codigo = document.getElementById('orc-cupom-codigo').value.trim().toUpperCase();
+  const statusEl = document.getElementById('orc-cupom-status');
+  if(!codigo){ orcCupomValido = null; statusEl.textContent=''; statusEl.className='config-texto-ajuda'; recalcularOrcamento(); return; }
+  const cupom = cacheCupons.find(c=>c.codigo.toUpperCase()===codigo && c.ativo);
+  if(cupom){
+    orcCupomValido = cupom;
+    statusEl.textContent = `Válido — ${cupom.parceiro_nome?cupom.parceiro_nome+' · ':''}${cupom.tipo==='percentual'?cupom.valor+'%':('R$ '+Number(cupom.valor).toFixed(2))} de desconto`;
+    statusEl.className = 'config-texto-ajuda valido';
+  } else {
+    orcCupomValido = null;
+    statusEl.textContent = 'Cupom não encontrado ou inativo';
+    statusEl.className = 'config-texto-ajuda invalido';
+  }
+  recalcularOrcamento();
+}
+window.validarCupomOrcamento = validarCupomOrcamento;
+
+function itensSelecionadosOrcamento(){
+  const itens = [];
+  document.querySelectorAll('.orc-servico-check:checked').forEach(el=>{
+    const s = cacheServicos.find(sv=>sv.id===el.value);
+    if(!s) return;
+    const desconto = descontoAtivoDoServico(s.id);
+    const precoFinal = aplicarDesconto(Number(s.preco||0), desconto);
+    itens.push({tipo:'servico', id:s.id, nome:s.nome, preco:Number(s.preco||0), preco_final:precoFinal});
+  });
+  document.querySelectorAll('.orc-sub-servico-check:checked').forEach(el=>{
+    const s = cacheSubServicos.find(sv=>sv.id===el.value);
+    if(!s) return;
+    itens.push({tipo:'sub_servico', id:s.id, nome:s.nome, preco:Number(s.preco||0), preco_final:Number(s.preco||0)});
+  });
+  return itens;
+}
+
+function recalcularOrcamento(){
+  const box = document.getElementById('orc-resumo');
+  if(!box) return;
+  const itens = itensSelecionadosOrcamento();
+  const subtotal = itens.reduce((soma,it)=>soma+it.preco_final, 0);
+  let descontoTipo = null, descontoValor = 0, descontoTotal = 0, cupomTxt = '';
+  if(orcModoDesconto==='cupom' && orcCupomValido){
+    descontoTipo = orcCupomValido.tipo;
+    descontoValor = Number(orcCupomValido.valor);
+    descontoTotal = descontoTipo==='percentual' ? subtotal*descontoValor/100 : Math.min(subtotal, descontoValor);
+    cupomTxt = ` (${orcCupomValido.codigo})`;
+  } else if(orcModoDesconto==='manual'){
+    const valorInput = parseFloat(document.getElementById('orc-desconto-valor')?.value) || 0;
+    const tipoInput = document.getElementById('orc-desconto-tipo')?.value || 'percentual';
+    if(valorInput > 0){
+      descontoTipo = tipoInput;
+      descontoValor = valorInput;
+      descontoTotal = tipoInput==='percentual' ? subtotal*valorInput/100 : Math.min(subtotal, valorInput);
+    }
+  }
+  const total = Math.max(0, subtotal - descontoTotal);
+  box.innerHTML = `
+    <div class="orc-resumo-linha"><span>Subtotal (${itens.length} item${itens.length!==1?'s':''})</span><span>${formatarMoeda(subtotal)}</span></div>
+    ${descontoTotal>0?`<div class="orc-resumo-linha desconto"><span>Desconto${cupomTxt}</span><span>-${formatarMoeda(descontoTotal)}</span></div>`:''}
+    <div class="orc-resumo-linha total"><span>Total</span><span>${formatarMoeda(total)}</span></div>
+  `;
+  box.dataset.subtotal = subtotal;
+  box.dataset.descontoTipo = descontoTipo || '';
+  box.dataset.descontoValor = descontoValor;
+  box.dataset.total = total;
+}
+window.recalcularOrcamento = recalcularOrcamento;
+
+async function salvarOrcamento(id){
+  const itens = itensSelecionadosOrcamento();
+  if(itens.length===0){ toast('Escolha pelo menos um serviço'); return; }
+  let cliente_id = null, cliente_nome = null, cliente_whatsapp = null, veiculo_id = null;
+  if(orcModoCliente==='existente'){
+    cliente_id = document.getElementById('orc-cliente').value || null;
+    veiculo_id = document.getElementById('orc-veiculo').value || null;
+    if(!cliente_id){ toast('Escolha um cliente'); return; }
+  } else {
+    cliente_nome = document.getElementById('orc-cliente-nome').value.trim();
+    cliente_whatsapp = document.getElementById('orc-cliente-whatsapp').value.trim();
+    if(!cliente_nome){ toast('Preencha o nome do cliente'); return; }
+  }
+  recalcularOrcamento();
+  const resumo = document.getElementById('orc-resumo');
+  const subtotal = Number(resumo.dataset.subtotal);
+  const desconto_tipo = resumo.dataset.descontoTipo || null;
+  const desconto_valor = Number(resumo.dataset.descontoValor) || null;
+  const total = Number(resumo.dataset.total);
+  const cupom_id = (orcModoDesconto==='cupom' && orcCupomValido) ? orcCupomValido.id : null;
+  const cupom_codigo = (orcModoDesconto==='cupom' && orcCupomValido) ? orcCupomValido.codigo : null;
+  const validade = document.getElementById('orc-validade').value || null;
+  const observacoes = document.getElementById('orc-observacoes').value.trim();
+  const payload = {cliente_id, cliente_nome, cliente_whatsapp, veiculo_id, itens, subtotal, desconto_tipo, desconto_valor, cupom_id, cupom_codigo, total, validade, observacoes};
+  let error, orcamentoId = id;
+  if(id){
+    ({error} = await sb.from('orcamentos').update(payload).eq('id', id));
+  } else {
+    const resultado = await sb.from('orcamentos').insert({...payload, status:'enviado'}).select().single();
+    error = resultado.error;
+    orcamentoId = resultado.data?.id;
+  }
+  if(error){ toast('Erro ao salvar orçamento'); return; }
+  if(cupom_id && orcamentoId){
+    const nomeParaUso = cliente_id ? nomeCliente(cliente_id) : cliente_nome;
+    await sb.from('cupom_usos').insert({cupom_id, orcamento_id: orcamentoId, cliente_nome: nomeParaUso});
+  }
+  fecharModal();
+  toast('Orçamento salvo!');
+  await carregarOrcamentos();
+}
+window.salvarOrcamento = salvarOrcamento;
 
 async function carregarTudo(){
   document.getElementById('data-hoje').textContent = formatarData(hojeISO());
   document.getElementById('filtro-data-agenda').value = hojeISO();
-  await Promise.all([carregarClientes(), carregarServicos(), carregarSubServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes()]);
+  await Promise.all([carregarClientes(), carregarServicos(), carregarSubServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes(), carregarCupons(), carregarOrcamentos(), carregarDescontosServico()]);
   await carregarAgendamentos();
   await carregarFinanceiro();
   renderDashboard();
@@ -1674,7 +2219,8 @@ function renderLucroMesPainel(){
 
 function renderAgendaCompleta(){
   const filtro = document.getElementById('filtro-data-agenda').value;
-  const lista = filtro ? cacheAgendamentos.filter(a=>a.data===filtro) : cacheAgendamentos;
+  let lista = cacheAgendamentos.filter(a=>a.status!=='concluido');
+  if(filtro) lista = lista.filter(a=>a.data===filtro);
   const box = document.getElementById('lista-agenda-completa');
   box.innerHTML = lista.length ? lista.map(ticketHtml).join('') : '<p class="vazio">Nenhum agendamento encontrado.</p>';
 }
@@ -1729,7 +2275,7 @@ function renderAgendaSemana(){
   grid.innerHTML = dias.map((d,i)=>{
     const iso = dataParaISO(d);
     const doDia = cacheAgendamentos
-      .filter(a=>a.data===iso)
+      .filter(a=>a.data===iso && a.status!=='concluido')
       .sort((a,b)=>(a.hora_inicio||'').localeCompare(b.hora_inicio||''));
     const ehHoje = iso === hojeISO();
     return `
@@ -2492,7 +3038,8 @@ function renderHistorico(){
   renderHistoricoProdutos();
 }
 
-const LIMITE_HISTORICO = 15;
+const LIMITE_HISTORICO_SERVICOS = 2;
+const LIMITE_HISTORICO_PRODUTOS = 15;
 
 function renderComVerMais(containerId, itens, itemHtmlFn, limite){
   const box = document.getElementById(containerId);
@@ -2529,7 +3076,7 @@ function renderHistoricoServicos(){
     const chaveB = b.data + ' ' + (b.hora_inicio||'');
     return chaveB.localeCompare(chaveA);
   });
-  renderComVerMais('lista-historico-servicos', ordenado, ticketHistoricoHtml, LIMITE_HISTORICO);
+  renderComVerMais('lista-historico-servicos', ordenado, ticketHistoricoHtml, LIMITE_HISTORICO_SERVICOS);
 }
 
 function ticketHistoricoHtml(a){
@@ -2580,7 +3127,7 @@ function renderHistoricoProdutos(){
     return;
   }
   const ordenado = [...cacheMovimentacoes].sort((a,b)=> (b.criado_em||'').localeCompare(a.criado_em||''));
-  renderComVerMais('lista-historico-produtos', ordenado, movimentacaoHistoricoHtml, LIMITE_HISTORICO);
+  renderComVerMais('lista-historico-produtos', ordenado, movimentacaoHistoricoHtml, LIMITE_HISTORICO_PRODUTOS);
 }
 
 /* =========================================================
@@ -2654,6 +3201,9 @@ function renderConfiguracoes(){
   }
 
   renderListaExcecoes();
+  renderListaCupons();
+  popularSelectServicoDesconto();
+  renderListaDescontosServico();
 }
 
 function renderListaExcecoes(){
@@ -2713,6 +3263,171 @@ function toggleDiaTrabalho(checkbox){
   checkbox.closest('.dia-trabalho-linha').classList.toggle('dia-inativo', !checkbox.checked);
 }
 window.toggleDiaTrabalho = toggleDiaTrabalho;
+
+/* ---------- CUPONS DE PARCEIRO ---------- */
+function renderListaCupons(){
+  const box = document.getElementById('lista-cupons');
+  if(!box) return;
+  if(cacheCupons.length===0){
+    box.innerHTML = '<p class="vazio">Nenhum cupom cadastrado ainda.</p>';
+    return;
+  }
+  box.innerHTML = cacheCupons.map(c=>`
+    <div class="cupom-card ${c.ativo?'':'inativo'}">
+      <div class="cupom-card-info">
+        <span class="cupom-card-codigo">${escapeHtml(c.codigo)}</span>
+        <span class="cupom-card-detalhe">${c.parceiro_nome?escapeHtml(c.parceiro_nome)+' · ':''}${c.tipo==='percentual'?Number(c.valor)+'%':('R$ '+Number(c.valor).toFixed(2))} de desconto${c.ativo?'':' · inativo'}</span>
+      </div>
+      <div class="cupom-card-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="toggleCupomAtivo('${c.id}', ${!c.ativo})">${c.ativo?'Pausar':'Ativar'}</button>
+        <button class="btn btn-ghost btn-sm" onclick="removerCupom('${c.id}')">Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+document.getElementById('btn-add-cupom').addEventListener('click', async ()=>{
+  const codigo = document.getElementById('cupom-codigo').value.trim().toUpperCase();
+  const parceiro_nome = document.getElementById('cupom-parceiro').value.trim();
+  const tipo = document.getElementById('cupom-tipo').value;
+  const valor = parseFloat(document.getElementById('cupom-valor').value);
+  if(!codigo || !valor || valor<=0){ toast('Preencha o código e o valor do desconto'); return; }
+  const { error } = await sb.from('cupons').insert({codigo, parceiro_nome, tipo, valor, ativo:true});
+  if(error){ toast(error.code==='23505' ? 'Já existe um cupom com esse código' : 'Erro ao adicionar cupom'); return; }
+  document.getElementById('cupom-codigo').value = '';
+  document.getElementById('cupom-parceiro').value = '';
+  document.getElementById('cupom-valor').value = '';
+  await carregarCupons();
+  renderListaCupons();
+  toast('Cupom adicionado!');
+});
+
+async function toggleCupomAtivo(id, novoValor){
+  const { error } = await sb.from('cupons').update({ativo: novoValor}).eq('id', id);
+  if(error){ toast('Erro ao atualizar cupom'); return; }
+  await carregarCupons();
+  renderListaCupons();
+}
+window.toggleCupomAtivo = toggleCupomAtivo;
+
+async function removerCupom(id){
+  if(!confirm('Excluir esse cupom? O histórico de uso continua guardado.')) return;
+  const { error } = await sb.from('cupons').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir cupom'); return; }
+  await carregarCupons();
+  renderListaCupons();
+  toast('Cupom excluído');
+}
+window.removerCupom = removerCupom;
+
+document.getElementById('btn-ver-usos-cupons').addEventListener('click', async ()=>{
+  const { data: usos, error } = await sb.from('cupom_usos').select('*').order('criado_em', {ascending:false});
+  if(error){ toast('Erro ao carregar usos dos cupons'); return; }
+  const porCupom = {};
+  (usos||[]).forEach(u=>{
+    if(!porCupom[u.cupom_id]) porCupom[u.cupom_id] = [];
+    porCupom[u.cupom_id].push(u);
+  });
+  const blocos = cacheCupons.map(c=>{
+    const lista = porCupom[c.id] || [];
+    return `
+      <div class="cupom-uso-bloco">
+        <div class="cupom-uso-cabecalho">
+          <span class="cupom-card-codigo">${escapeHtml(c.codigo)}</span>
+          <span class="cupom-uso-contagem">${lista.length} uso${lista.length!==1?'s':''}</span>
+        </div>
+        ${lista.length ? `<div class="cupom-uso-lista">${lista.map(u=>`
+          <div class="cupom-uso-item">
+            <span>${escapeHtml(u.cliente_nome||'Cliente não identificado')}</span>
+            <span class="cupom-uso-data">${formatarDataHora(u.criado_em)}</span>
+          </div>`).join('')}</div>` : '<p class="vazio">Ainda não foi usado.</p>'}
+      </div>`;
+  }).join('') || '<p class="vazio">Cadastre um cupom primeiro.</p>';
+  abrirModal(`
+    <h3>Uso dos cupons</h3>
+    <div class="cupom-uso-container">${blocos}</div>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Fechar</button>
+    </div>
+  `);
+});
+
+/* ---------- DESCONTO PROMOCIONAL POR SERVIÇO ---------- */
+let cacheDescontosServico = [];
+async function carregarDescontosServico(){
+  const { data, error } = await sb.from('descontos_servico').select('*').order('data_inicio', {ascending:false});
+  if(error){ console.error(error); return; }
+  cacheDescontosServico = data || [];
+}
+
+function popularSelectServicoDesconto(){
+  const sel = document.getElementById('descserv-servico');
+  if(!sel) return;
+  sel.innerHTML = cacheServicos.filter(s=>s.ativo).map(s=>`<option value="${s.id}">${escapeHtml(s.nome)}</option>`).join('');
+}
+
+function descontoAtivoDoServico(servicoId, dataRef){
+  const ref = dataRef || hojeISO();
+  return cacheDescontosServico.find(d => d.servico_id===servicoId && d.ativo!==false && d.data_inicio<=ref && d.data_fim>=ref) || null;
+}
+
+function aplicarDesconto(valor, desconto){
+  if(!desconto) return valor;
+  if(desconto.tipo==='percentual') return Math.max(0, valor - (valor*Number(desconto.valor)/100));
+  return Math.max(0, valor - Number(desconto.valor));
+}
+
+function renderListaDescontosServico(){
+  const box = document.getElementById('lista-descontos-servico');
+  if(!box) return;
+  if(cacheDescontosServico.length===0){
+    box.innerHTML = '<p class="vazio">Nenhum desconto promocional cadastrado.</p>';
+    return;
+  }
+  const hoje = hojeISO();
+  box.innerHTML = cacheDescontosServico.map(d=>{
+    const servico = cacheServicos.find(s=>s.id===d.servico_id);
+    const vigente = d.data_inicio<=hoje && d.data_fim>=hoje;
+    return `
+    <div class="cupom-card ${vigente?'':'inativo'}">
+      <div class="cupom-card-info">
+        <span class="cupom-card-codigo">${escapeHtml(servico?servico.nome:'Serviço removido')}</span>
+        <span class="cupom-card-detalhe">${d.tipo==='percentual'?Number(d.valor)+'%':('R$ '+Number(d.valor).toFixed(2))} de desconto · ${formatarData(d.data_inicio)} a ${formatarData(d.data_fim)}${vigente?' · vigente agora':' · fora do período'}</span>
+      </div>
+      <div class="cupom-card-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="removerDescontoServico('${d.id}')">Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('btn-add-descserv').addEventListener('click', async ()=>{
+  const servico_id = document.getElementById('descserv-servico').value;
+  const tipo = document.getElementById('descserv-tipo').value;
+  const valor = parseFloat(document.getElementById('descserv-valor').value);
+  const data_inicio = document.getElementById('descserv-inicio').value;
+  const data_fim = document.getElementById('descserv-fim').value;
+  if(!servico_id || !valor || valor<=0 || !data_inicio || !data_fim){ toast('Preencha serviço, desconto e as duas datas'); return; }
+  if(data_fim < data_inicio){ toast('A data final não pode ser antes da inicial'); return; }
+  const { error } = await sb.from('descontos_servico').insert({servico_id, tipo, valor, data_inicio, data_fim, ativo:true});
+  if(error){ toast('Erro ao adicionar desconto'); return; }
+  document.getElementById('descserv-valor').value = '';
+  document.getElementById('descserv-inicio').value = '';
+  document.getElementById('descserv-fim').value = '';
+  await carregarDescontosServico();
+  renderListaDescontosServico();
+  toast('Desconto promocional adicionado!');
+});
+
+async function removerDescontoServico(id){
+  if(!confirm('Excluir esse desconto promocional?')) return;
+  const { error } = await sb.from('descontos_servico').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  await carregarDescontosServico();
+  renderListaDescontosServico();
+  toast('Desconto excluído');
+}
+window.removerDescontoServico = removerDescontoServico;
 
 document.getElementById('btn-salvar-mensagem').addEventListener('click', async ()=>{
   const mensagem = document.getElementById('cfg-mensagem').value;
