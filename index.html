@@ -1368,10 +1368,36 @@ function abrirModalOrcamento(id){
       </select>
     </div>
     <div id="orc-bloco-cliente-avulso" class="${orcModoCliente==='existente'?'oculto':''}">
+      <p class="config-texto-ajuda">Ao salvar o orçamento, esse cliente e o veículo já ficam cadastrados no sistema.</p>
       <label>Nome</label>
-      <input type="text" id="orc-cliente-nome" value="${o&&!o.cliente_id?escapeHtml(o.cliente_nome||''):''}" />
-      <label>WhatsApp</label>
-      <input type="text" id="orc-cliente-whatsapp" placeholder="5514999999999" value="${o&&!o.cliente_id?escapeHtml(o.cliente_whatsapp||''):''}" />
+      <input type="text" id="orc-cliente-nome" value="${o&&!o.cliente_id?escapeHtml(o.cliente_nome||''):''}" placeholder="Nome do cliente" />
+      <label>WhatsApp (com DDI+DDD, só números)</label>
+      <input type="text" id="orc-cliente-whatsapp" placeholder="Ex: 5514999999999" value="${o&&!o.cliente_id?escapeHtml(o.cliente_whatsapp||''):''}" />
+      <label>Observações do cliente (opcional)</label>
+      <textarea id="orc-cliente-obs" rows="2"></textarea>
+
+      <label>Veículo (opcional)</label>
+      <label>Placa (opcional)</label>
+      <input id="m-placa" placeholder="ABC1D23" />
+      <label>Tipo de veículo</label>
+      <select id="m-tipo-veiculo" onchange="carregarMarcasFipe()">
+        <option value="cars">Carro</option>
+        <option value="motorcycles">Moto</option>
+      </select>
+      <div class="linha-2">
+        <div>
+          <label>Marca</label>
+          <input id="m-marca" list="dl-marcas" autocomplete="off" placeholder="Digite para buscar a marca" oninput="carregarModelosFipe()" />
+          <datalist id="dl-marcas"></datalist>
+        </div>
+        <div>
+          <label>Modelo</label>
+          <input id="m-modelo" list="dl-modelos" autocomplete="off" placeholder="Digite para buscar o modelo" />
+          <datalist id="dl-modelos"></datalist>
+        </div>
+      </div>
+      <label>Cor</label>
+      <input id="m-cor" />
     </div>
     <label>Serviços</label>
     <div class="m-sub-servicos-lista" id="orc-servicos-lista"></div>
@@ -1412,6 +1438,7 @@ function abrirModalOrcamento(id){
   renderServicosOrcamento(o);
   renderSubServicosOrcamento(o);
   renderFormasPagamentoOrcamento(o && o.formas_pagamento ? o.formas_pagamento : []);
+  if(orcModoCliente==='avulso') carregarMarcasFipe();
   if(orcModoDesconto==='cupom') validarCupomOrcamento();
   recalcularOrcamento();
 }
@@ -1464,6 +1491,7 @@ function alternarClienteOrcamento(modo, btn){
   btn.classList.add('selecionado');
   document.getElementById('orc-bloco-cliente-existente').classList.toggle('oculto', modo!=='existente');
   document.getElementById('orc-bloco-cliente-avulso').classList.toggle('oculto', modo!=='avulso');
+  if(modo==='avulso') carregarMarcasFipe();
 }
 window.alternarClienteOrcamento = alternarClienteOrcamento;
 
@@ -1606,9 +1634,25 @@ async function salvarOrcamento(id){
     veiculo_id = document.getElementById('orc-veiculo').value || null;
     if(!cliente_id){ toast('Escolha um cliente'); return; }
   } else {
-    cliente_nome = document.getElementById('orc-cliente-nome').value.trim();
-    cliente_whatsapp = document.getElementById('orc-cliente-whatsapp').value.trim();
-    if(!cliente_nome){ toast('Preencha o nome do cliente'); return; }
+    const nomeNovo = document.getElementById('orc-cliente-nome').value.trim();
+    const telefoneNovo = document.getElementById('orc-cliente-whatsapp').value.trim().replace(/\D/g,'');
+    const obsNovo = document.getElementById('orc-cliente-obs').value.trim();
+    if(!nomeNovo){ toast('Preencha o nome do cliente'); return; }
+    const { data: clienteCriado, error: errCliente } = await sb.from('clientes')
+      .insert({nome: nomeNovo, telefone: telefoneNovo, observacoes: obsNovo}).select().single();
+    if(errCliente){ toast('Erro ao cadastrar o cliente: ' + (errCliente.message||errCliente.code)); return; }
+    cliente_id = clienteCriado.id;
+    const placaNova = document.getElementById('m-placa').value.trim().toUpperCase();
+    const marcaNova = document.getElementById('m-marca').value.trim();
+    const modeloNovo = document.getElementById('m-modelo').value.trim();
+    const corNova = document.getElementById('m-cor').value.trim();
+    if(placaNova || marcaNova || modeloNovo){
+      const { data: veiculoCriado, error: errVeiculo } = await sb.from('veiculos')
+        .insert({placa: placaNova, marca: marcaNova, modelo: modeloNovo, cor: corNova, cliente_id}).select().single();
+      if(errVeiculo){ toast('Cliente cadastrado, mas houve erro ao salvar o veículo: ' + (errVeiculo.message||errVeiculo.code)); }
+      else veiculo_id = veiculoCriado.id;
+    }
+    await carregarClientes();
   }
   recalcularOrcamento();
   const resumo = document.getElementById('orc-resumo');
