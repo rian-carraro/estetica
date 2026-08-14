@@ -1373,8 +1373,6 @@ function abrirModalOrcamento(id){
       <input type="text" id="orc-cliente-nome" value="${o&&!o.cliente_id?escapeHtml(o.cliente_nome||''):''}" placeholder="Nome do cliente" />
       <label>WhatsApp (com DDI+DDD, só números)</label>
       <input type="text" id="orc-cliente-whatsapp" placeholder="Ex: 5514999999999" value="${o&&!o.cliente_id?escapeHtml(o.cliente_whatsapp||''):''}" />
-      <label>Observações do cliente (opcional)</label>
-      <textarea id="orc-cliente-obs" rows="2"></textarea>
 
       <label>Veículo (opcional)</label>
       <label>Placa (opcional)</label>
@@ -1396,8 +1394,6 @@ function abrirModalOrcamento(id){
           <datalist id="dl-modelos"></datalist>
         </div>
       </div>
-      <label>Cor</label>
-      <input id="m-cor" />
     </div>
     <label>Serviços</label>
     <div class="m-sub-servicos-lista" id="orc-servicos-lista"></div>
@@ -1636,19 +1632,17 @@ async function salvarOrcamento(id){
   } else {
     const nomeNovo = document.getElementById('orc-cliente-nome').value.trim();
     const telefoneNovo = document.getElementById('orc-cliente-whatsapp').value.trim().replace(/\D/g,'');
-    const obsNovo = document.getElementById('orc-cliente-obs').value.trim();
     if(!nomeNovo){ toast('Preencha o nome do cliente'); return; }
     const { data: clienteCriado, error: errCliente } = await sb.from('clientes')
-      .insert({nome: nomeNovo, telefone: telefoneNovo, observacoes: obsNovo}).select().single();
+      .insert({nome: nomeNovo, telefone: telefoneNovo}).select().single();
     if(errCliente){ toast('Erro ao cadastrar o cliente: ' + (errCliente.message||errCliente.code)); return; }
     cliente_id = clienteCriado.id;
     const placaNova = document.getElementById('m-placa').value.trim().toUpperCase();
     const marcaNova = document.getElementById('m-marca').value.trim();
     const modeloNovo = document.getElementById('m-modelo').value.trim();
-    const corNova = document.getElementById('m-cor').value.trim();
     if(placaNova || marcaNova || modeloNovo){
       const { data: veiculoCriado, error: errVeiculo } = await sb.from('veiculos')
-        .insert({placa: placaNova, marca: marcaNova, modelo: modeloNovo, cor: corNova, cliente_id}).select().single();
+        .insert({placa: placaNova, marca: marcaNova, modelo: modeloNovo, cliente_id}).select().single();
       if(errVeiculo){ toast('Cliente cadastrado, mas houve erro ao salvar o veículo: ' + (errVeiculo.message||errVeiculo.code)); }
       else veiculo_id = veiculoCriado.id;
     }
