@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Auto de Infração — Estética Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #15171B;
+  --surface: #1E2126;
+  --paper: #EDE7D9;
+  --paper-line: #cfc7b0;
+  --text: #F2F1ED;
+  --text-muted: #9A9FA6;
+  --ink: #2A241C;
+  --ink-muted: #6b6252;
+  --gold: #E8A33D;
+  --stamp: #C23B32;
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; background:var(--bg);
+  background-image: radial-gradient(circle at 20% 10%, rgba(232,163,61,0.08), transparent 40%);
+  color:var(--text); font-family:var(--font-body); -webkit-font-smoothing:antialiased;
+  display:flex; justify-content:center; align-items:flex-start; padding:32px 16px 60px;
+}
+h1,h2{font-family:var(--font-display); margin:0;}
+
+.wrap{width:100%; max-width:440px;}
+
+.orgao{
+  text-align:center; color:var(--text-muted); font-family:var(--font-mono);
+  font-size:11px; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:18px;
+  opacity:0; animation:fadeIn .5s ease forwards;
+}
+.orgao b{color:var(--gold);}
+
+.ticket{
+  position:relative; background:var(--paper); color:var(--ink); border-radius:6px;
+  box-shadow:0 24px 60px rgba(0,0,0,0.45);
+  opacity:0; transform:translateY(18px); animation:subirTicket .6s .15s cubic-bezier(.2,.7,.3,1) forwards;
+}
+.ticket::before{
+  content:''; position:absolute; inset:8px; border:1.5px dashed var(--paper-line); border-radius:3px; pointer-events:none;
+}
+
+.ticket-topo{padding:26px 26px 0;}
+.serial{
+  display:flex; justify-content:space-between; align-items:baseline;
+  font-family:var(--font-mono); font-size:11px; color:var(--ink-muted); letter-spacing:0.04em;
+  border-bottom:1px solid var(--paper-line); padding-bottom:14px;
+}
+.serial b{color:var(--stamp);}
+
+.titulo{
+  font-size:15px; text-transform:uppercase; letter-spacing:0.1em; color:var(--ink-muted);
+  margin:20px 0 4px; text-align:center;
+}
+.headline{
+  font-size:34px; line-height:1.05; text-transform:uppercase; text-align:center;
+  letter-spacing:0.01em; margin:0 0 18px;
+}
+
+.stamp-wrap{display:flex; justify-content:center; margin:6px 0 20px;}
+.stamp{
+  border:3px solid var(--stamp); color:var(--stamp); font-family:var(--font-display);
+  font-size:17px; text-transform:uppercase; letter-spacing:0.06em; text-align:center;
+  padding:8px 18px; border-radius:4px; transform:rotate(-6deg) scale(0);
+  animation:carimbar .35s .75s cubic-bezier(.3,1.6,.5,1) forwards;
+  mix-blend-mode:multiply;
+}
+.stamp span{display:block; font-family:var(--font-mono); font-size:9px; letter-spacing:0.1em; margin-top:2px; font-weight:600;}
+
+.motivo{
+  font-size:14px; line-height:1.6; color:var(--ink); padding:0 4px 22px;
+  opacity:0; animation:fadeIn .5s .9s ease forwards;
+}
+.motivo b{color:var(--stamp);}
+
+.tear{
+  position:relative; height:0; border-top:2px dashed var(--paper-line); margin:0 26px;
+}
+.tear::after{
+  content:'✂'; position:absolute; left:-4px; top:-9px; background:var(--paper);
+  padding:0 4px; font-size:13px; color:var(--ink-muted);
+}
+
+.canhoto{padding:20px 26px 28px; opacity:0; animation:fadeIn .5s 1.05s ease forwards;}
+.canhoto-eyebrow{
+  font-family:var(--font-mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+  color:var(--ink-muted); margin-bottom:6px;
+}
+.desconto{
+  font-family:var(--font-display); font-size:44px; color:var(--stamp); line-height:1;
+  margin-bottom:4px;
+}
+.desconto span{font-size:16px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink); font-family:var(--font-body); font-weight:700;}
+.canhoto-texto{font-size:13px; color:var(--ink-muted); margin-bottom:20px; line-height:1.5;}
+
+.btn-whats{
+  display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
+  background:#1E2126; color:#F2F1ED; border:none; border-radius:8px; padding:16px;
+  font-family:var(--font-body); font-size:15px; font-weight:700; text-decoration:none;
+  transition:transform .15s ease;
+}
+.btn-whats:active{transform:scale(0.97);}
+.btn-whats svg{width:20px; height:20px; flex-shrink:0;}
+
+.rodape{
+  text-align:center; margin-top:20px; font-family:var(--font-mono); font-size:10px;
+  color:#63676f; letter-spacing:0.05em; line-height:1.6;
+  opacity:0; animation:fadeIn .5s 1.2s ease forwards;
+}
+
+@keyframes fadeIn{ to{opacity:1;} }
+@keyframes subirTicket{ to{opacity:1; transform:translateY(0);} }
+@keyframes carimbar{
+  0%{transform:rotate(-6deg) scale(0);}
+  70%{transform:rotate(-6deg) scale(1.12);}
+  100%{transform:rotate(-6deg) scale(1); opacity:0.88;}
+}
+
+@media (max-width:400px){
+  .headline{font-size:28px;}
+  .desconto{font-size:36px;}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <p class="orgao">Departamento de Estética Automotiva · <b>Notificação Nº <span id="serial-topo">--</span></b></p>
+
+  <div class="ticket">
+    <div class="ticket-topo">
+      <div class="serial">
+        <span>Auto de infração</span>
+        <b id="serial">EM-0000</b>
+      </div>
+      <p class="titulo">Fiscalização de limpeza</p>
+      <h1 class="headline">Você está<br/>sendo multado</h1>
+      <div class="stamp-wrap">
+        <div class="stamp">Sujidade excessiva<span>infração confirmada</span></div>
+      </div>
+      <p class="motivo">
+        Foi constatado um <b>alto índice de sujeira</b> no veículo do(a) condutor(a).
+        Segundo o código de conduta automotiva local, isso é crime contra a estética.
+        Mas fica tranquilo: você tem direito à defesa.
+      </p>
+    </div>
+
+    <div class="tear"></div>
+
+    <div class="canhoto">
+      <p class="canhoto-eyebrow">Canhoto de defesa</p>
+      <p class="desconto">10% <span>OFF</span></p>
+      <p class="canhoto-texto">Apresente esse aviso e leve 10% de desconto em qualquer serviço da Estética Manager. Válido enquanto o carro estiver sujo (ou seja, sempre).</p>
+      <a class="btn-whats" id="btn-defesa" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12.001 2C6.478 2 2 6.477 2 12c0 1.98.579 3.83 1.578 5.386L2 22l4.735-1.552A9.953 9.953 0 0012 22c5.523 0 10-4.477 10-10S17.524 2 12.001 2zm0 18.15a8.13 8.13 0 01-4.148-1.14l-.297-.176-3.088 1.012 1.024-3.017-.194-.31A8.13 8.13 0 013.85 12c0-4.502 3.65-8.15 8.151-8.15S20.15 7.498 20.15 12s-3.649 8.15-8.149 8.15z"/></svg>
+        Chamar no WhatsApp e usar meu desconto
+      </a>
+    </div>
+  </div>
+
+  <p class="rodape">Notificação sem validade jurídica real.<br/>Validade legítima: sua paciência com o carro sujo.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://djwgrdugpirgubjynoih.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YnyyjQKnO2Euf7E-9BPwPA_l4bAKFPv';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function serialAleatorio(){
+  const n = Math.floor(1000 + Math.random()*8999);
+  return 'EM-' + n;
+}
+
+async function iniciar(){
+  const serial = serialAleatorio();
+  document.getElementById('serial').textContent = serial;
+  document.getElementById('serial-topo').textContent = serial;
+
+  let foneNegocio = '';
+  try{
+    const { data: config } = await sb.from('configuracoes').select('telefone_negocio').eq('id','unica').maybeSingle();
+    foneNegocio = (config && config.telefone_negocio) || '';
+  }catch(e){}
+
+  const mensagem = `Olá! Recebi minha "multa" por sujidade no veículo 😄 Quero usar meu desconto de 10% e agendar uma lavagem!`;
+  const foneLimpo = (foneNegocio||'').replace(/\D/g,'');
+  const url = foneLimpo
+    ? `https://wa.me/${foneLimpo}?text=${encodeURIComponent(mensagem)}`
+    : `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
+  document.getElementById('btn-defesa').href = url;
+}
+
+iniciar();
+</script>
+</body>
+</html>
