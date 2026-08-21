@@ -145,6 +145,27 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .mini-label{font-size:12px; color:var(--text-muted);}
 .lista-alertas{display:flex; flex-direction:column; gap:8px;}
 .item-alerta{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:13px; display:flex; justify-content:space-between;}
+
+/* ---------- CHECKLIST ---------- */
+.checklist-topico-row{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;}
+.checklist-topico-nome{font-weight:600; font-size:14px;}
+.checklist-topico-tags{font-size:12px; color:var(--text-muted); margin-top:2px;}
+.checklist-topico-acoes{display:flex; gap:8px; flex-shrink:0;}
+.checklist-grupo-titulo{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin:14px 0 8px;}
+.checklist-grupo-titulo:first-child{margin-top:0;}
+.checklist-check-lista{display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto; padding-right:4px;}
+.checklist-final-item{
+  display:flex; align-items:center; gap:12px; background:var(--surface-2); border:1px solid var(--line);
+  border-radius:10px; padding:14px 16px; margin-bottom:10px; cursor:pointer;
+}
+.checklist-final-item.marcado{border-color:var(--green); background:rgba(95,184,106,0.08);}
+.checklist-final-item input{position:absolute; opacity:0; width:0; height:0;}
+.checklist-final-check-visual{
+  flex-shrink:0; width:22px; height:22px; border-radius:6px; border:1.5px solid var(--line); position:relative;
+}
+.checklist-final-item.marcado .checklist-final-check-visual{background:var(--green); border-color:var(--green);}
+.checklist-final-item.marcado .checklist-final-check-visual::after{content:''; position:absolute; left:7px; top:3px; width:6px; height:11px; border:solid var(--bg); border-width:0 2px 2px 0; transform:rotate(45deg);}
+.checklist-final-nome{font-size:14px; font-weight:500;}
 .item-alerta b{color:var(--red);}
 
 /* ---------- TICKET DE AGENDAMENTO (elemento assinatura) ---------- */
@@ -1010,6 +1031,13 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         </div>
 
         <div class="config-secao">
+          <h3>Checklist de conclusão</h3>
+          <p class="config-texto-ajuda">Tópicos que aparecem como checklist ao marcar um serviço como concluído, pra você revisar tudo que foi feito antes de fechar. Cada tópico só aparece nos serviços/sub-serviços que você marcar aqui.</p>
+          <div id="lista-checklist-topicos"></div>
+          <button class="btn btn-primary" id="btn-novo-checklist-topico">+ Criar novo tópico</button>
+        </div>
+
+        <div class="config-secao">
           <h3>Dias e horários de trabalho</h3>
           <p class="config-texto-ajuda">Define quais dias você atende e em qual faixa de horário — usado na Agenda e no link público de agendamento.</p>
           <div class="linha-2">
@@ -1722,7 +1750,7 @@ window.salvarOrcamento = salvarOrcamento;
 async function carregarTudo(){
   document.getElementById('data-hoje').textContent = formatarData(hojeISO());
   document.getElementById('filtro-data-agenda').value = hojeISO();
-  await Promise.all([carregarClientes(), carregarServicos(), carregarSubServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes(), carregarCupons(), carregarOrcamentos(), carregarDescontosServico()]);
+  await Promise.all([carregarClientes(), carregarServicos(), carregarSubServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes(), carregarCupons(), carregarOrcamentos(), carregarDescontosServico(), carregarChecklistTopicos()]);
   await carregarAgendamentos();
   await carregarFinanceiro();
   renderDashboard();
@@ -2295,6 +2323,156 @@ function nomesSubServicosDoAgendamento(agendamentoId){
   const ids = subServicoIdsDoAgendamento(agendamentoId);
   return ids.map(id=>cacheSubServicos.find(s=>s.id===id)?.nome).filter(Boolean);
 }
+
+/* =========================================================
+   CHECKLIST DE CONCLUSÃO
+   ========================================================= */
+let cacheChecklistTopicos = [];
+
+async function carregarChecklistTopicos(){
+  const { data, error } = await sb.from('checklist_topicos').select('*').order('nome');
+  if(error){ cacheChecklistTopicos = []; return; }
+  cacheChecklistTopicos = data || [];
+  renderListaChecklistTopicos();
+}
+
+function renderListaChecklistTopicos(){
+  const box = document.getElementById('lista-checklist-topicos');
+  if(!box) return;
+  if(cacheChecklistTopicos.length === 0){
+    box.innerHTML = '<p class="fin-vazio">Nenhum tópico criado ainda.</p>';
+    return;
+  }
+  box.innerHTML = cacheChecklistTopicos.map(t=>{
+    const nomesServicos = (t.servico_ids||[]).map(id=>cacheServicos.find(s=>s.id===id)?.nome).filter(Boolean);
+    const nomesSub = (t.sub_servico_ids||[]).map(id=>cacheSubServicos.find(s=>s.id===id)?.nome).filter(Boolean);
+    const tags = [...nomesServicos, ...nomesSub].join(', ') || 'Nenhum serviço selecionado';
+    return `
+      <div class="checklist-topico-row">
+        <div>
+          <div class="checklist-topico-nome">${escapeHtml(t.nome)}</div>
+          <div class="checklist-topico-tags">${escapeHtml(tags)}</div>
+        </div>
+        <div class="checklist-topico-acoes">
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalChecklistTopico('${t.id}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="removerChecklistTopico('${t.id}')">Excluir</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function abrirModalChecklistTopico(id){
+  const t = id ? cacheChecklistTopicos.find(x=>x.id===id) : null;
+  const servicoIds = t ? (t.servico_ids||[]) : [];
+  const subIds = t ? (t.sub_servico_ids||[]) : [];
+  abrirModal(`
+    <h3>${t?'Editar tópico':'Criar novo tópico'}</h3>
+    <label>Nome do tópico</label>
+    <input id="m-checklist-nome" value="${t?escapeHtml(t.nome):''}" placeholder="Ex: Lateral do banco" />
+    <p class="config-texto-ajuda" style="margin-top:10px;">Marque em quais serviços e sub-serviços esse tópico deve aparecer no checklist de conclusão.</p>
+    <div class="checklist-check-lista">
+      ${cacheServicos.length ? `<div class="checklist-grupo-titulo">Serviços (pacotes)</div>` : ''}
+      ${cacheServicos.map(s=>`
+        <label class="m-sub-servico-item ${servicoIds.includes(s.id)?'marcado':''}">
+          <input type="checkbox" class="checklist-servico-check" value="${s.id}" ${servicoIds.includes(s.id)?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked)"/>
+          <span class="m-sub-servico-check-visual"></span>
+          <span>${escapeHtml(s.nome)}</span>
+        </label>
+      `).join('')}
+      ${cacheSubServicos.length ? `<div class="checklist-grupo-titulo">Sub-serviços</div>` : ''}
+      ${cacheSubServicos.map(s=>`
+        <label class="m-sub-servico-item ${subIds.includes(s.id)?'marcado':''}">
+          <input type="checkbox" class="checklist-sub-check" value="${s.id}" ${subIds.includes(s.id)?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked)"/>
+          <span class="m-sub-servico-check-visual"></span>
+          <span>${escapeHtml(s.nome)}</span>
+        </label>
+      `).join('')}
+    </div>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarChecklistTopico(${t?`'${t.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalChecklistTopico = abrirModalChecklistTopico;
+
+async function salvarChecklistTopico(id){
+  const nome = document.getElementById('m-checklist-nome').value.trim();
+  if(!nome){ toast('Dê um nome ao tópico'); return; }
+  const servico_ids = [...document.querySelectorAll('.checklist-servico-check:checked')].map(el=>el.value);
+  const sub_servico_ids = [...document.querySelectorAll('.checklist-sub-check:checked')].map(el=>el.value);
+  const payload = {nome, servico_ids, sub_servico_ids};
+  let error;
+  if(id){
+    ({error} = await sb.from('checklist_topicos').update(payload).eq('id', id));
+  }else{
+    ({error} = await sb.from('checklist_topicos').insert(payload));
+  }
+  if(error){ toast('Erro ao salvar tópico'); return; }
+  fecharModal();
+  toast('Tópico salvo!');
+  carregarChecklistTopicos();
+}
+window.salvarChecklistTopico = salvarChecklistTopico;
+
+async function removerChecklistTopico(id){
+  if(!confirm('Excluir esse tópico do checklist?')) return;
+  const { error } = await sb.from('checklist_topicos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Tópico excluído');
+  carregarChecklistTopicos();
+}
+window.removerChecklistTopico = removerChecklistTopico;
+
+function topicosChecklistDoAgendamento(a){
+  const subIds = subServicoIdsDoAgendamento(a.id);
+  return cacheChecklistTopicos.filter(t=>{
+    const aplicaServico = (t.servico_ids||[]).includes(a.servico_id);
+    const aplicaSub = (t.sub_servico_ids||[]).some(id=>subIds.includes(id));
+    return aplicaServico || aplicaSub;
+  });
+}
+
+function abrirModalChecklistFinal(a, aoFinalizarCallback){
+  const topicos = topicosChecklistDoAgendamento(a);
+  abrirModal(`
+    <h3>Checklist de conclusão</h3>
+    <p class="modal-sub">Marque tudo que foi feito nesse serviço antes de finalizar.</p>
+    <div id="checklist-final-lista">
+      ${topicos.map(t=>`
+        <label class="checklist-final-item" data-topico-id="${t.id}">
+          <input type="checkbox" onchange="atualizarEstadoChecklistFinal(this)"/>
+          <span class="checklist-final-check-visual"></span>
+          <span class="checklist-final-nome">${escapeHtml(t.nome)}</span>
+        </label>
+      `).join('')}
+    </div>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal(); reverterSelectsStatus();">Cancelar</button>
+      <button class="btn btn-primary" id="btn-finalizar-checklist" disabled onclick="finalizarChecklistFinal()">Finalizar</button>
+    </div>
+  `);
+  checklistFinalCallback = aoFinalizarCallback;
+}
+
+let checklistFinalCallback = null;
+
+function atualizarEstadoChecklistFinal(el){
+  el.closest('.checklist-final-item').classList.toggle('marcado', el.checked);
+  const todos = [...document.querySelectorAll('#checklist-final-lista input[type="checkbox"]')];
+  const todosMarcados = todos.every(c=>c.checked);
+  document.getElementById('btn-finalizar-checklist').disabled = !todosMarcados;
+}
+window.atualizarEstadoChecklistFinal = atualizarEstadoChecklistFinal;
+
+function finalizarChecklistFinal(){
+  const callback = checklistFinalCallback;
+  checklistFinalCallback = null;
+  fecharModal();
+  if(callback) callback();
+}
+window.finalizarChecklistFinal = finalizarChecklistFinal;
 
 function nomeCliente(id){ return cacheClientes.find(c=>c.id===id)?.nome || '—'; }
 function telefoneCliente(id){ return cacheClientes.find(c=>c.id===id)?.telefone || ''; }
@@ -2871,7 +3049,12 @@ function mudarStatusAgendamento(id, novoStatus){
     return;
   }
   if(novoStatus === 'concluido'){
-    abrirModalHorarioEtapa(a, 'fim');
+    const topicos = topicosChecklistDoAgendamento(a);
+    if(topicos.length > 0){
+      abrirModalChecklistFinal(a, () => abrirModalHorarioEtapa(a, 'fim'));
+    }else{
+      abrirModalHorarioEtapa(a, 'fim');
+    }
     return;
   }
   atualizarStatusAgendamento(id, novoStatus, {});
@@ -4230,6 +4413,7 @@ async function removerDespesaFixa(id){
 window.removerDespesaFixa = removerDespesaFixa;
 
 document.getElementById('btn-nova-despesa-fixa').addEventListener('click', ()=>abrirModalDespesaFixa(null));
+document.getElementById('btn-novo-checklist-topico').addEventListener('click', ()=>abrirModalChecklistTopico(null));
 
 /* ---------- RECEITA DO SERVIÇO (produtos usados) ---------- */
 function abrirModalReceita(servicoId){
