@@ -821,10 +821,13 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <div class="agenda-modos">
           <button class="btn btn-ghost modo-ativo" id="btn-modo-servicos" onclick="mudarModoServicos('servicos')">Serviços</button>
           <button class="btn btn-ghost" id="btn-modo-sub-servicos" onclick="mudarModoServicos('sub')">Sub Serviços</button>
+          <button class="btn btn-ghost" id="btn-modo-combos" onclick="mudarModoServicos('combo')">Combos</button>
         </div>
         <p class="config-texto-ajuda oculto" id="sub-servicos-ajuda">Itens extras que não entram no fluxo de agendamento. Use o botão "Mostrar pro cliente" pra decidir se cada um aparece na aba "Outros serviços" da página pública de agendamento.</p>
+        <p class="config-texto-ajuda oculto" id="combos-ajuda">Pacotes com dois ou mais serviços e um desconto. Aparecem pro cliente na página de agendamento, acima da lista normal de serviços.</p>
         <div id="lista-servicos" class="grid-servicos"></div>
         <div id="lista-sub-servicos" class="grid-servicos oculto"></div>
+        <div id="lista-combos" class="grid-servicos oculto"></div>
       </section>
 
       <!-- ESTOQUE -->
@@ -2063,15 +2066,17 @@ async function carregarServicos(){
   if(error){ toast('Erro ao carregar serviços'); return; }
   cacheServicos = data || [];
   renderServicos();
+  renderCombos();
 }
 
 function renderServicos(){
   const box = document.getElementById('lista-servicos');
-  if(cacheServicos.length===0){
+  const servicosSemCombo = cacheServicos.filter(s=>!s.is_combo);
+  if(servicosSemCombo.length===0){
     box.innerHTML = '<p class="vazio">Nenhum serviço cadastrado.</p>';
     return;
   }
-  box.innerHTML = cacheServicos.map(s=>`
+  box.innerHTML = servicosSemCombo.map(s=>`
     <div class="servico-card ${s.ativo?'':'servico-inativo'}">
       ${s.ativo?'':'<span class="badge-inativo">Inativo</span>'}
       <span class="badge-tipo-veiculo">${s.tipo_veiculo==='moto'?'Moto':'Carro'}</span>
@@ -2118,17 +2123,22 @@ function mudarModoServicos(modo){
   modoServicosAtual = modo;
   document.getElementById('btn-modo-servicos').classList.toggle('modo-ativo', modo==='servicos');
   document.getElementById('btn-modo-sub-servicos').classList.toggle('modo-ativo', modo==='sub');
+  document.getElementById('btn-modo-combos').classList.toggle('modo-ativo', modo==='combo');
   document.getElementById('lista-servicos').classList.toggle('oculto', modo!=='servicos');
   document.getElementById('lista-sub-servicos').classList.toggle('oculto', modo!=='sub');
+  document.getElementById('lista-combos').classList.toggle('oculto', modo!=='combo');
   document.getElementById('sub-servicos-ajuda').classList.toggle('oculto', modo!=='sub');
-  document.getElementById('servicos-eyebrow').textContent = modo==='sub' ? 'Extras & complementos' : 'Catálogo';
-  document.getElementById('servicos-titulo').textContent = modo==='sub' ? 'Sub Serviços' : 'Serviços';
-  document.getElementById('btn-novo-servico').textContent = modo==='sub' ? '+ Novo sub serviço' : '+ Novo serviço';
+  document.getElementById('combos-ajuda').classList.toggle('oculto', modo!=='combo');
+  document.getElementById('servicos-eyebrow').textContent = modo==='sub' ? 'Extras & complementos' : (modo==='combo' ? 'Pacotes com desconto' : 'Catálogo');
+  document.getElementById('servicos-titulo').textContent = modo==='sub' ? 'Sub Serviços' : (modo==='combo' ? 'Combos' : 'Serviços');
+  document.getElementById('btn-novo-servico').textContent = modo==='sub' ? '+ Novo sub serviço' : (modo==='combo' ? '+ Combo' : '+ Novo serviço');
+  if(modo==='combo') renderCombos();
 }
 window.mudarModoServicos = mudarModoServicos;
 
 document.getElementById('btn-novo-servico').addEventListener('click', ()=>{
   if(modoServicosAtual === 'sub') abrirModalSubServico(null);
+  else if(modoServicosAtual === 'combo') abrirModalCombo(null);
   else abrirModalServico(null);
 });
 
@@ -2200,6 +2210,136 @@ async function removerServico(id){
   toast('Serviço excluído');
   carregarServicos();
 }
+
+/* ---------- COMBOS ---------- */
+function renderCombos(){
+  const box = document.getElementById('lista-combos');
+  if(!box) return;
+  const combos = cacheServicos.filter(s=>s.is_combo);
+  if(combos.length===0){
+    box.innerHTML = '<p class="vazio">Nenhum combo criado ainda.</p>';
+    return;
+  }
+  box.innerHTML = combos.map(c=>{
+    const nomesInclusos = (c.combo_servico_ids||[]).map(id=>cacheServicos.find(s=>s.id===id)?.nome).filter(Boolean);
+    const descontoTxt = c.combo_desconto_tipo==='percentual' ? `${c.combo_desconto_valor}% off` : `R$ ${Number(c.combo_desconto_valor||0).toFixed(2)} off`;
+    return `
+    <div class="servico-card ${c.ativo?'':'servico-inativo'}">
+      ${c.ativo?'':'<span class="badge-inativo">Inativo</span>'}
+      <span class="badge-tipo-veiculo">${escapeHtml(descontoTxt)}</span>
+      <div class="servico-nome">${escapeHtml(c.nome)}</div>
+      <div class="servico-desc">${escapeHtml(c.descricao||'')}</div>
+      <div class="servico-desc" style="margin-top:-6px;">${escapeHtml(nomesInclusos.join(' + '))}</div>
+      <div class="servico-meta">
+        <span class="servico-preco">R$ ${Number(c.preco||0).toFixed(2)}</span>
+        <span>${formatarDuracao(c.duracao_minutos||60)}</span>
+      </div>
+      <div class="ticket-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalCombo('${c.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="removerCombo('${c.id}')">Excluir</button>
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function abrirModalCombo(id){
+  const c = id ? cacheServicos.find(x=>x.id===id && x.is_combo) : null;
+  const servicoIdsInclusos = c ? (c.combo_servico_ids||[]) : [];
+  abrirModal(`
+    <h3>${c?'Editar combo':'Novo combo'}</h3>
+    <label>Nome do combo</label>
+    <input id="m-combo-nome" value="${c?escapeHtml(c.nome):''}" placeholder="Ex: Combo Lavagem + Higienização" />
+    <label>Descrição</label>
+    <textarea id="m-combo-desc" rows="3" placeholder="Ex: Lavagem completa com higienização interna e proteção de bancos">${c?escapeHtml(c.descricao||''):''}</textarea>
+    <p class="config-texto-ajuda" style="margin-top:10px;">Selecione os serviços que fazem parte desse combo.</p>
+    <div class="checklist-check-lista" id="combo-servicos-lista">
+      ${cacheServicos.filter(s=>!s.is_combo).map(s=>{
+        const marcado = servicoIdsInclusos.includes(s.id);
+        return `
+        <label class="m-sub-servico-item ${marcado?'marcado':''}">
+          <input type="checkbox" class="combo-servico-check" value="${s.id}" ${marcado?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked); recalcularCombo()"/>
+          <span class="m-sub-servico-check-visual"></span>
+          <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
+          <span class="m-sub-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
+        </label>`;
+      }).join('') || '<p class="vazio">Cadastre serviços primeiro.</p>'}
+    </div>
+    <label>Desconto do combo</label>
+    <div class="desconto-valor-linha">
+      <select id="m-combo-desconto-tipo" onchange="recalcularCombo()">
+        <option value="percentual" ${c&&c.combo_desconto_tipo==='percentual'?'selected':''}>%</option>
+        <option value="fixo" ${c&&c.combo_desconto_tipo==='fixo'?'selected':''}>R$</option>
+      </select>
+      <input type="number" step="0.01" min="0" id="m-combo-desconto-valor" oninput="recalcularCombo()" placeholder="0" value="${c&&c.combo_desconto_valor?c.combo_desconto_valor:''}" />
+    </div>
+    <div class="orc-resumo" id="combo-resumo"></div>
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCombo(${c?`'${c.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+  recalcularCombo();
+}
+window.abrirModalCombo = abrirModalCombo;
+
+function servicosSelecionadosCombo(){
+  return [...document.querySelectorAll('.combo-servico-check:checked')].map(el=>cacheServicos.find(s=>s.id===el.value)).filter(Boolean);
+}
+
+function recalcularCombo(){
+  const box = document.getElementById('combo-resumo');
+  if(!box) return;
+  const servicos = servicosSelecionadosCombo();
+  const subtotal = servicos.reduce((soma,s)=>soma+Number(s.preco||0), 0);
+  const tipo = document.getElementById('m-combo-desconto-tipo').value;
+  const valor = parseFloat(document.getElementById('m-combo-desconto-valor').value) || 0;
+  const total = aplicarDesconto(subtotal, valor ? {tipo, valor} : null);
+  const descontoTotal = subtotal - total;
+  box.innerHTML = `
+    <div class="orc-resumo-linha"><span>Subtotal (${servicos.length} serviço${servicos.length!==1?'s':''})</span><span>${formatarMoeda(subtotal)}</span></div>
+    ${descontoTotal>0?`<div class="orc-resumo-linha desconto"><span>Desconto</span><span>-${formatarMoeda(descontoTotal)}</span></div>`:''}
+    <div class="orc-resumo-linha total"><span>Preço final do combo</span><span>${formatarMoeda(total)}</span></div>
+  `;
+}
+window.recalcularCombo = recalcularCombo;
+
+async function salvarCombo(id){
+  const nome = document.getElementById('m-combo-nome').value.trim();
+  const descricao = document.getElementById('m-combo-desc').value.trim();
+  const servicos = servicosSelecionadosCombo();
+  if(!nome){ toast('Dê um nome ao combo'); return; }
+  if(servicos.length < 2){ toast('Selecione pelo menos 2 serviços pro combo'); return; }
+  const combo_desconto_tipo = document.getElementById('m-combo-desconto-tipo').value;
+  const combo_desconto_valor = parseFloat(document.getElementById('m-combo-desconto-valor').value) || 0;
+  const subtotal = servicos.reduce((soma,s)=>soma+Number(s.preco||0), 0);
+  const preco = aplicarDesconto(subtotal, combo_desconto_valor ? {tipo:combo_desconto_tipo, valor:combo_desconto_valor} : null);
+  const duracao_minutos = servicos.reduce((soma,s)=>soma+Number(s.duracao_minutos||60), 0);
+  const tiposVeiculo = [...new Set(servicos.map(s=>s.tipo_veiculo||'carro'))];
+  const tipo_veiculo = tiposVeiculo.length===1 ? tiposVeiculo[0] : 'carro';
+  const combo_servico_ids = servicos.map(s=>s.id);
+  const payload = {nome, descricao, preco, duracao_minutos, tipo_veiculo, ativo:true, is_combo:true, combo_servico_ids, combo_desconto_tipo, combo_desconto_valor};
+  let error;
+  if(id){
+    ({error} = await sb.from('servicos').update(payload).eq('id', id));
+  }else{
+    ({error} = await sb.from('servicos').insert(payload));
+  }
+  if(error){ toast('Erro ao salvar combo'); return; }
+  fecharModal();
+  toast('Combo salvo!');
+  carregarServicos();
+}
+window.salvarCombo = salvarCombo;
+
+async function removerCombo(id){
+  if(!confirm('Excluir esse combo?')) return;
+  const { error } = await sb.from('servicos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Combo excluído');
+  carregarServicos();
+}
+window.removerCombo = removerCombo;
 
 /* =========================================================
    SUB SERVIÇOS (itens extras, exibidos ou não pro cliente)
@@ -2377,7 +2517,7 @@ function abrirModalChecklistTopico(id){
         <label class="m-sub-servico-item ${servicoIds.includes(s.id)?'marcado':''}">
           <input type="checkbox" class="checklist-servico-check" value="${s.id}" ${servicoIds.includes(s.id)?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked)"/>
           <span class="m-sub-servico-check-visual"></span>
-          <span>${escapeHtml(s.nome)}</span>
+          <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
         </label>
       `).join('')}
       ${cacheSubServicos.length ? `<div class="checklist-grupo-titulo">Sub-serviços</div>` : ''}
@@ -2385,7 +2525,7 @@ function abrirModalChecklistTopico(id){
         <label class="m-sub-servico-item ${subIds.includes(s.id)?'marcado':''}">
           <input type="checkbox" class="checklist-sub-check" value="${s.id}" ${subIds.includes(s.id)?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked)"/>
           <span class="m-sub-servico-check-visual"></span>
-          <span>${escapeHtml(s.nome)}</span>
+          <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
         </label>
       `).join('')}
     </div>
@@ -2427,8 +2567,10 @@ window.removerChecklistTopico = removerChecklistTopico;
 
 function topicosChecklistDoAgendamento(a){
   const subIds = subServicoIdsDoAgendamento(a.id);
+  const servico = cacheServicos.find(s=>s.id===a.servico_id);
+  const comboServicoIds = (servico && servico.is_combo) ? (servico.combo_servico_ids||[]) : [];
   return cacheChecklistTopicos.filter(t=>{
-    const aplicaServico = (t.servico_ids||[]).includes(a.servico_id);
+    const aplicaServico = (t.servico_ids||[]).includes(a.servico_id) || (t.servico_ids||[]).some(id=>comboServicoIds.includes(id));
     const aplicaSub = (t.sub_servico_ids||[]).some(id=>subIds.includes(id));
     return aplicaServico || aplicaSub;
   });
@@ -2762,7 +2904,7 @@ window.abrirModalAgendamento = abrirModalAgendamento;
 function renderServicosModal(){
   const box = document.getElementById('m-servicos-lista');
   if(!box) return;
-  box.innerHTML = cacheServicos.filter(s=>s.ativo).map(s=>`
+  box.innerHTML = cacheServicos.filter(s=>s.ativo && !s.is_combo).map(s=>`
     <label class="m-sub-servico-item ${mAgendaServicoSel===s.id?'marcado':''}" onclick="escolherServicoModal('${s.id}')">
       <span class="m-sub-servico-check-visual m-servico-radio"></span>
       <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>

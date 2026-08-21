@@ -63,6 +63,16 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .opcao-servico-desc{font-size:12px; color:var(--text-muted); margin-top:2px;}
 .opcao-servico-preco{font-family:var(--font-mono); color:var(--gold); font-weight:600; white-space:nowrap;}
 .grupo-servicos-titulo{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin:18px 0 10px;}
+.combos-titulo{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin:0 0 10px;}
+.opcao-combo{border-color:var(--gold); background:rgba(232,163,61,0.07);}
+.opcao-combo:hover{background:rgba(232,163,61,0.13);}
+.opcao-combo.selecionado{background:rgba(232,163,61,0.18);}
+.badge-combo{
+  display:inline-block; background:var(--gold); color:#1A1200; font-size:10px; font-weight:700;
+  text-transform:uppercase; letter-spacing:0.04em; padding:2px 7px; border-radius:4px; margin-bottom:5px;
+}
+.opcao-combo-preco-linha{display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
+.opcao-combo-preco-de{font-family:var(--font-mono); font-size:11px; color:var(--text-muted); text-decoration:line-through;}
 .grupo-servicos-titulo:first-child{margin-top:0;}
 .btn-info{
   display:inline-flex; align-items:center; justify-content:center; vertical-align:middle;
@@ -182,6 +192,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
     <!-- PASSO 1: SERVIÇO -->
     <div id="passo-1" class="passo">
       <h2>1. Qual serviço?</h2>
+
+      <div id="bloco-combos" class="oculto">
+        <div class="combos-titulo">Combos</div>
+        <div id="lista-combos-publico"></div>
+      </div>
+
       <div id="lista-servicos-publico"><div class="carregando">Carregando serviços...</div></div>
 
       <div id="bloco-outros-servicos" class="oculto">
@@ -295,6 +311,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const NOMES_DIAS = ['domingo','segunda','terca','quarta','quinta','sexta','sabado'];
 
 let cacheServicosPub = [];
+let cacheCombosPub = [];
 let cacheSubServicosPub = [];
 let cacheConfigPub = null;
 let servicoEscolhido = null;
@@ -347,12 +364,47 @@ async function iniciar(){
     return;
   }
 
-  cacheServicosPub = servicos || [];
+  cacheServicosPub = (servicos || []).filter(s=>!s.is_combo);
+  cacheCombosPub = (servicos || []).filter(s=>s.is_combo);
   cacheConfigPub = config;
+  renderCombosPublico();
   renderServicosPublico();
   renderGridDias();
   carregarOutrosServicos();
   configurarBotaoContatoData();
+}
+
+function renderCombosPublico(){
+  const bloco = document.getElementById('bloco-combos');
+  if(cacheCombosPub.length === 0){
+    bloco.classList.add('oculto');
+    return;
+  }
+  document.getElementById('lista-combos-publico').innerHTML = cacheCombosPub.map(cardComboPublico).join('');
+  bloco.classList.remove('oculto');
+}
+
+function cardComboPublico(c){
+  const nomesInclusos = (c.combo_servico_ids||[]).map(id=>cacheServicosPub.find(s=>s.id===id)?.nome).filter(Boolean);
+  const subtotal = (c.combo_servico_ids||[]).reduce((soma,id)=>{
+    const s = cacheServicosPub.find(x=>x.id===id);
+    return soma + Number(s?.preco||0);
+  }, 0);
+  return `
+    <div class="opcao-servico opcao-combo" data-id="${c.id}" onclick="escolherServico('${c.id}')">
+      <span>
+        <span class="badge-combo">Combo</span>
+        <div class="opcao-servico-nome">
+          ${escapeHtml(c.nome)}
+          <button type="button" class="btn-info" title="Ver etapas" onclick="abrirEtapas('${c.id}', event)">!</button>
+        </div>
+        <div class="opcao-servico-desc">${escapeHtml(c.descricao||nomesInclusos.join(' + '))} · ${formatarDuracao(c.duracao_minutos||60)}</div>
+      </span>
+      <span class="opcao-combo-preco-linha">
+        ${subtotal>Number(c.preco||0) ? `<span class="opcao-combo-preco-de">R$ ${subtotal.toFixed(2)}</span>` : ''}
+        <span class="opcao-servico-preco">R$ ${Number(c.preco||0).toFixed(2)}</span>
+      </span>
+    </div>`;
 }
 
 function configurarBotaoContatoData(){
@@ -445,7 +497,7 @@ function cardServicoPublico(s){
 
 function abrirEtapas(id, ev){
   ev.stopPropagation();
-  const s = cacheServicosPub.find(x=>x.id===id) || cacheSubServicosPub.find(x=>x.id===id);
+  const s = cacheServicosPub.find(x=>x.id===id) || cacheCombosPub.find(x=>x.id===id) || cacheSubServicosPub.find(x=>x.id===id);
   if(!s) return;
   document.getElementById('modal-etapas-titulo').textContent = s.nome;
   document.getElementById('modal-etapas-texto').textContent = s.etapas && s.etapas.trim()
@@ -461,7 +513,7 @@ function fecharEtapas(){
 window.fecharEtapas = fecharEtapas;
 
 function escolherServico(id){
-  servicoEscolhido = cacheServicosPub.find(s=>s.id===id);
+  servicoEscolhido = cacheServicosPub.find(s=>s.id===id) || cacheCombosPub.find(s=>s.id===id);
   document.querySelectorAll('.opcao-servico').forEach(b=>b.classList.toggle('selecionado', b.dataset.id===id));
   document.getElementById('btn-avancar-passo1').disabled = false;
 }
