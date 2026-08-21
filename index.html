@@ -367,6 +367,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .fin-secao{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:16px;}
 .fin-secao-header{display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:10px; flex-wrap:wrap;}
 .fin-secao-header h3{font-size:15px;}
+.fin-mes-despesas-select{width:auto; padding:9px 10px; font-size:13px; margin-left:auto;}
+@media (max-width:560px){
+  .fin-secao-header{flex-direction:column; align-items:stretch;}
+  .fin-mes-despesas-select{margin-left:0; width:100%;}
+  .fin-secao-header #btn-nova-despesa{width:100%;}
+}
 
 .fin-grafico{display:flex; align-items:flex-end; gap:4px; height:140px; padding-top:10px;}
 .fin-barra-wrap{flex:1; display:flex; flex-direction:column; align-items:center; height:100%; justify-content:flex-end; gap:6px;}
@@ -650,7 +656,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
     <aside class="sidebar">
       <div class="logo">
         <span class="logo-mark">●</span>
-        <span class="logo-txt">ESTETICA<br/>MANAGER</span>
+        <span class="logo-txt">ESTETICA<br/>AUTOMOTIVA</span>
       </div>
       <nav class="nav">
         <button class="nav-item ativo" data-tab="dashboard">Painel</button>
@@ -834,6 +840,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <div class="fin-secao">
           <div class="fin-secao-header">
             <h3>Despesas do período</h3>
+            <input type="month" id="fin-mes-despesas" class="fin-mes-despesas-select" />
             <button class="btn btn-primary btn-sm" id="btn-nova-despesa">+ Nova despesa</button>
           </div>
           <div id="fin-lista-despesas"></div>
@@ -1294,7 +1301,7 @@ function enviarWhatsappOrcamento(id){
   const nome = o.cliente_id ? nomeCliente(o.cliente_id) : (o.cliente_nome || '');
   const fone = o.cliente_id ? (cacheClientes.find(c=>c.id===o.cliente_id)?.telefone || '') : (o.cliente_whatsapp || '');
   const linhasItens = (o.itens||[]).map(it => `- ${it.nome} — ${formatarMoeda(it.preco_final!=null?it.preco_final:it.preco)}`).join('\n');
-  let msg = `Olá${nome?', '+nome:''}! Segue seu orçamento da Estética Manager:\n\n${linhasItens}\n\nSubtotal: ${formatarMoeda(o.subtotal)}`;
+  let msg = `Olá${nome?', '+nome:''}! Segue seu orçamento da Carraro Estética Automotiva:\n\n${linhasItens}\n\nSubtotal: ${formatarMoeda(o.subtotal)}`;
   if(o.desconto_valor){
     const descTxt = o.desconto_tipo==='percentual' ? `${o.desconto_valor}%` : formatarMoeda(o.desconto_valor);
     msg += `\nDesconto${o.cupom_codigo?(' ('+o.cupom_codigo+')'):''}: -${descTxt}`;
@@ -1800,7 +1807,7 @@ function abrirModalFidelidade(clienteId){
   const link = base + 'fidelidade.html?cliente=' + clienteId;
   const fone = c.telefone;
   const templateFid = (cacheConfig && cacheConfig.fidelidade_mensagem) ||
-    'Olá, {cliente}! Aqui está o seu cartão fidelidade da Estética Manager:\n{link}\n\nAcompanhe ali quantas lavagens já fez e quantas faltam pra ganhar {premio} grátis!';
+    'Olá, {cliente}! Aqui está o seu cartão fidelidade da Carraro Estética Automotiva:\n{link}\n\nAcompanhe ali quantas lavagens já fez e quantas faltam pra ganhar {premio} grátis!';
   const msgWhats = templateFid
     .replace(/{cliente}/g, c.nome)
     .replace(/{link}/g, link)
@@ -3307,7 +3314,7 @@ function renderConfiguracoes(){
   const fidPremioBox = document.getElementById('cfg-fidelidade-premio');
   if(fidPremioBox) fidPremioBox.value = cacheConfig.fidelidade_premio || 'Lavagem simples';
   const fidMensagemBox = document.getElementById('cfg-fidelidade-mensagem');
-  if(fidMensagemBox) fidMensagemBox.value = cacheConfig.fidelidade_mensagem || 'Olá, {cliente}! Aqui está o seu cartão fidelidade da Estética Manager:\n{link}\n\nAcompanhe ali quantas lavagens já fez e quantas faltam pra ganhar {premio} grátis!';
+  if(fidMensagemBox) fidMensagemBox.value = cacheConfig.fidelidade_mensagem || 'Olá, {cliente}! Aqui está o seu cartão fidelidade da Carraro Estética Automotiva:\n{link}\n\nAcompanhe ali quantas lavagens já fez e quantas faltam pra ganhar {premio} grátis!';
 
   const foneBox = document.getElementById('cfg-telefone-negocio');
   if(foneBox) foneBox.value = cacheConfig.telefone_negocio || '';
@@ -3841,9 +3848,29 @@ function renderFinanceiro(){
   renderGraficoFinanceiro(valorAgendamento);
   renderTabelaServicosFinanceiro(concluidosPeriodo, valorAgendamento);
   renderTabelaLucroFinanceiro(concluidosPeriodo, valorAgendamento);
-  renderListaDespesasFinanceiro(despesasPeriodo);
+  renderListaDespesasDoMesSelecionado();
   renderListaDespesasFixas();
   renderLucroMesPainel();
+}
+
+function mesAtualStr(){
+  const hoje = new Date();
+  return `${hoje.getFullYear()}-${pad2(hoje.getMonth()+1)}`;
+}
+
+function renderListaDespesasDoMesSelecionado(){
+  const mesInput = document.getElementById('fin-mes-despesas');
+  if(!mesInput) return;
+  if(!mesInput.value) mesInput.value = mesAtualStr();
+  if(mesInput.dataset.bound !== '1'){
+    mesInput.dataset.bound = '1';
+    mesInput.addEventListener('change', renderListaDespesasDoMesSelecionado);
+  }
+  const [ano, mes] = mesInput.value.split('-').map(Number);
+  const inicio = dataISO(ano, mes, 1);
+  const fim = dataISO(ano, mes, diasNoMes(ano, mes));
+  const despesasDoMes = cacheDespesas.filter(d => d.data >= inicio && d.data <= fim);
+  renderListaDespesasFinanceiro(despesasDoMes);
 }
 
 function renderGraficoFinanceiro(valorAgendamento){
@@ -3954,7 +3981,7 @@ function renderListaDespesasFinanceiro(despesas){
   box.innerHTML = despesas.map(d=>`
     <div class="fin-despesa-linha">
       <div class="fin-despesa-info">
-        <span class="fin-despesa-nome">${escapeHtml(d.descricao)}${d.despesa_fixa_id?' <span style="color:var(--text-muted); font-weight:500;">(fixa)</span>':''}</span>
+        <span class="fin-despesa-nome">${escapeHtml(d.descricao)}${d.despesa_fixa_id?' <span style="color:var(--text-muted); font-weight:500;">(fixa)</span>':''}${d.total_parcelas>1?` <span style="color:var(--text-muted); font-weight:500;">(${d.parcela_atual}/${d.total_parcelas})</span>`:''}</span>
         <span class="fin-despesa-meta">${escapeHtml(d.categoria||'Sem categoria')} · ${formatarData(d.data)} · ${d.quantidade}× de ${formatarMoeda(d.valor_unitario)}</span>
       </div>
       <div class="fin-despesa-acoes">
@@ -4015,8 +4042,12 @@ function abrirModalDespesa(id){
       <div><label>Quantidade</label><input id="m-quantidade" type="number" step="0.01" value="${d?d.quantidade:1}" /></div>
       <div><label>Valor unitário (R$)</label><input id="m-valor-unitario" type="number" step="0.01" value="${d?d.valor_unitario:''}" /></div>
     </div>
-    <label>Data</label>
+    <label>Data${d && d.total_parcelas>1?' (dessa parcela)':''}</label>
     <input id="m-data-despesa" type="date" value="${d?d.data:hojeISO()}" />
+    ${!d?`
+    <label>Parcelar em quantas vezes?</label>
+    <input id="m-parcelas" type="number" step="1" min="1" value="1" placeholder="Ex: 3" />
+    `:(d.total_parcelas>1?`<p class="fin-despesa-meta" style="margin-top:-4px;">Parcela ${d.parcela_atual} de ${d.total_parcelas} — editar aqui altera só esta parcela.</p>`:'')}
     <div class="modal-acoes">
       <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarDespesa(${d?`'${d.id}'`:'null'})">Salvar</button>
@@ -4024,6 +4055,21 @@ function abrirModalDespesa(id){
   `);
 }
 window.abrirModalDespesa = abrirModalDespesa;
+
+function somarMeses(dataISO, n){
+  const [ano, mes, dia] = dataISO.split('-').map(Number);
+  const base = new Date(ano, mes-1, dia);
+  const diaOriginal = base.getDate();
+  base.setMonth(base.getMonth()+n);
+  // se o mês de destino não tem esse dia (ex: 31), o JS já rolou pro mês seguinte — corrige voltando pro último dia do mês certo
+  if(base.getDate() !== diaOriginal){
+    base.setDate(0);
+  }
+  const y = base.getFullYear();
+  const m = String(base.getMonth()+1).padStart(2,'0');
+  const dd = String(base.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
 
 async function salvarDespesa(id){
   const descricao = document.getElementById('m-desc').value.trim();
@@ -4033,12 +4079,30 @@ async function salvarDespesa(id){
   const data = document.getElementById('m-data-despesa').value;
   if(!descricao || !data){ toast('Preencha a descrição e a data'); return; }
   const valor_total = quantidade * valor_unitario;
-  const payload = {descricao, categoria, quantidade, valor_unitario, valor_total, data};
   let error;
   if(id){
+    const payload = {descricao, categoria, quantidade, valor_unitario, valor_total, data};
     ({error} = await sb.from('despesas').update(payload).eq('id', id));
   }else{
-    ({error} = await sb.from('despesas').insert(payload));
+    const parcelasEl = document.getElementById('m-parcelas');
+    const totalParcelas = parcelasEl ? (parseInt(parcelasEl.value)||1) : 1;
+    if(totalParcelas > 1){
+      const grupoId = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+      const linhas = [];
+      for(let i=0; i<totalParcelas; i++){
+        linhas.push({
+          descricao, categoria, quantidade, valor_unitario, valor_total,
+          data: somarMeses(data, i),
+          total_parcelas: totalParcelas,
+          parcela_atual: i+1,
+          parcela_grupo_id: grupoId
+        });
+      }
+      ({error} = await sb.from('despesas').insert(linhas));
+    }else{
+      const payload = {descricao, categoria, quantidade, valor_unitario, valor_total, data, total_parcelas: 1, parcela_atual: 1};
+      ({error} = await sb.from('despesas').insert(payload));
+    }
   }
   if(error){ toast('Erro ao salvar despesa'); return; }
   fecharModal();
@@ -4048,7 +4112,19 @@ async function salvarDespesa(id){
 window.salvarDespesa = salvarDespesa;
 
 async function removerDespesa(id){
-  if(!confirm('Excluir essa despesa?')) return;
+  const d = cacheDespesas.find(x=>x.id===id);
+  if(d && d.total_parcelas>1 && d.parcela_grupo_id){
+    const excluirTodas = confirm(`Essa despesa faz parte de um parcelamento (${d.parcela_atual}/${d.total_parcelas}).\n\nOK = excluir essa e todas as parcelas futuras\nCancelar = excluir só essa parcela`);
+    if(excluirTodas){
+      const { error } = await sb.from('despesas').delete().eq('parcela_grupo_id', d.parcela_grupo_id).gte('parcela_atual', d.parcela_atual);
+      if(error){ toast('Erro ao excluir'); return; }
+      toast('Parcelas excluídas');
+      carregarFinanceiro();
+      return;
+    }
+  }else{
+    if(!confirm('Excluir essa despesa?')) return;
+  }
   const { error } = await sb.from('despesas').delete().eq('id', id);
   if(error){ toast('Erro ao excluir'); return; }
   toast('Despesa excluída');
