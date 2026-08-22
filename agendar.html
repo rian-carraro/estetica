@@ -312,6 +312,7 @@ const NOMES_DIAS = ['domingo','segunda','terca','quarta','quinta','sexta','sabad
 
 let cacheServicosPub = [];
 let cacheCombosPub = [];
+let cacheSubServicosTodos = [];
 let cacheSubServicosPub = [];
 let cacheConfigPub = null;
 let servicoEscolhido = null;
@@ -357,6 +358,7 @@ async function iniciar(){
 
   const { data: servicos, error: e1 } = await sb.from('servicos').select('*').eq('ativo', true).order('nome');
   const { data: config, error: e2 } = await sb.from('configuracoes').select('*').eq('id','unica').maybeSingle();
+  const { data: subServicosTodos } = await sb.from('sub_servicos').select('*').order('nome');
 
   if(e1 || e2 || !config){
     document.getElementById('lista-servicos-publico').innerHTML =
@@ -366,6 +368,7 @@ async function iniciar(){
 
   cacheServicosPub = (servicos || []).filter(s=>!s.is_combo);
   cacheCombosPub = (servicos || []).filter(s=>s.is_combo);
+  cacheSubServicosTodos = subServicosTodos || [];
   cacheConfigPub = config;
   renderCombosPublico();
   renderServicosPublico();
@@ -385,9 +388,15 @@ function renderCombosPublico(){
 }
 
 function cardComboPublico(c){
-  const nomesInclusos = (c.combo_servico_ids||[]).map(id=>cacheServicosPub.find(s=>s.id===id)?.nome).filter(Boolean);
+  const nomesInclusos = [
+    ...(c.combo_servico_ids||[]).map(id=>cacheServicosPub.find(s=>s.id===id)?.nome),
+    ...(c.combo_sub_servico_ids||[]).map(id=>cacheSubServicosTodos.find(s=>s.id===id)?.nome)
+  ].filter(Boolean);
   const subtotal = (c.combo_servico_ids||[]).reduce((soma,id)=>{
     const s = cacheServicosPub.find(x=>x.id===id);
+    return soma + Number(s?.preco||0);
+  }, 0) + (c.combo_sub_servico_ids||[]).reduce((soma,id)=>{
+    const s = cacheSubServicosTodos.find(x=>x.id===id);
     return soma + Number(s?.preco||0);
   }, 0);
   return `

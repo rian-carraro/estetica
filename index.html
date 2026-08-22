@@ -2222,7 +2222,10 @@ function renderCombos(){
     return;
   }
   box.innerHTML = combos.map(c=>{
-    const nomesInclusos = (c.combo_servico_ids||[]).map(id=>cacheServicos.find(s=>s.id===id)?.nome).filter(Boolean);
+    const nomesInclusos = [
+      ...(c.combo_servico_ids||[]).map(id=>cacheServicos.find(s=>s.id===id)?.nome),
+      ...(c.combo_sub_servico_ids||[]).map(id=>cacheSubServicos.find(s=>s.id===id)?.nome)
+    ].filter(Boolean);
     const descontoTxt = c.combo_desconto_tipo==='percentual' ? `${c.combo_desconto_valor}% off` : `R$ ${Number(c.combo_desconto_valor||0).toFixed(2)} off`;
     return `
     <div class="servico-card ${c.ativo?'':'servico-inativo'}">
@@ -2247,14 +2250,16 @@ function renderCombos(){
 function abrirModalCombo(id){
   const c = id ? cacheServicos.find(x=>x.id===id && x.is_combo) : null;
   const servicoIdsInclusos = c ? (c.combo_servico_ids||[]) : [];
+  const subServicoIdsInclusos = c ? (c.combo_sub_servico_ids||[]) : [];
   abrirModal(`
     <h3>${c?'Editar combo':'Novo combo'}</h3>
     <label>Nome do combo</label>
     <input id="m-combo-nome" value="${c?escapeHtml(c.nome):''}" placeholder="Ex: Combo Lavagem + Higienização" />
     <label>Descrição</label>
     <textarea id="m-combo-desc" rows="3" placeholder="Ex: Lavagem completa com higienização interna e proteção de bancos">${c?escapeHtml(c.descricao||''):''}</textarea>
-    <p class="config-texto-ajuda" style="margin-top:10px;">Selecione os serviços que fazem parte desse combo.</p>
+    <p class="config-texto-ajuda" style="margin-top:10px;">Selecione os serviços e sub-serviços que fazem parte desse combo.</p>
     <div class="checklist-check-lista" id="combo-servicos-lista">
+      ${cacheServicos.length ? `<div class="checklist-grupo-titulo">Serviços (pacotes)</div>` : ''}
       ${cacheServicos.filter(s=>!s.is_combo).map(s=>{
         const marcado = servicoIdsInclusos.includes(s.id);
         return `
@@ -2265,6 +2270,17 @@ function abrirModalCombo(id){
           <span class="m-sub-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
         </label>`;
       }).join('') || '<p class="vazio">Cadastre serviços primeiro.</p>'}
+      ${cacheSubServicos.length ? `<div class="checklist-grupo-titulo">Sub-serviços</div>` : ''}
+      ${cacheSubServicos.map(s=>{
+        const marcado = subServicoIdsInclusos.includes(s.id);
+        return `
+        <label class="m-sub-servico-item ${marcado?'marcado':''}">
+          <input type="checkbox" class="combo-sub-servico-check" value="${s.id}" ${marcado?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked); recalcularCombo()"/>
+          <span class="m-sub-servico-check-visual"></span>
+          <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
+          <span class="m-sub-servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
+        </label>`;
+      }).join('')}
     </div>
     <label>Desconto do combo</label>
     <div class="desconto-valor-linha">
@@ -2288,17 +2304,23 @@ function servicosSelecionadosCombo(){
   return [...document.querySelectorAll('.combo-servico-check:checked')].map(el=>cacheServicos.find(s=>s.id===el.value)).filter(Boolean);
 }
 
+function subServicosSelecionadosCombo(){
+  return [...document.querySelectorAll('.combo-sub-servico-check:checked')].map(el=>cacheSubServicos.find(s=>s.id===el.value)).filter(Boolean);
+}
+
 function recalcularCombo(){
   const box = document.getElementById('combo-resumo');
   if(!box) return;
   const servicos = servicosSelecionadosCombo();
-  const subtotal = servicos.reduce((soma,s)=>soma+Number(s.preco||0), 0);
+  const subServicos = subServicosSelecionadosCombo();
+  const totalItens = servicos.length + subServicos.length;
+  const subtotal = servicos.reduce((soma,s)=>soma+Number(s.preco||0), 0) + subServicos.reduce((soma,s)=>soma+Number(s.preco||0), 0);
   const tipo = document.getElementById('m-combo-desconto-tipo').value;
   const valor = parseFloat(document.getElementById('m-combo-desconto-valor').value) || 0;
   const total = aplicarDesconto(subtotal, valor ? {tipo, valor} : null);
   const descontoTotal = subtotal - total;
   box.innerHTML = `
-    <div class="orc-resumo-linha"><span>Subtotal (${servicos.length} serviço${servicos.length!==1?'s':''})</span><span>${formatarMoeda(subtotal)}</span></div>
+    <div class="orc-resumo-linha"><span>Subtotal (${totalItens} ite${totalItens!==1?'ns':'m'})</span><span>${formatarMoeda(subtotal)}</span></div>
     ${descontoTotal>0?`<div class="orc-resumo-linha desconto"><span>Desconto</span><span>-${formatarMoeda(descontoTotal)}</span></div>`:''}
     <div class="orc-resumo-linha total"><span>Preço final do combo</span><span>${formatarMoeda(total)}</span></div>
   `;
@@ -2309,17 +2331,19 @@ async function salvarCombo(id){
   const nome = document.getElementById('m-combo-nome').value.trim();
   const descricao = document.getElementById('m-combo-desc').value.trim();
   const servicos = servicosSelecionadosCombo();
+  const subServicos = subServicosSelecionadosCombo();
   if(!nome){ toast('Dê um nome ao combo'); return; }
-  if(servicos.length < 2){ toast('Selecione pelo menos 2 serviços pro combo'); return; }
+  if((servicos.length + subServicos.length) < 2){ toast('Selecione pelo menos 2 itens (serviços ou sub-serviços) pro combo'); return; }
   const combo_desconto_tipo = document.getElementById('m-combo-desconto-tipo').value;
   const combo_desconto_valor = parseFloat(document.getElementById('m-combo-desconto-valor').value) || 0;
-  const subtotal = servicos.reduce((soma,s)=>soma+Number(s.preco||0), 0);
+  const subtotal = servicos.reduce((soma,s)=>soma+Number(s.preco||0), 0) + subServicos.reduce((soma,s)=>soma+Number(s.preco||0), 0);
   const preco = aplicarDesconto(subtotal, combo_desconto_valor ? {tipo:combo_desconto_tipo, valor:combo_desconto_valor} : null);
-  const duracao_minutos = servicos.reduce((soma,s)=>soma+Number(s.duracao_minutos||60), 0);
+  const duracao_minutos = servicos.reduce((soma,s)=>soma+Number(s.duracao_minutos||60), 0) || 60;
   const tiposVeiculo = [...new Set(servicos.map(s=>s.tipo_veiculo||'carro'))];
   const tipo_veiculo = tiposVeiculo.length===1 ? tiposVeiculo[0] : 'carro';
   const combo_servico_ids = servicos.map(s=>s.id);
-  const payload = {nome, descricao, preco, duracao_minutos, tipo_veiculo, ativo:true, is_combo:true, combo_servico_ids, combo_desconto_tipo, combo_desconto_valor};
+  const combo_sub_servico_ids = subServicos.map(s=>s.id);
+  const payload = {nome, descricao, preco, duracao_minutos, tipo_veiculo, ativo:true, is_combo:true, combo_servico_ids, combo_sub_servico_ids, combo_desconto_tipo, combo_desconto_valor};
   let error;
   if(id){
     ({error} = await sb.from('servicos').update(payload).eq('id', id));
@@ -2352,6 +2376,7 @@ async function carregarSubServicos(){
   if(error){ toast('Não encontrei a tabela de sub serviços — rode o schema atualizado no Supabase.'); return; }
   cacheSubServicos = data || [];
   renderSubServicos();
+  renderCombos();
 }
 
 function renderSubServicos(){
@@ -2570,9 +2595,10 @@ function topicosChecklistDoAgendamento(a){
   const subIds = subServicoIdsDoAgendamento(a.id);
   const servico = cacheServicos.find(s=>s.id===a.servico_id);
   const comboServicoIds = (servico && servico.is_combo) ? (servico.combo_servico_ids||[]) : [];
+  const comboSubServicoIds = (servico && servico.is_combo) ? (servico.combo_sub_servico_ids||[]) : [];
   return cacheChecklistTopicos.filter(t=>{
     const aplicaServico = (t.servico_ids||[]).includes(a.servico_id) || (t.servico_ids||[]).some(id=>comboServicoIds.includes(id));
-    const aplicaSub = (t.sub_servico_ids||[]).some(id=>subIds.includes(id));
+    const aplicaSub = (t.sub_servico_ids||[]).some(id=>subIds.includes(id)) || (t.sub_servico_ids||[]).some(id=>comboSubServicoIds.includes(id));
     return aplicaServico || aplicaSub;
   });
 }
@@ -3397,7 +3423,7 @@ function abrirModalProduto(id){
     <div class="linha-2">
       <div><label>Quantidade atual</label><input id="m-qtd" type="number" step="0.01" value="${p?p.quantidade:0}" /></div>
       <div><label>Unidade</label>
-        <select id="m-unidade" data-unidade-anterior="${p?escapeHtml(p.unidade||'un'):'un'}" onchange="onTrocarUnidadeProduto(this)">
+        <select id="m-unidade" data-unidade-original="${p?escapeHtml(p.unidade||'un'):'un'}" data-unidade-anterior="${p?escapeHtml(p.unidade||'un'):'un'}" onchange="onTrocarUnidadeProduto(this)">
           <option value="un" ${(!p||p.unidade==='un'||!p.unidade)?'selected':''}>un (unidade)</option>
           <option value="ml" ${p&&p.unidade==='ml'?'selected':''}>ml (mililitro)</option>
           <option value="l" ${p&&p.unidade==='l'?'selected':''}>L (litro)</option>
@@ -3471,7 +3497,9 @@ async function salvarProduto(id){
   const cor = document.getElementById('m-cor').value.trim();
   const uso = document.getElementById('m-uso').value.trim();
   const quantidade = parseFloat(document.getElementById('m-qtd').value)||0;
-  const unidade = document.getElementById('m-unidade').value.trim()||'un';
+  const unidadeSelect = document.getElementById('m-unidade');
+  const unidade = unidadeSelect.value.trim()||'un';
+  const unidadeOriginal = unidadeSelect.dataset.unidadeOriginal || unidade;
   const custo_unitario = parseFloat(document.getElementById('m-custo-unitario').value)||0;
   const quantidade_minima = parseFloat(document.getElementById('m-qtd-min').value)||0;
   const fotoInput = document.getElementById('m-foto');
@@ -3502,11 +3530,28 @@ async function salvarProduto(id){
     ({error} = await sb.from('produtos').insert(payload));
   }
   if(error){ toast('Erro ao salvar produto'); btn.textContent='Salvar'; btn.disabled=false; return; }
+
+  if(id && unidadeOriginal !== unidade){
+    await converterReceitasDoProduto(id, unidadeOriginal, unidade);
+  }
+
   fecharModal();
   toast('Produto salvo!');
   carregarProdutos();
 }
 window.salvarProduto = salvarProduto;
+
+async function converterReceitasDoProduto(produtoId, unidadeAntiga, unidadeNova){
+  const fator = fatorConversaoUnidade(unidadeAntiga, unidadeNova);
+  if(fator===null || fator===1) return;
+  const itens = cacheReceitaServico.filter(r=>r.produto_id===produtoId);
+  for(const item of itens){
+    const novaQuantidade = Math.round(Number(item.quantidade) * fator * 1000)/1000;
+    await sb.from('receita_servico').update({quantidade: novaQuantidade}).eq('id', item.id);
+  }
+  const { data } = await sb.from('receita_servico').select('*');
+  cacheReceitaServico = data || [];
+}
 
 async function removerProduto(id){
   if(!confirm('Excluir este produto do estoque?')) return;
