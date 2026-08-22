@@ -325,6 +325,9 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 }
 .config-secao h3{font-size:15px; margin-bottom:6px;}
 .config-texto-ajuda{font-size:12px; color:var(--text-muted); margin:0 0 12px; line-height:1.5;}
+.calc-custo-unitario{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin:10px 0 16px;}
+.calc-custo-unitario .config-texto-ajuda{margin-bottom:10px;}
+.calc-custo-unitario .linha-2{margin-bottom:10px;}
 .config-texto-ajuda code{background:var(--surface-2); padding:1px 5px; border-radius:3px; font-family:var(--font-mono); color:var(--gold);}
 .config-secao textarea{font-family:var(--font-mono); font-size:13px; line-height:1.5; margin-bottom:12px;}
 .config-secao input, .config-secao select{margin-bottom:0;}
@@ -3433,7 +3436,15 @@ function abrirModalProduto(id){
       </div>
     </div>
     <label>Custo por unidade (R$) <span style="text-transform:none; letter-spacing:0; color:var(--text-muted);">— usado pra calcular o lucro dos serviços</span></label>
-    <input id="m-custo-unitario" type="number" step="0.01" value="${p?p.custo_unitario||'':''}" placeholder="Ex: 12.50" />
+    <input id="m-custo-unitario" type="number" step="0.0001" value="${p?p.custo_unitario||'':''}" placeholder="Ex: 0.08" />
+    <div class="calc-custo-unitario">
+      <p class="config-texto-ajuda">Não sabe o custo por <span id="m-unidade-label-calc">${p?escapeHtml(p.unidade||'un'):'un'}</span>? Calcule pelo que você pagou na embalagem:</p>
+      <div class="linha-2">
+        <div><label>Preço pago na embalagem (R$)</label><input id="m-preco-embalagem" type="number" step="0.01" placeholder="Ex: 40" /></div>
+        <div><label>Tamanho da embalagem (<span id="m-unidade-label-calc2">${p?escapeHtml(p.unidade||'un'):'un'}</span>)</label><input id="m-tamanho-embalagem" type="number" step="0.01" placeholder="Ex: 500" /></div>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="calcularCustoUnitario()">Calcular custo por unidade</button>
+    </div>
     <label>Estoque mínimo (avisa quando chegar nesse valor)</label>
     <input id="m-qtd-min" type="number" step="0.01" value="${p?p.quantidade_minima:0}" />
     <label>Foto do produto</label>
@@ -3473,6 +3484,10 @@ function onTrocarUnidadeProduto(selectEl){
   const nova = selectEl.value;
   const anterior = selectEl.dataset.unidadeAnterior || nova;
   selectEl.dataset.unidadeAnterior = nova;
+  const rotulo1 = document.getElementById('m-unidade-label-calc');
+  const rotulo2 = document.getElementById('m-unidade-label-calc2');
+  if(rotulo1) rotulo1.textContent = nova;
+  if(rotulo2) rotulo2.textContent = nova;
   const fator = fatorConversaoUnidade(anterior, nova);
   if(fator===null || fator===1) return;
   const qtdInput = document.getElementById('m-qtd');
@@ -3490,6 +3505,17 @@ function onTrocarUnidadeProduto(selectEl){
   toast(`Convertido de ${anterior} pra ${nova}`);
 }
 window.onTrocarUnidadeProduto = onTrocarUnidadeProduto;
+
+function calcularCustoUnitario(){
+  const precoEmbalagem = parseFloat(document.getElementById('m-preco-embalagem').value)||0;
+  const tamanhoEmbalagem = parseFloat(document.getElementById('m-tamanho-embalagem').value)||0;
+  if(!precoEmbalagem || !tamanhoEmbalagem){ toast('Preencha o preço e o tamanho da embalagem'); return; }
+  const custo = precoEmbalagem / tamanhoEmbalagem;
+  const unidade = document.getElementById('m-unidade').value;
+  document.getElementById('m-custo-unitario').value = Math.round(custo*10000)/10000;
+  toast(`Custo por ${unidade}: R$ ${custo.toFixed(4)}`);
+}
+window.calcularCustoUnitario = calcularCustoUnitario;
 
 async function salvarProduto(id){
   const nome = document.getElementById('m-nome').value.trim();
