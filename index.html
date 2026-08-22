@@ -280,6 +280,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .servico-inativo{opacity:0.45;}
 .badge-inativo{font-size:10px; text-transform:uppercase; background:var(--surface-2); padding:2px 8px; border-radius:10px; color:var(--text-muted); align-self:flex-start;}
 .badge-tipo-veiculo{font-size:10px; text-transform:uppercase; background:var(--surface-2); padding:2px 8px; border-radius:10px; color:var(--blue); align-self:flex-start;}
+.badge-combo{display:inline-block; background:var(--gold); color:#1A1200; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:2px 7px; border-radius:4px;}
 
 /* ---------- SUB SERVIÇOS ---------- */
 .badge-visivel{font-size:10px; text-transform:uppercase; background:rgba(95,184,106,0.15); color:var(--green); padding:2px 8px; border-radius:10px; align-self:flex-start;}
@@ -2091,7 +2092,7 @@ function renderServicos(){
         <span>${formatarDuracao(s.duracao_minutos||60)}</span>
       </div>
       <div class="ticket-acoes">
-        <button class="btn btn-ghost btn-sm" onclick="abrirModalReceita('${s.id}')">Receita</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalReceita('servico', '${s.id}')">Receita</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirModalServico('${s.id}')">Editar</button>
         <button class="btn btn-danger btn-sm" onclick="removerServico('${s.id}')">Excluir</button>
       </div>
@@ -2242,6 +2243,7 @@ function renderCombos(){
         <span>${formatarDuracao(c.duracao_minutos||60)}</span>
       </div>
       <div class="ticket-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalReceita('servico', '${c.id}')">Receita</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirModalCombo('${c.id}')">Editar</button>
         <button class="btn btn-danger btn-sm" onclick="removerCombo('${c.id}')">Excluir</button>
       </div>
@@ -2398,6 +2400,7 @@ function renderSubServicos(){
         <span class="servico-preco">R$ ${Number(s.preco||0).toFixed(2)}</span>
       </div>
       <div class="ticket-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalReceita('sub_servico', '${s.id}')">Receita</button>
         <button class="btn btn-ghost btn-sm" onclick="toggleExibirSubServico('${s.id}', ${s.exibir_cliente})">${s.exibir_cliente?'Ocultar':'Mostrar'}</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirModalSubServico('${s.id}')">Editar</button>
         <button class="btn btn-danger btn-sm" onclick="removerSubServico('${s.id}')">Excluir</button>
@@ -2934,13 +2937,17 @@ window.abrirModalAgendamento = abrirModalAgendamento;
 function renderServicosModal(){
   const box = document.getElementById('m-servicos-lista');
   if(!box) return;
-  box.innerHTML = cacheServicos.filter(s=>s.ativo && !s.is_combo).map(s=>`
+  const servicosNormais = cacheServicos.filter(s=>s.ativo && !s.is_combo);
+  const combos = cacheServicos.filter(s=>s.ativo && s.is_combo);
+  const itemHtml = s => `
     <label class="m-sub-servico-item ${mAgendaServicoSel===s.id?'marcado':''}" onclick="escolherServicoModal('${s.id}')">
       <span class="m-sub-servico-check-visual m-servico-radio"></span>
-      <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
+      <span class="m-sub-servico-nome">${s.is_combo?'<span class="badge-combo" style="margin-right:6px;">Combo</span>':''}${escapeHtml(s.nome)}</span>
       ${s.preco?`<span class="m-sub-servico-preco">R$ ${Number(s.preco).toFixed(2)}</span>`:''}
     </label>
-  `).join('') || '<p class="vazio">Cadastre um serviço primeiro.</p>';
+  `;
+  box.innerHTML = (servicosNormais.length ? servicosNormais.map(itemHtml).join('') : '<p class="vazio">Cadastre um serviço primeiro.</p>')
+    + (combos.length ? `<div class="checklist-grupo-titulo">Combos</div>${combos.map(itemHtml).join('')}` : '');
 }
 
 function escolherServicoModal(servicoId){
@@ -4270,8 +4277,27 @@ function calcularIntervaloFinanceiro(){
 }
 
 function custoProdutoServico(servicoId){
+  const servico = cacheServicos.find(s=>s.id===servicoId);
+  if(servico && servico.is_combo){
+    const custoServicos = (servico.combo_servico_ids||[]).reduce((soma,sid)=>soma+custoProdutoServicoDireto(sid), 0);
+    const custoSubServicos = (servico.combo_sub_servico_ids||[]).reduce((soma,sid)=>soma+custoProdutoSubServico(sid), 0);
+    return custoServicos + custoSubServicos;
+  }
+  return custoProdutoServicoDireto(servicoId);
+}
+
+function custoProdutoServicoDireto(servicoId){
   return cacheReceitaServico
     .filter(r => r.servico_id === servicoId)
+    .reduce((soma, r) => {
+      const produto = cacheProdutos.find(p=>p.id===r.produto_id);
+      return soma + (Number(r.quantidade)||0) * (produto ? Number(produto.custo_unitario||0) : 0);
+    }, 0);
+}
+
+function custoProdutoSubServico(subServicoId){
+  return cacheReceitaServico
+    .filter(r => r.sub_servico_id === subServicoId)
     .reduce((soma, r) => {
       const produto = cacheProdutos.find(p=>p.id===r.produto_id);
       return soma + (Number(r.quantidade)||0) * (produto ? Number(produto.custo_unitario||0) : 0);
@@ -4668,46 +4694,53 @@ window.removerDespesaFixa = removerDespesaFixa;
 document.getElementById('btn-nova-despesa-fixa').addEventListener('click', ()=>abrirModalDespesaFixa(null));
 document.getElementById('btn-novo-checklist-topico').addEventListener('click', ()=>abrirModalChecklistTopico(null));
 
-/* ---------- RECEITA DO SERVIÇO (produtos usados) ---------- */
-function abrirModalReceita(servicoId){
-  const s = cacheServicos.find(x=>x.id===servicoId);
-  if(!s) return;
-  renderModalReceita(servicoId);
+/* ---------- RECEITA DE PRODUTOS (usada por serviços e sub-serviços) ---------- */
+function abrirModalReceita(tipo, id){
+  const item = tipo==='sub_servico' ? cacheSubServicos.find(x=>x.id===id) : cacheServicos.find(x=>x.id===id);
+  if(!item) return;
+  renderModalReceita(tipo, id);
 }
 window.abrirModalReceita = abrirModalReceita;
 
-function renderModalReceita(servicoId){
-  const s = cacheServicos.find(x=>x.id===servicoId);
-  const itens = cacheReceitaServico.filter(r=>r.servico_id===servicoId);
-  const custoTotal = custoProdutoServico(servicoId);
-  const lucroBruto = Number(s.preco||0) - custoTotal;
+function renderModalReceita(tipo, id){
+  const item = tipo==='sub_servico' ? cacheSubServicos.find(x=>x.id===id) : cacheServicos.find(x=>x.id===id);
+  const chave = tipo==='sub_servico' ? 'sub_servico_id' : 'servico_id';
+  const itens = cacheReceitaServico.filter(r=>r[chave]===id);
+  const custoTotal = tipo==='sub_servico' ? custoProdutoSubServico(id) : custoProdutoServico(id);
+  const lucroBruto = Number(item.preco||0) - custoTotal;
+  const ehCombo = item.is_combo;
 
   abrirModal(`
-    <h3>Receita — ${escapeHtml(s.nome)}</h3>
-    <p class="modal-sub">Produtos usados nesse serviço. Isso é usado pra calcular o lucro bruto na aba Financeiro.</p>
+    <h3>Receita — ${escapeHtml(item.nome)}</h3>
+    <p class="modal-sub">${ehCombo ? 'Combos puxam automaticamente as receitas dos serviços e sub-serviços que o compõem. Não dá pra adicionar produtos direto aqui.' : 'Produtos usados nesse item. Isso é usado pra calcular o lucro bruto na aba Financeiro.'}</p>
 
+    ${ehCombo ? '' : `
     <div id="receita-itens-lista">
-      ${itens.length===0 ? '<p class="fin-vazio">Nenhum produto adicionado ainda.</p>' : itens.map(item=>{
-        const p = cacheProdutos.find(x=>x.id===item.produto_id);
-        const custoItem = p ? Number(item.quantidade)*Number(p.custo_unitario||0) : 0;
+      ${itens.length===0 ? '<p class="fin-vazio">Nenhum produto adicionado ainda.</p>' : itens.map(ri=>{
+        const p = cacheProdutos.find(x=>x.id===ri.produto_id);
+        const custoItem = p ? Number(ri.quantidade)*Number(p.custo_unitario||0) : 0;
         return `
           <div class="receita-item">
             <div>
               <div class="receita-item-nome">${p?escapeHtml(p.nome):'Produto removido'}</div>
-              <div class="receita-item-qtd">${item.quantidade} ${p?escapeHtml(p.unidade||'un'):''} · ${formatarMoeda(custoItem)}</div>
+              <div class="receita-item-qtd">${ri.quantidade} ${p?escapeHtml(p.unidade||'un'):''} · ${formatarMoeda(custoItem)}</div>
             </div>
-            <button class="btn btn-danger btn-sm" onclick="removerItemReceita('${item.id}', '${servicoId}')">Remover</button>
+            <button class="btn btn-danger btn-sm" onclick="removerItemReceita('${ri.id}', '${tipo}', '${id}')">Remover</button>
           </div>
         `;
       }).join('')}
-    </div>
+    </div>`}
 
     <div class="receita-total-linha">
       <span>Custo total de produto</span>
       <span>${formatarMoeda(custoTotal)}</span>
     </div>
-    <p class="config-texto-ajuda" style="margin-top:8px;">Lucro bruto estimado: <b style="color:${lucroBruto>=0?'var(--green)':'var(--red)'};">${formatarMoeda(lucroBruto)}</b> (preço do serviço − custo de produto)</p>
+    <p class="config-texto-ajuda" style="margin-top:8px;">Lucro bruto estimado: <b style="color:${lucroBruto>=0?'var(--green)':'var(--red)'};">${formatarMoeda(lucroBruto)}</b> (preço − custo de produto)</p>
 
+    ${ehCombo ? `
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Fechar</button>
+    </div>` : `
     <div class="linha-2" style="margin-top:18px;">
       <div>
         <label>Produto</label>
@@ -4719,31 +4752,32 @@ function renderModalReceita(servicoId){
     </div>
     <div class="modal-acoes">
       <button class="btn btn-ghost" onclick="fecharModal()">Fechar</button>
-      <button class="btn btn-primary" onclick="adicionarItemReceita('${servicoId}')">Adicionar produto</button>
-    </div>
+      <button class="btn btn-primary" onclick="adicionarItemReceita('${tipo}', '${id}')">Adicionar produto</button>
+    </div>`}
   `);
 }
 
-async function adicionarItemReceita(servicoId){
+async function adicionarItemReceita(tipo, id){
   const produto_id = document.getElementById('receita-produto-select').value;
   const quantidade = parseFloat(document.getElementById('receita-produto-qtd').value)||0;
   if(!produto_id){ toast('Escolha um produto'); return; }
   if(quantidade<=0){ toast('Informe uma quantidade válida'); return; }
-  const { error } = await sb.from('receita_servico').insert({servico_id: servicoId, produto_id, quantidade});
+  const payload = tipo==='sub_servico' ? {sub_servico_id: id, produto_id, quantidade} : {servico_id: id, produto_id, quantidade};
+  const { error } = await sb.from('receita_servico').insert(payload);
   if(error){ toast('Erro ao adicionar produto'); return; }
   const { data } = await sb.from('receita_servico').select('*');
   cacheReceitaServico = data || [];
-  renderModalReceita(servicoId);
+  renderModalReceita(tipo, id);
   renderFinanceiro();
 }
 window.adicionarItemReceita = adicionarItemReceita;
 
-async function removerItemReceita(id, servicoId){
-  const { error } = await sb.from('receita_servico').delete().eq('id', id);
+async function removerItemReceita(itemId, tipo, id){
+  const { error } = await sb.from('receita_servico').delete().eq('id', itemId);
   if(error){ toast('Erro ao remover'); return; }
   const { data } = await sb.from('receita_servico').select('*');
   cacheReceitaServico = data || [];
-  renderModalReceita(servicoId);
+  renderModalReceita(tipo, id);
   renderFinanceiro();
 }
 window.removerItemReceita = removerItemReceita;
