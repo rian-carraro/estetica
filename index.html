@@ -3396,7 +3396,15 @@ function abrirModalProduto(id){
     <textarea id="m-uso" rows="2" placeholder="Ex: usar somente para secar vidros e espelhos">${p?escapeHtml(p.uso||''):''}</textarea>
     <div class="linha-2">
       <div><label>Quantidade atual</label><input id="m-qtd" type="number" step="0.01" value="${p?p.quantidade:0}" /></div>
-      <div><label>Unidade</label><input id="m-unidade" value="${p?escapeHtml(p.unidade||'un'):'un'}" placeholder="un, ml, l, kg" /></div>
+      <div><label>Unidade</label>
+        <select id="m-unidade" data-unidade-anterior="${p?escapeHtml(p.unidade||'un'):'un'}" onchange="onTrocarUnidadeProduto(this)">
+          <option value="un" ${(!p||p.unidade==='un'||!p.unidade)?'selected':''}>un (unidade)</option>
+          <option value="ml" ${p&&p.unidade==='ml'?'selected':''}>ml (mililitro)</option>
+          <option value="l" ${p&&p.unidade==='l'?'selected':''}>L (litro)</option>
+          <option value="g" ${p&&p.unidade==='g'?'selected':''}>g (grama)</option>
+          <option value="kg" ${p&&p.unidade==='kg'?'selected':''}>kg (quilo)</option>
+        </select>
+      </div>
     </div>
     <label>Custo por unidade (R$) <span style="text-transform:none; letter-spacing:0; color:var(--text-muted);">— usado pra calcular o lucro dos serviços</span></label>
     <input id="m-custo-unitario" type="number" step="0.01" value="${p?p.custo_unitario||'':''}" placeholder="Ex: 12.50" />
@@ -3425,6 +3433,37 @@ function prevFoto(ev){
   reader.readAsDataURL(file);
 }
 window.prevFoto = prevFoto;
+
+function fatorConversaoUnidade(de, para){
+  if(de===para) return 1;
+  if(de==='l' && para==='ml') return 1000;
+  if(de==='ml' && para==='l') return 1/1000;
+  if(de==='kg' && para==='g') return 1000;
+  if(de==='g' && para==='kg') return 1/1000;
+  return null;
+}
+
+function onTrocarUnidadeProduto(selectEl){
+  const nova = selectEl.value;
+  const anterior = selectEl.dataset.unidadeAnterior || nova;
+  selectEl.dataset.unidadeAnterior = nova;
+  const fator = fatorConversaoUnidade(anterior, nova);
+  if(fator===null || fator===1) return;
+  const qtdInput = document.getElementById('m-qtd');
+  const qtdMinInput = document.getElementById('m-qtd-min');
+  const custoInput = document.getElementById('m-custo-unitario');
+  if(qtdInput.value !== ''){
+    qtdInput.value = Math.round((parseFloat(qtdInput.value)||0) * fator * 1000)/1000;
+  }
+  if(qtdMinInput.value !== ''){
+    qtdMinInput.value = Math.round((parseFloat(qtdMinInput.value)||0) * fator * 1000)/1000;
+  }
+  if(custoInput.value !== ''){
+    custoInput.value = Math.round(((parseFloat(custoInput.value)||0) / fator) * 10000)/10000;
+  }
+  toast(`Convertido de ${anterior} pra ${nova}`);
+}
+window.onTrocarUnidadeProduto = onTrocarUnidadeProduto;
 
 async function salvarProduto(id){
   const nome = document.getElementById('m-nome').value.trim();
