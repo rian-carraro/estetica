@@ -150,6 +150,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .checklist-topico-row{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;}
 .checklist-topico-nome{font-weight:600; font-size:14px;}
 .checklist-topico-tags{font-size:12px; color:var(--text-muted); margin-top:2px;}
+.link-ver-mais{background:none; border:none; color:var(--gold); font-size:12px; cursor:pointer; padding:0; margin-left:2px; text-decoration:underline; font-family:inherit;}
 .checklist-topico-acoes{display:flex; gap:8px; flex-shrink:0;}
 .checklist-grupo-titulo{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin:14px 0 8px;}
 .checklist-grupo-titulo:first-child{margin-top:0;}
@@ -205,6 +206,8 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .status-em_andamento{background:rgba(232,163,61,0.15); color:var(--gold);}
 .status-concluido{background:rgba(95,184,106,0.15); color:var(--green);}
 .status-cancelado{background:rgba(217,83,79,0.15); color:var(--red);}
+.status-ativo{background:rgba(95,184,106,0.15); color:var(--green);}
+.status-pausado{background:rgba(232,163,61,0.15); color:var(--gold);}
 .status-enviado{background:rgba(61,165,217,0.15); color:var(--blue);}
 .status-visualizado{background:rgba(232,163,61,0.15); color:var(--gold);}
 .status-aceito{background:rgba(95,184,106,0.15); color:var(--green);}
@@ -261,6 +264,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .cliente-topo{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;}
 .cliente-nome{font-size:16px; font-weight:600;}
 .cliente-fone{font-family:var(--font-mono); font-size:13px; color:var(--text-muted);}
+.assin-meta{font-size:13px; color:var(--text-muted);}
 .veiculos-mini{margin-top:10px; display:flex; flex-direction:column; gap:6px;}
 .veiculos-extra{display:flex; flex-direction:column; gap:6px;}
 .veiculo-linha{
@@ -713,6 +717,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <button class="nav-item" data-tab="servicos">Serviços</button>
         <button class="nav-item" data-tab="estoque">Estoque</button>
         <button class="nav-item" data-tab="financeiro">Financeiro</button>
+        <button class="nav-item" data-tab="assinaturas">Assinaturas</button>
         <button class="nav-item" data-tab="historico">Histórico</button>
         <button class="nav-item" data-tab="diluicao">Diluição</button>
         <button class="nav-item" data-tab="config">Configurações</button>
@@ -903,6 +908,19 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
           </div>
           <div id="fin-lista-despesas-fixas"></div>
         </div>
+      </section>
+
+      <!-- ASSINATURAS -->
+      <section id="tab-assinaturas" class="tab">
+        <header class="tab-header">
+          <div>
+            <p class="eyebrow">Receita recorrente</p>
+            <h2>Assinaturas</h2>
+          </div>
+          <button class="btn btn-primary" id="btn-nova-assinatura">+ Nova assinatura</button>
+        </header>
+        <p class="config-texto-ajuda">Ao clicar em "Gerar agendamento da cobrança", cria um agendamento pendente com o valor da assinatura já preenchido — ele aparece na Agenda e no Painel. Quando você marcar esse agendamento como concluído (do jeito normal, com horário e checklist), o valor entra certinho no Financeiro.</p>
+        <div id="lista-assinaturas" class="lista-clientes"></div>
       </section>
 
       <!-- HISTÓRICO -->
@@ -1177,6 +1195,7 @@ document.querySelectorAll('.nav-item').forEach(btn=>{
     document.getElementById('tab-'+btn.dataset.tab).classList.add('ativo');
     if(btn.dataset.tab === 'financeiro') renderFinanceiro();
     if(btn.dataset.tab === 'orcamentos') renderOrcamentos();
+    if(btn.dataset.tab === 'assinaturas') renderAssinaturas();
     document.getElementById('nav-principal').classList.remove('aberto');
   });
 });
@@ -1758,7 +1777,7 @@ window.salvarOrcamento = salvarOrcamento;
 async function carregarTudo(){
   document.getElementById('data-hoje').textContent = formatarData(hojeISO());
   document.getElementById('filtro-data-agenda').value = hojeISO();
-  await Promise.all([carregarClientes(), carregarServicos(), carregarSubServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes(), carregarCupons(), carregarOrcamentos(), carregarDescontosServico(), carregarChecklistTopicos()]);
+  await Promise.all([carregarClientes(), carregarServicos(), carregarSubServicos(), carregarProdutos(), carregarMovimentacoes(), carregarConfiguracoes(), carregarCupons(), carregarOrcamentos(), carregarDescontosServico(), carregarChecklistTopicos(), carregarAssinaturas()]);
   await carregarAgendamentos();
   await carregarFinanceiro();
   renderDashboard();
@@ -2515,15 +2534,19 @@ function renderListaChecklistTopicos(){
     box.innerHTML = '<p class="fin-vazio">Nenhum tópico criado ainda.</p>';
     return;
   }
-  box.innerHTML = cacheChecklistTopicos.map(t=>{
+  const LIMITE_TAGS = 4;
+  const LIMITE_TOPICOS = 3;
+  const linhaTopico = t=>{
     const nomesServicos = (t.servico_ids||[]).map(id=>cacheServicos.find(s=>s.id===id)?.nome).filter(Boolean);
     const nomesSub = (t.sub_servico_ids||[]).map(id=>cacheSubServicos.find(s=>s.id===id)?.nome).filter(Boolean);
-    const tags = [...nomesServicos, ...nomesSub].join(', ') || 'Nenhum serviço selecionado';
+    const todasTags = [...nomesServicos, ...nomesSub];
+    const restantes = todasTags.length - LIMITE_TAGS;
+    const textoCurto = todasTags.length ? todasTags.slice(0, LIMITE_TAGS).join(', ') : 'Nenhum serviço selecionado';
     return `
       <div class="checklist-topico-row">
         <div>
           <div class="checklist-topico-nome">${escapeHtml(t.nome)}</div>
-          <div class="checklist-topico-tags">${escapeHtml(tags)}</div>
+          <div class="checklist-topico-tags"><span>${escapeHtml(textoCurto)}</span>${restantes>0?` <button type="button" class="link-ver-mais" data-expandido="0" onclick="toggleTagsChecklistTopico(this, '${t.id}')">+${restantes} mais</button>`:''}</div>
         </div>
         <div class="checklist-topico-acoes">
           <button class="btn btn-ghost btn-sm" onclick="abrirModalChecklistTopico('${t.id}')">Editar</button>
@@ -2531,8 +2554,50 @@ function renderListaChecklistTopicos(){
         </div>
       </div>
     `;
-  }).join('');
+  };
+  const visiveis = cacheChecklistTopicos.slice(0, LIMITE_TOPICOS);
+  const ocultos = cacheChecklistTopicos.slice(LIMITE_TOPICOS);
+  box.innerHTML = visiveis.map(linhaTopico).join('')
+    + (ocultos.length ? `
+      <div id="checklist-topicos-ocultos" class="oculto">${ocultos.map(linhaTopico).join('')}</div>
+      <button type="button" class="btn btn-ghost btn-sm" style="width:100%; margin-top:4px;" onclick="toggleTopicosOcultos(this)">Ver mais ${ocultos.length} tópico${ocultos.length!==1?'s':''}</button>
+    ` : '');
 }
+
+function toggleTopicosOcultos(btn){
+  const box = document.getElementById('checklist-topicos-ocultos');
+  const expandido = !box.classList.contains('oculto');
+  if(expandido){
+    box.classList.add('oculto');
+    btn.textContent = btn.dataset.textoFechado;
+  }else{
+    if(!btn.dataset.textoFechado) btn.dataset.textoFechado = btn.textContent;
+    box.classList.remove('oculto');
+    btn.textContent = 'Ver menos';
+  }
+}
+window.toggleTopicosOcultos = toggleTopicosOcultos;
+
+function toggleTagsChecklistTopico(btn, id){
+  const t = cacheChecklistTopicos.find(x=>x.id===id);
+  if(!t) return;
+  const nomesServicos = (t.servico_ids||[]).map(sid=>cacheServicos.find(s=>s.id===sid)?.nome).filter(Boolean);
+  const nomesSub = (t.sub_servico_ids||[]).map(sid=>cacheSubServicos.find(s=>s.id===sid)?.nome).filter(Boolean);
+  const todasTags = [...nomesServicos, ...nomesSub];
+  const span = btn.previousElementSibling;
+  const expandido = btn.dataset.expandido === '1';
+  const LIMITE_TAGS = 4;
+  if(expandido){
+    span.textContent = todasTags.slice(0, LIMITE_TAGS).join(', ');
+    btn.textContent = `+${todasTags.length - LIMITE_TAGS} mais`;
+    btn.dataset.expandido = '0';
+  }else{
+    span.textContent = todasTags.join(', ');
+    btn.textContent = 'ver menos';
+    btn.dataset.expandido = '1';
+  }
+}
+window.toggleTagsChecklistTopico = toggleTagsChecklistTopico;
 
 function abrirModalChecklistTopico(id){
   const t = id ? cacheChecklistTopicos.find(x=>x.id===id) : null;
@@ -4781,6 +4846,236 @@ async function removerItemReceita(itemId, tipo, id){
   renderFinanceiro();
 }
 window.removerItemReceita = removerItemReceita;
+
+/* ---------- ASSINATURAS ---------- */
+let cacheAssinaturas = [];
+
+async function carregarAssinaturas(){
+  const { data, error } = await sb.from('assinaturas').select('*').order('created_at', {ascending:false});
+  if(error){ cacheAssinaturas = []; return; }
+  cacheAssinaturas = data || [];
+  renderAssinaturas();
+}
+
+function somarDias(dataISO, n){
+  const [ano, mes, dia] = dataISO.split('-').map(Number);
+  const base = new Date(ano, mes-1, dia);
+  base.setDate(base.getDate()+n);
+  const y = base.getFullYear();
+  const m = String(base.getMonth()+1).padStart(2,'0');
+  const dd = String(base.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+function proximaDataPorFrequencia(dataBase, frequencia){
+  if(frequencia==='quinzenal') return somarDias(dataBase, 15);
+  if(frequencia==='semanal') return somarDias(dataBase, 7);
+  return somarMeses(dataBase, 1);
+}
+
+function rotuloFrequencia(f){
+  return {mensal:'Mensal', quinzenal:'Quinzenal', semanal:'Semanal'}[f] || f;
+}
+
+function renderAssinaturas(){
+  const box = document.getElementById('lista-assinaturas');
+  if(!box) return;
+  if(cacheAssinaturas.length===0){
+    box.innerHTML = '<p class="vazio">Nenhuma assinatura cadastrada ainda.</p>';
+    return;
+  }
+  const hoje = hojeISO();
+  box.innerHTML = cacheAssinaturas.map(a=>{
+    const cliente = cacheClientes.find(c=>c.id===a.cliente_id);
+    const servico = cacheServicos.find(s=>s.id===a.servico_id);
+    const vencida = a.status==='ativo' && a.proxima_cobranca <= hoje;
+    return `
+      <div class="cliente-card">
+        <div class="cliente-topo">
+          <div>
+            <div class="cliente-nome">${escapeHtml(cliente?cliente.nome:'Cliente removido')}</div>
+            <div class="assin-meta">${escapeHtml(servico?servico.nome:'Serviço removido')} · ${formatarMoeda(a.valor)} · ${rotuloFrequencia(a.frequencia)}</div>
+          </div>
+          <span class="ticket-status status-${a.status}">${a.status==='ativo'?'Ativa':a.status==='pausado'?'Pausada':'Cancelada'}</span>
+        </div>
+        <div class="assin-meta" style="margin-top:6px;">
+          Próxima cobrança: <b style="color:${vencida?'var(--red)':'var(--text)'};">${formatarData(a.proxima_cobranca)}</b>${vencida?' — vencida':''}
+        </div>
+        ${a.observacoes?`<div class="assin-meta" style="margin-top:2px;">${escapeHtml(a.observacoes)}</div>`:''}
+        <div class="ticket-acoes" style="margin-top:10px;">
+          ${a.status==='ativo'?`<button class="btn btn-ghost btn-sm" onclick="marcarCobrancaRecebida('${a.id}')">Gerar agendamento da cobrança</button>`:''}
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalAssinatura('${a.id}')">Editar</button>
+          ${a.status==='ativo'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'pausado')">Pausar</button>`:''}
+          ${a.status==='pausado'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'ativo')">Reativar</button>`:''}
+          <button class="btn btn-danger btn-sm" onclick="removerAssinatura('${a.id}')">Excluir</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function abrirModalAssinatura(id){
+  const a = id ? cacheAssinaturas.find(x=>x.id===id) : null;
+  const clienteAtual = a ? cacheClientes.find(c=>c.id===a.cliente_id) : null;
+  abrirModal(`
+    <h3>${a?'Editar assinatura':'Nova assinatura'}</h3>
+
+    ${a ? '' : `
+    <div class="agenda-modos" style="margin-bottom:14px;">
+      <button type="button" class="btn btn-ghost modo-ativo" id="btn-assin-cliente-existente" onclick="alternarModoClienteAssinatura('existente')">Cliente existente</button>
+      <button type="button" class="btn btn-ghost" id="btn-assin-cliente-novo" onclick="alternarModoClienteAssinatura('novo')">Novo cliente</button>
+    </div>`}
+
+    <div id="assin-bloco-cliente-existente">
+      <label>Cliente</label>
+      <select id="m-assin-cliente-id">
+        ${cacheClientes.map(c=>`<option value="${c.id}" ${a&&a.cliente_id===c.id?'selected':''}>${escapeHtml(c.nome)}</option>`).join('') || '<option value="">Cadastre um cliente primeiro</option>'}
+      </select>
+    </div>
+    <div id="assin-bloco-cliente-novo" class="oculto">
+      <label>Nome do novo cliente</label>
+      <input id="m-assin-cliente-nome" placeholder="Nome do cliente" />
+      <label>WhatsApp (com DDI+DDD, só números)</label>
+      <input id="m-assin-cliente-telefone" placeholder="Ex: 5514999999999" />
+    </div>
+
+    <label>Serviço</label>
+    <select id="m-assin-servico-id" onchange="onTrocarServicoAssinatura(this)">
+      ${cacheServicos.map(s=>`<option value="${s.id}" data-preco="${s.preco||0}" ${a&&a.servico_id===s.id?'selected':''}>${s.is_combo?'Combo: ':''}${escapeHtml(s.nome)}</option>`).join('') || '<option value="">Cadastre um serviço primeiro</option>'}
+    </select>
+
+    <div class="linha-2">
+      <div><label>Valor da assinatura (R$)</label><input id="m-assin-valor" type="number" step="0.01" value="${a?a.valor:''}" placeholder="Ex: 150.00" /></div>
+      <div><label>Frequência</label>
+        <select id="m-assin-frequencia">
+          <option value="mensal" ${(!a||a.frequencia==='mensal')?'selected':''}>Mensal</option>
+          <option value="quinzenal" ${a&&a.frequencia==='quinzenal'?'selected':''}>Quinzenal</option>
+          <option value="semanal" ${a&&a.frequencia==='semanal'?'selected':''}>Semanal</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="linha-2">
+      <div><label>Data de início</label><input id="m-assin-data-inicio" type="date" value="${a?a.data_inicio:hojeISO()}" /></div>
+      <div><label>Próxima cobrança</label><input id="m-assin-proxima" type="date" value="${a?a.proxima_cobranca:proximaDataPorFrequencia(hojeISO(), 'mensal')}" /></div>
+    </div>
+
+    <label>Observações</label>
+    <textarea id="m-assin-obs" rows="2" placeholder="Ex: combinado com o cliente, desconto por fidelidade...">${a?escapeHtml(a.observacoes||''):''}</textarea>
+
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAssinatura(${a?`'${a.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalAssinatura = abrirModalAssinatura;
+
+function alternarModoClienteAssinatura(modo){
+  document.getElementById('btn-assin-cliente-existente').classList.toggle('modo-ativo', modo==='existente');
+  document.getElementById('btn-assin-cliente-novo').classList.toggle('modo-ativo', modo==='novo');
+  document.getElementById('assin-bloco-cliente-existente').classList.toggle('oculto', modo!=='existente');
+  document.getElementById('assin-bloco-cliente-novo').classList.toggle('oculto', modo!=='novo');
+}
+window.alternarModoClienteAssinatura = alternarModoClienteAssinatura;
+
+function onTrocarServicoAssinatura(selectEl){
+  const valorInput = document.getElementById('m-assin-valor');
+  if(!valorInput.value){
+    const opt = selectEl.options[selectEl.selectedIndex];
+    valorInput.value = opt.dataset.preco || '';
+  }
+}
+window.onTrocarServicoAssinatura = onTrocarServicoAssinatura;
+
+async function salvarAssinatura(id){
+  const modoNovoCliente = !id && !document.getElementById('assin-bloco-cliente-novo').classList.contains('oculto');
+  let cliente_id;
+
+  if(modoNovoCliente){
+    const nome = document.getElementById('m-assin-cliente-nome').value.trim();
+    const telefone = document.getElementById('m-assin-cliente-telefone').value.trim().replace(/\D/g,'');
+    if(!nome || !telefone){ toast('Preencha nome e telefone do novo cliente'); return; }
+    const { data: novoCliente, error: erroCliente } = await sb.from('clientes').insert({nome, telefone}).select().single();
+    if(erroCliente){ toast('Erro ao criar cliente'); return; }
+    cliente_id = novoCliente.id;
+  }else{
+    cliente_id = document.getElementById('m-assin-cliente-id').value;
+    if(!cliente_id){ toast('Escolha um cliente'); return; }
+  }
+
+  const servico_id = document.getElementById('m-assin-servico-id').value;
+  const valor = parseFloat(document.getElementById('m-assin-valor').value)||0;
+  const frequencia = document.getElementById('m-assin-frequencia').value;
+  const data_inicio = document.getElementById('m-assin-data-inicio').value;
+  const proxima_cobranca = document.getElementById('m-assin-proxima').value;
+  const observacoes = document.getElementById('m-assin-obs').value.trim();
+  if(!servico_id){ toast('Escolha um serviço'); return; }
+  if(!data_inicio || !proxima_cobranca){ toast('Preencha as datas'); return; }
+
+  const payload = {cliente_id, servico_id, valor, frequencia, data_inicio, proxima_cobranca, observacoes};
+  let error;
+  if(id){
+    ({error} = await sb.from('assinaturas').update(payload).eq('id', id));
+  }else{
+    ({error} = await sb.from('assinaturas').insert({...payload, status:'ativo'}));
+  }
+  if(error){ toast('Erro ao salvar assinatura'); return; }
+  fecharModal();
+  toast('Assinatura salva!');
+  carregarClientes();
+  carregarAssinaturas();
+}
+window.salvarAssinatura = salvarAssinatura;
+
+async function marcarCobrancaRecebida(id){
+  const a = cacheAssinaturas.find(x=>x.id===id);
+  if(!a) return;
+
+  const payloadAgendamento = {
+    cliente_id: a.cliente_id,
+    veiculo_id: null,
+    servico_id: a.servico_id,
+    data: a.proxima_cobranca,
+    hora_inicio: '08:00',
+    status: 'agendado',
+    valor_cobrado: a.valor,
+    forma_pagamento: 'outro',
+    observacoes: `Cobrança de assinatura (${rotuloFrequencia(a.frequencia)})${a.observacoes?' — '+a.observacoes:''}`
+  };
+  const { error: erroAgendamento } = await sb.from('agendamentos').insert(payloadAgendamento);
+  if(erroAgendamento){ toast('Erro ao criar agendamento da assinatura'); return; }
+
+  const proxima_cobranca = proximaDataPorFrequencia(a.proxima_cobranca, a.frequencia);
+  const { error } = await sb.from('assinaturas').update({proxima_cobranca}).eq('id', id);
+  if(error){ toast('Erro ao atualizar assinatura'); return; }
+
+  toast(`Agendamento criado! Próxima cobrança: ${formatarData(proxima_cobranca)}`);
+  await carregarAgendamentos();
+  renderDashboard();
+  renderFinanceiro();
+  carregarAssinaturas();
+}
+window.marcarCobrancaRecebida = marcarCobrancaRecebida;
+
+async function alterarStatusAssinatura(id, status){
+  const { error } = await sb.from('assinaturas').update({status}).eq('id', id);
+  if(error){ toast('Erro ao atualizar'); return; }
+  toast(status==='ativo'?'Assinatura reativada':'Assinatura pausada');
+  carregarAssinaturas();
+}
+window.alterarStatusAssinatura = alterarStatusAssinatura;
+
+async function removerAssinatura(id){
+  if(!confirm('Excluir essa assinatura?')) return;
+  const { error } = await sb.from('assinaturas').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Assinatura excluída');
+  carregarAssinaturas();
+}
+window.removerAssinatura = removerAssinatura;
+
+document.getElementById('btn-nova-assinatura').addEventListener('click', ()=>abrirModalAssinatura(null));
 
 /* ---------- START ---------- */
 iniciarConexao();
