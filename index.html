@@ -265,6 +265,13 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .cliente-nome{font-size:16px; font-weight:600;}
 .cliente-fone{font-family:var(--font-mono); font-size:13px; color:var(--text-muted);}
 .assin-meta{font-size:13px; color:var(--text-muted);}
+.assin-proxima-box{
+  display:flex; justify-content:space-between; align-items:center;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  padding:12px 14px; margin:14px 0; font-size:14px;
+}
+.assin-proxima-box span{color:var(--text-muted); text-transform:uppercase; font-size:11px; letter-spacing:0.04em;}
+.assin-proxima-box b{color:var(--gold); font-family:var(--font-mono);}
 .veiculos-mini{margin-top:10px; display:flex; flex-direction:column; gap:6px;}
 .veiculos-extra{display:flex; flex-direction:column; gap:6px;}
 .veiculo-linha{
@@ -4870,7 +4877,7 @@ function somarDias(dataISO, n){
 function proximaDataPorFrequencia(dataBase, frequencia){
   if(frequencia==='quinzenal') return somarDias(dataBase, 15);
   if(frequencia==='semanal') return somarDias(dataBase, 7);
-  return somarMeses(dataBase, 1);
+  return somarDias(dataBase, 30);
 }
 
 function rotuloFrequencia(f){
@@ -4944,21 +4951,31 @@ function abrirModalAssinatura(id){
       ${cacheServicos.map(s=>`<option value="${s.id}" data-preco="${s.preco||0}" ${a&&a.servico_id===s.id?'selected':''}>${s.is_combo?'Combo: ':''}${escapeHtml(s.nome)}</option>`).join('') || '<option value="">Cadastre um serviço primeiro</option>'}
     </select>
 
+    <label>Data da primeira lavagem</label>
+    <input type="hidden" id="m-assin-data-inicio" value="${a?a.data_inicio:hojeISO()}" />
+    <div class="mes-nav">
+      <button type="button" class="btn-mes" onclick="mudarMesAssinatura(-1)">‹</button>
+      <span class="mes-label" id="assin-mes-label"></span>
+      <button type="button" class="btn-mes" onclick="mudarMesAssinatura(1)">›</button>
+    </div>
+    <div class="grid-dias" id="assin-grid-dias"></div>
+
     <div class="linha-2">
       <div><label>Valor da assinatura (R$)</label><input id="m-assin-valor" type="number" step="0.01" value="${a?a.valor:''}" placeholder="Ex: 150.00" /></div>
       <div><label>Frequência</label>
-        <select id="m-assin-frequencia">
-          <option value="mensal" ${(!a||a.frequencia==='mensal')?'selected':''}>Mensal</option>
-          <option value="quinzenal" ${a&&a.frequencia==='quinzenal'?'selected':''}>Quinzenal</option>
-          <option value="semanal" ${a&&a.frequencia==='semanal'?'selected':''}>Semanal</option>
+        <select id="m-assin-frequencia" onchange="recalcularProximaCobrancaAssinatura()">
+          <option value="mensal" ${(!a||a.frequencia==='mensal')?'selected':''}>Mensal (30 dias)</option>
+          <option value="quinzenal" ${a&&a.frequencia==='quinzenal'?'selected':''}>Quinzenal (15 dias)</option>
+          <option value="semanal" ${a&&a.frequencia==='semanal'?'selected':''}>Semanal (7 dias)</option>
         </select>
       </div>
     </div>
 
-    <div class="linha-2">
-      <div><label>Data de início</label><input id="m-assin-data-inicio" type="date" value="${a?a.data_inicio:hojeISO()}" /></div>
-      <div><label>Próxima cobrança</label><input id="m-assin-proxima" type="date" value="${a?a.proxima_cobranca:proximaDataPorFrequencia(hojeISO(), 'mensal')}" /></div>
+    <div class="assin-proxima-box">
+      <span>Próxima cobrança</span>
+      <b id="assin-proxima-label">${a?formatarData(a.proxima_cobranca):formatarData(proximaDataPorFrequencia(hojeISO(),'mensal'))}</b>
     </div>
+    <input type="hidden" id="m-assin-proxima" value="${a?a.proxima_cobranca:proximaDataPorFrequencia(hojeISO(),'mensal')}" />
 
     <label>Observações</label>
     <textarea id="m-assin-obs" rows="2" placeholder="Ex: combinado com o cliente, desconto por fidelidade...">${a?escapeHtml(a.observacoes||''):''}</textarea>
@@ -4968,8 +4985,55 @@ function abrirModalAssinatura(id){
       <button class="btn btn-primary" onclick="salvarAssinatura(${a?`'${a.id}'`:'null'})">Salvar</button>
     </div>
   `);
+  assinDataSel = a ? a.data_inicio : hojeISO();
+  const [ay, am] = assinDataSel.split('-').map(Number);
+  assinMes = new Date(ay, am-1, 1);
+  renderGridDiasAssinatura();
 }
 window.abrirModalAssinatura = abrirModalAssinatura;
+
+let assinMes = new Date();
+let assinDataSel = null;
+
+function mudarMesAssinatura(delta){
+  assinMes.setMonth(assinMes.getMonth()+delta);
+  renderGridDiasAssinatura();
+}
+window.mudarMesAssinatura = mudarMesAssinatura;
+
+function renderGridDiasAssinatura(){
+  const label = document.getElementById('assin-mes-label');
+  if(!label) return;
+  label.textContent = `${NOMES_MESES_JS[assinMes.getMonth()]} de ${assinMes.getFullYear()}`;
+  const diasNoMes = new Date(assinMes.getFullYear(), assinMes.getMonth()+1, 0).getDate();
+  const botoes = [];
+  for(let d=1; d<=diasNoMes; d++){
+    const dataObj = new Date(assinMes.getFullYear(), assinMes.getMonth(), d);
+    const iso = dataParaISO(dataObj);
+    botoes.push({iso, label:`${ABREV_DIAS_JS[dataObj.getDay()]} - ${String(d).padStart(2,'0')}`});
+  }
+  const grid = document.getElementById('assin-grid-dias');
+  if(!grid) return;
+  grid.innerHTML = botoes.map(b=>`<button type="button" class="dia-btn ${b.iso===assinDataSel?'selecionado':''}" onclick="escolherDataAssinatura('${b.iso}')">${b.label}</button>`).join('');
+}
+
+function escolherDataAssinatura(iso){
+  assinDataSel = iso;
+  document.getElementById('m-assin-data-inicio').value = iso;
+  renderGridDiasAssinatura();
+  recalcularProximaCobrancaAssinatura();
+}
+window.escolherDataAssinatura = escolherDataAssinatura;
+
+function recalcularProximaCobrancaAssinatura(){
+  const dataInicioEl = document.getElementById('m-assin-data-inicio');
+  const frequenciaEl = document.getElementById('m-assin-frequencia');
+  if(!dataInicioEl || !frequenciaEl) return;
+  const proxima = proximaDataPorFrequencia(dataInicioEl.value, frequenciaEl.value);
+  document.getElementById('m-assin-proxima').value = proxima;
+  document.getElementById('assin-proxima-label').textContent = formatarData(proxima);
+}
+window.recalcularProximaCobrancaAssinatura = recalcularProximaCobrancaAssinatura;
 
 function alternarModoClienteAssinatura(modo){
   document.getElementById('btn-assin-cliente-existente').classList.toggle('modo-ativo', modo==='existente');
