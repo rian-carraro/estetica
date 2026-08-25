@@ -5010,11 +5010,15 @@ function renderGridDiasAssinatura(){
   for(let d=1; d<=diasNoMes; d++){
     const dataObj = new Date(assinMes.getFullYear(), assinMes.getMonth(), d);
     const iso = dataParaISO(dataObj);
-    botoes.push({iso, label:`${ABREV_DIAS_JS[dataObj.getDay()]} - ${String(d).padStart(2,'0')}`});
+    if(!diaPermiteAgendamento(iso) && iso!==assinDataSel) continue;
+    const excecao = (cacheConfig.excecoes_data||[]).find(e=>e.data===iso);
+    botoes.push({iso, label:`${ABREV_DIAS_JS[dataObj.getDay()]} - ${String(d).padStart(2,'0')}`, especial: excecao ? excecao.tipo : null});
   }
   const grid = document.getElementById('assin-grid-dias');
   if(!grid) return;
-  grid.innerHTML = botoes.map(b=>`<button type="button" class="dia-btn ${b.iso===assinDataSel?'selecionado':''}" onclick="escolherDataAssinatura('${b.iso}')">${b.label}</button>`).join('');
+  grid.innerHTML = botoes.length
+    ? botoes.map(b=>`<button type="button" class="dia-btn ${b.iso===assinDataSel?'selecionado':''} ${b.especial==='extra'?'dia-especial':''}" onclick="escolherDataAssinatura('${b.iso}')" title="${b.especial==='extra'?'Data extra de trabalho':''}">${b.label}</button>`).join('')
+    : '<p class="vazio">Nenhum dia de trabalho configurado nesse mês.</p>';
 }
 
 function escolherDataAssinatura(iso){
