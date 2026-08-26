@@ -283,6 +283,10 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .assin-saldo-item{display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); gap:8px;}
 .assin-beneficio-box{background:rgba(232,163,61,0.08); border:1px solid var(--gold); border-radius:8px; padding:10px 12px; margin:12px 0;}
 .veiculos-mini{margin-top:10px; display:flex; flex-direction:column; gap:6px;}
+.cliente-assinatura-box{
+  margin-top:10px; background:rgba(232,163,61,0.06); border:1px solid var(--gold); border-radius:8px; padding:10px 12px;
+}
+.cliente-assinatura-topo{display:flex; justify-content:space-between; align-items:center; font-size:13px; gap:8px; flex-wrap:wrap;}
 .veiculos-extra{display:flex; flex-direction:column; gap:6px;}
 .veiculo-linha{
   display:flex; justify-content:space-between; align-items:center;
@@ -915,6 +919,12 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         </div>
 
         <div class="fin-secao">
+          <div class="fin-secao-header"><h3>Assinaturas do período</h3></div>
+          <p class="config-texto-ajuda">Cada ciclo de assinatura gera uma cobrança aqui. Marque como paga quando o cliente pagar — só então ela entra no faturamento.</p>
+          <div id="fin-lista-assinaturas-cobrancas"></div>
+        </div>
+
+        <div class="fin-secao">
           <div class="fin-secao-header">
             <h3>Despesas do período</h3>
             <input type="month" id="fin-mes-despesas" class="fin-mes-despesas-select" />
@@ -937,17 +947,20 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         <header class="tab-header">
           <div>
             <p class="eyebrow" id="assinaturas-eyebrow">Planos & assinantes</p>
-            <h2 id="assinaturas-titulo">Planos</h2>
+            <h2 id="assinaturas-titulo">Dashboard</h2>
           </div>
-          <button class="btn btn-primary" id="btn-novo-item-assinatura">+ Novo plano</button>
+          <button class="btn btn-primary oculto" id="btn-novo-item-assinatura">+ Novo plano</button>
         </header>
         <div class="agenda-modos">
-          <button class="btn btn-ghost modo-ativo" id="btn-modo-planos" onclick="mudarModoAssinaturas('planos')">Planos</button>
+          <button class="btn btn-ghost modo-ativo" id="btn-modo-dashboard-assin" onclick="mudarModoAssinaturas('dashboard')">Dashboard</button>
+          <button class="btn btn-ghost" id="btn-modo-planos" onclick="mudarModoAssinaturas('planos')">Planos</button>
           <button class="btn btn-ghost" id="btn-modo-assinantes" onclick="mudarModoAssinaturas('assinantes')">Assinantes</button>
         </div>
-        <p class="config-texto-ajuda" id="planos-ajuda">Cadastre os planos que a estética oferece: quais serviços entram, quantas vezes por ciclo e o valor mensal.</p>
+        <p class="config-texto-ajuda" id="dashboard-assin-ajuda">Visão geral da receita recorrente. Os números consideram as assinaturas e cobranças de hoje.</p>
+        <p class="config-texto-ajuda oculto" id="planos-ajuda">Cadastre os planos que a estética oferece: quais serviços entram, quantas vezes por ciclo e o valor mensal.</p>
         <p class="config-texto-ajuda oculto" id="assinantes-ajuda">Vincule clientes (e opcionalmente um veículo) a um plano. O sistema cria o ciclo e o saldo de utilizações automaticamente.</p>
-        <div id="lista-planos" class="grid-servicos"></div>
+        <div id="dashboard-assinaturas"></div>
+        <div id="lista-planos" class="grid-servicos oculto"></div>
         <div id="lista-assinaturas" class="lista-clientes oculto"></div>
       </section>
 
@@ -1223,7 +1236,7 @@ document.querySelectorAll('.nav-item').forEach(btn=>{
     document.getElementById('tab-'+btn.dataset.tab).classList.add('ativo');
     if(btn.dataset.tab === 'financeiro') renderFinanceiro();
     if(btn.dataset.tab === 'orcamentos') renderOrcamentos();
-    if(btn.dataset.tab === 'assinaturas') renderAssinaturas();
+    if(btn.dataset.tab === 'assinaturas'){ renderAssinaturas(); renderDashboardAssinaturas(); }
     document.getElementById('nav-principal').classList.remove('aberto');
   });
 });
@@ -1824,10 +1837,20 @@ async function carregarClientes(){
   renderClientes();
 }
 
+function assinaturaDoCliente(clienteId){
+  return cacheAssinaturas.find(a=>a.cliente_id===clienteId && a.status==='ativa')
+    || cacheAssinaturas.find(a=>a.cliente_id===clienteId);
+}
+
+function assinaturaDoVeiculo(veiculoId){
+  return cacheAssinaturas.find(a=>a.veiculo_id===veiculoId && a.status==='ativa');
+}
+
 function veiculoLinhaHtml(v, clienteId){
+  const assinaturaVeiculo = assinaturaDoVeiculo(v.id);
   return `
           <div class="veiculo-linha">
-            <span>${v.placa ? `<span class="placa">${escapeHtml(v.placa)}</span> ` : ''}${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')} ${v.cor?('· '+escapeHtml(v.cor)):''}</span>
+            <span>${v.placa ? `<span class="placa">${escapeHtml(v.placa)}</span> ` : ''}${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')} ${v.cor?('· '+escapeHtml(v.cor)):''}${assinaturaVeiculo?' <span class="badge-combo">Assinante</span>':''}</span>
             <span>
               <button class="link-add" onclick="editarVeiculo('${v.id}','${clienteId}')">editar</button>
               <button class="link-add" onclick="removerVeiculo('${v.id}')">excluir</button>
@@ -1853,6 +1876,7 @@ function renderClientes(){
   }
   box.innerHTML = cacheClientes.map(c=>{
     const veic = cacheVeiculos.filter(v=>v.cliente_id === c.id);
+    const assinatura = assinaturaDoCliente(c.id);
     return `
     <div class="cliente-card">
       <div class="cliente-topo">
@@ -1866,6 +1890,25 @@ function renderClientes(){
           <button class="btn btn-danger btn-sm" onclick="removerCliente('${c.id}')">Excluir</button>
         </div>
       </div>
+      ${(()=>{
+        if(!assinatura) return '';
+        const plano = cachePlanos.find(p=>p.id===assinatura.plano_id);
+        const ciclo = cicloAtivoDaAssinatura(assinatura.id);
+        const saldos = ciclo ? saldosDoCiclo(ciclo.id) : [];
+        return `
+        <div class="cliente-assinatura-box">
+          <div class="cliente-assinatura-topo">
+            <span>Assinatura: <b>${escapeHtml(plano?plano.nome:'Plano removido')}</b></span>
+            <span class="ticket-status status-${assinatura.status==='ativa'?'ativo':assinatura.status==='suspensa'?'pausado':'cancelado'}">${rotuloStatusAssinatura(assinatura.status)}</span>
+          </div>
+          ${saldos.length?`<div class="assin-saldo-lista">${saldos.map(s=>{
+            const servico = cacheServicos.find(x=>x.id===s.servico_id);
+            const restante = s.contratada - s.utilizada;
+            return `<div class="assin-saldo-item"><span>${escapeHtml(servico?servico.nome:'Serviço removido')}</span><span>${restante} restante${restante!==1?'s':''}</span></div>`;
+          }).join('')}</div>`:''}
+          <button class="link-add" onclick="abrirModalAssinatura('${assinatura.id}')">ver assinatura completa</button>
+        </div>`;
+      })()}
       <div class="veiculos-mini">
         ${veic.slice(0,1).map(v=>veiculoLinhaHtml(v,c.id)).join('')}
         ${veic.length>1 ? `
@@ -2838,11 +2881,15 @@ function renderLucroMesPainel(){
     .filter(a => a.status==='concluido' && a.data>=inicio && a.data<=fim)
     .reduce((soma,a)=>soma+valorAgendamento(a), 0);
 
+  const receitaAssinaturasMes = (cacheAssinaturaCobrancas||[])
+    .filter(c => c.status==='pago' && c.data>=inicio && c.data<=fim)
+    .reduce((soma,c)=>soma+Number(c.valor||0), 0);
+
   const despesaMes = (cacheDespesas||[])
     .filter(d => d.data>=inicio && d.data<=fim)
     .reduce((soma,d)=>soma+Number(d.valor_total||0), 0);
 
-  const lucroMes = receitaMes - despesaMes;
+  const lucroMes = receitaMes + receitaAssinaturasMes - despesaMes;
   cardLucro.textContent = formatarMoeda(lucroMes);
   cardLucro.closest('.mini-card').classList.toggle('negativo', lucroMes<0);
 }
@@ -4502,9 +4549,14 @@ function renderFinanceiro(){
     return s ? Number(s.preco||0) : 0;
   };
 
-  const receitaTotal = concluidosPeriodo.reduce((soma,a)=>soma+valorAgendamento(a), 0);
+  const receitaServicos = concluidosPeriodo.reduce((soma,a)=>soma+valorAgendamento(a), 0);
   const qtdServicos = concluidosPeriodo.length;
-  const ticketMedio = qtdServicos>0 ? receitaTotal/qtdServicos : 0;
+
+  const cobrancasPeriodo = (cacheAssinaturaCobrancas||[]).filter(c => c.data >= inicio && c.data <= fim);
+  const receitaAssinaturas = cobrancasPeriodo.filter(c=>c.status==='pago').reduce((soma,c)=>soma+Number(c.valor||0), 0);
+
+  const receitaTotal = receitaServicos + receitaAssinaturas;
+  const ticketMedio = qtdServicos>0 ? receitaServicos/qtdServicos : 0;
 
   const despesasPeriodo = cacheDespesas.filter(d => d.data >= inicio && d.data <= fim);
   const despesaTotal = despesasPeriodo.reduce((soma,d)=>soma+Number(d.valor_total||0), 0);
@@ -4514,6 +4566,7 @@ function renderFinanceiro(){
   box.innerHTML = `
     <div class="fin-card receita"><div class="fin-card-label">Faturamento</div><div class="fin-card-valor">${formatarMoeda(receitaTotal)}</div></div>
     <div class="fin-card"><div class="fin-card-label">Serviços concluídos</div><div class="fin-card-valor">${qtdServicos}</div></div>
+    <div class="fin-card"><div class="fin-card-label">Receita de assinaturas</div><div class="fin-card-valor">${formatarMoeda(receitaAssinaturas)}</div></div>
     <div class="fin-card despesa"><div class="fin-card-label">Despesas</div><div class="fin-card-valor">${formatarMoeda(despesaTotal)}</div></div>
     <div class="fin-card lucro ${lucroLiquido<0?'negativo':''}"><div class="fin-card-label">Lucro</div><div class="fin-card-valor">${formatarMoeda(lucroLiquido)}</div></div>
     <div class="fin-card"><div class="fin-card-label">Ticket médio</div><div class="fin-card-valor">${formatarMoeda(ticketMedio)}</div></div>
@@ -4522,10 +4575,59 @@ function renderFinanceiro(){
   renderGraficoFinanceiro(valorAgendamento);
   renderTabelaServicosFinanceiro(concluidosPeriodo, valorAgendamento);
   renderTabelaLucroFinanceiro(concluidosPeriodo, valorAgendamento);
+  renderListaCobrancasAssinatura(cobrancasPeriodo);
   renderListaDespesasDoMesSelecionado();
   renderListaDespesasFixas();
   renderLucroMesPainel();
 }
+
+function renderListaCobrancasAssinatura(cobrancasPeriodo){
+  const box = document.getElementById('fin-lista-assinaturas-cobrancas');
+  if(!box) return;
+  if(!cobrancasPeriodo || cobrancasPeriodo.length===0){
+    box.innerHTML = '<p class="fin-vazio">Nenhuma cobrança de assinatura nesse período.</p>';
+    return;
+  }
+  const hoje = hojeISO();
+  box.innerHTML = cobrancasPeriodo.map(c=>{
+    const assinatura = cacheAssinaturas.find(a=>a.id===c.assinatura_id);
+    const cliente = assinatura ? cacheClientes.find(cl=>cl.id===assinatura.cliente_id) : null;
+    const plano = assinatura ? cachePlanos.find(p=>p.id===assinatura.plano_id) : null;
+    const atrasada = c.status==='pendente' && c.data < hoje;
+    const statusTxt = c.status==='pago' ? 'Paga' : (atrasada ? 'Atrasada' : 'Pendente');
+    const statusClasse = c.status==='pago' ? 'status-ativo' : (atrasada ? 'status-cancelado' : 'status-pausado');
+    return `
+      <div class="fin-despesa-item">
+        <div>
+          <span class="fin-despesa-nome">${escapeHtml(cliente?cliente.nome:'Cliente removido')} <span class="ticket-status ${statusClasse}" style="margin-left:6px;">${statusTxt}</span></span>
+          <span class="fin-despesa-meta">${escapeHtml(plano?plano.nome:'Plano removido')} · ${formatarData(c.data)}</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="color:${c.status==='pago'?'var(--green)':'var(--gold)'}; font-family:var(--font-mono); font-weight:600;">${formatarMoeda(c.valor)}</span>
+          ${c.status!=='pago'?`<button class="btn btn-ghost btn-sm" onclick="marcarCobrancaAssinaturaPaga('${c.id}')">Marcar paga</button>`:`<button class="btn btn-ghost btn-sm" onclick="marcarCobrancaAssinaturaPendente('${c.id}')">Desfazer</button>`}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function marcarCobrancaAssinaturaPaga(id){
+  const { error } = await sb.from('assinatura_cobrancas').update({status:'pago'}).eq('id', id);
+  if(error){ toast('Erro ao atualizar cobrança'); return; }
+  toast('Cobrança marcada como paga!');
+  await carregarAssinaturas();
+  renderFinanceiro();
+}
+window.marcarCobrancaAssinaturaPaga = marcarCobrancaAssinaturaPaga;
+
+async function marcarCobrancaAssinaturaPendente(id){
+  const { error } = await sb.from('assinatura_cobrancas').update({status:'pendente'}).eq('id', id);
+  if(error){ toast('Erro ao atualizar cobrança'); return; }
+  toast('Cobrança revertida pra pendente');
+  await carregarAssinaturas();
+  renderFinanceiro();
+}
+window.marcarCobrancaAssinaturaPendente = marcarCobrancaAssinaturaPendente;
 
 function mesAtualStr(){
   const hoje = new Date();
@@ -4970,7 +5072,7 @@ let cacheAssinaturaCiclos = [];
 let cacheAssinaturaSaldos = [];
 let cacheAssinaturaUtilizacoes = [];
 let cacheAssinaturaCobrancas = [];
-let modoAssinaturasAtual = 'planos';
+let modoAssinaturasAtual = 'dashboard';
 
 async function carregarAssinaturas(){
   const [
@@ -5002,6 +5104,8 @@ async function carregarAssinaturas(){
   cacheAssinaturaCobrancas = cobrancas || [];
   renderPlanos();
   renderAssinaturas();
+  renderDashboardAssinaturas();
+  if(document.getElementById('lista-clientes')) renderClientes();
 }
 
 function somarDias(dataISO, n){
@@ -5030,15 +5134,20 @@ function rotuloStatusAssinatura(s){
 
 function mudarModoAssinaturas(modo){
   modoAssinaturasAtual = modo;
+  document.getElementById('btn-modo-dashboard-assin').classList.toggle('modo-ativo', modo==='dashboard');
   document.getElementById('btn-modo-planos').classList.toggle('modo-ativo', modo==='planos');
   document.getElementById('btn-modo-assinantes').classList.toggle('modo-ativo', modo==='assinantes');
+  document.getElementById('dashboard-assinaturas').classList.toggle('oculto', modo!=='dashboard');
   document.getElementById('lista-planos').classList.toggle('oculto', modo!=='planos');
   document.getElementById('lista-assinaturas').classList.toggle('oculto', modo!=='assinantes');
+  document.getElementById('dashboard-assin-ajuda').classList.toggle('oculto', modo!=='dashboard');
   document.getElementById('planos-ajuda').classList.toggle('oculto', modo!=='planos');
   document.getElementById('assinantes-ajuda').classList.toggle('oculto', modo!=='assinantes');
-  document.getElementById('assinaturas-eyebrow').textContent = modo==='planos' ? 'Planos & assinantes' : 'Planos & assinantes';
-  document.getElementById('assinaturas-titulo').textContent = modo==='planos' ? 'Planos' : 'Assinantes';
-  document.getElementById('btn-novo-item-assinatura').textContent = modo==='planos' ? '+ Novo plano' : '+ Nova assinatura';
+  document.getElementById('assinaturas-titulo').textContent = modo==='dashboard' ? 'Dashboard' : (modo==='planos' ? 'Planos' : 'Assinantes');
+  document.getElementById('btn-novo-item-assinatura').classList.toggle('oculto', modo==='dashboard');
+  if(modo==='planos') document.getElementById('btn-novo-item-assinatura').textContent = '+ Novo plano';
+  if(modo==='assinantes') document.getElementById('btn-novo-item-assinatura').textContent = '+ Nova assinatura';
+  if(modo==='dashboard') renderDashboardAssinaturas();
 }
 window.mudarModoAssinaturas = mudarModoAssinaturas;
 
@@ -5048,6 +5157,106 @@ document.getElementById('btn-novo-item-assinatura').addEventListener('click', ()
 });
 
 /* ---------- PLANOS ---------- */
+function renderDashboardAssinaturas(){
+  const box = document.getElementById('dashboard-assinaturas');
+  if(!box) return;
+
+  const ativas = cacheAssinaturas.filter(a=>a.status==='ativa');
+  const qtdAtivas = ativas.length;
+
+  const mrr = ativas.reduce((soma,a)=>{
+    const plano = cachePlanos.find(p=>p.id===a.plano_id);
+    if(!plano) return soma;
+    const valor = Number(plano.valor||0);
+    if(plano.periodicidade==='quinzenal') return soma + valor*2;
+    if(plano.periodicidade==='semanal') return soma + valor*4.345;
+    return soma + valor;
+  }, 0);
+
+  const ticketMedio = qtdAtivas>0 ? mrr/qtdAtivas : 0;
+
+  const { inicio, fim } = intervaloMesAtual();
+  const criadaNoMes = a => a.created_at && a.created_at.slice(0,10)>=inicio && a.created_at.slice(0,10)<=fim;
+  const novosNoMes = cacheAssinaturas.filter(criadaNoMes).length;
+  const canceladasNoMes = cacheAssinaturas.filter(a=>a.status==='cancelada' && criadaNoMes(a)).length;
+  const baseChurn = qtdAtivas + canceladasNoMes;
+  const churn = baseChurn>0 ? (canceladasNoMes/baseChurn*100) : 0;
+
+  const hoje = hojeISO();
+  const cobrancasPendentes = (cacheAssinaturaCobrancas||[]).filter(c=>c.status==='pendente').length;
+  const cobrancasAtrasadas = (cacheAssinaturaCobrancas||[]).filter(c=>c.status==='pendente' && c.data < hoje).length;
+
+  const receitaRecebidaMes = (cacheAssinaturaCobrancas||[])
+    .filter(c=>c.status==='pago' && c.data>=inicio && c.data<=fim)
+    .reduce((soma,c)=>soma+Number(c.valor||0),0);
+
+  box.innerHTML = `
+    <div class="fin-cards">
+      <div class="fin-card receita"><div class="fin-card-label">MRR (receita recorrente/mês)</div><div class="fin-card-valor">${formatarMoeda(mrr)}</div></div>
+      <div class="fin-card"><div class="fin-card-label">Assinantes ativos</div><div class="fin-card-valor">${qtdAtivas}</div></div>
+      <div class="fin-card"><div class="fin-card-label">Ticket médio</div><div class="fin-card-valor">${formatarMoeda(ticketMedio)}</div></div>
+      <div class="fin-card"><div class="fin-card-label">Novos assinantes (mês)</div><div class="fin-card-valor">${novosNoMes}</div></div>
+      <div class="fin-card despesa"><div class="fin-card-label">Cancelamentos (mês)</div><div class="fin-card-valor">${canceladasNoMes}</div></div>
+      <div class="fin-card"><div class="fin-card-label">Churn (mês)</div><div class="fin-card-valor">${churn.toFixed(1)}%</div></div>
+      <div class="fin-card ${cobrancasAtrasadas>0?'despesa':''}"><div class="fin-card-label">Cobranças pendentes</div><div class="fin-card-valor">${cobrancasPendentes}${cobrancasAtrasadas>0?` (${cobrancasAtrasadas} atrasada${cobrancasAtrasadas!==1?'s':''})`:''}</div></div>
+      <div class="fin-card receita"><div class="fin-card-label">Recebido este mês</div><div class="fin-card-valor">${formatarMoeda(receitaRecebidaMes)}</div></div>
+    </div>
+
+    <div class="fin-secao">
+      <div class="fin-secao-header"><h3>Distribuição por plano</h3></div>
+      <div id="dashboard-assin-por-plano"></div>
+    </div>
+
+    <div class="fin-secao">
+      <div class="fin-secao-header"><h3>Serviços mais utilizados nas assinaturas</h3></div>
+      <div id="dashboard-assin-servicos-usados"></div>
+    </div>
+  `;
+
+  renderDistribuicaoPorPlano();
+  renderServicosMaisUtilizados();
+}
+
+function renderDistribuicaoPorPlano(){
+  const box = document.getElementById('dashboard-assin-por-plano');
+  if(!box) return;
+  const ativas = cacheAssinaturas.filter(a=>a.status==='ativa');
+  if(ativas.length===0){ box.innerHTML='<p class="fin-vazio">Nenhum assinante ativo ainda.</p>'; return; }
+  const porPlano = {};
+  ativas.forEach(a=>{
+    const plano = cachePlanos.find(p=>p.id===a.plano_id);
+    const nome = plano?plano.nome:'Plano removido';
+    porPlano[nome] = (porPlano[nome]||0)+1;
+  });
+  box.innerHTML = Object.entries(porPlano).sort((a,b)=>b[1]-a[1]).map(([nome,qtd])=>`
+    <div class="fin-despesa-item">
+      <span class="fin-despesa-nome">${escapeHtml(nome)}</span>
+      <span>${qtd} assinante${qtd!==1?'s':''}</span>
+    </div>
+  `).join('');
+}
+
+function renderServicosMaisUtilizados(){
+  const box = document.getElementById('dashboard-assin-servicos-usados');
+  if(!box) return;
+  if(!cacheAssinaturaUtilizacoes || cacheAssinaturaUtilizacoes.length===0){
+    box.innerHTML = '<p class="fin-vazio">Nenhuma utilização registrada ainda.</p>';
+    return;
+  }
+  const porServico = {};
+  cacheAssinaturaUtilizacoes.forEach(u=>{
+    const s = cacheServicos.find(x=>x.id===u.servico_id);
+    const nome = s?s.nome:'Serviço removido';
+    porServico[nome] = (porServico[nome]||0)+1;
+  });
+  box.innerHTML = Object.entries(porServico).sort((a,b)=>b[1]-a[1]).map(([nome,qtd])=>`
+    <div class="fin-despesa-item">
+      <span class="fin-despesa-nome">${escapeHtml(nome)}</span>
+      <span>${qtd} ${qtd!==1?'utilizações':'utilização'}</span>
+    </div>
+  `).join('');
+}
+
 function renderPlanos(){
   const box = document.getElementById('lista-planos');
   if(!box) return;
@@ -5128,7 +5337,7 @@ function abrirModalPlano(id){
             <span class="m-sub-servico-check-visual"></span>
             <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
           </label>
-          <input type="number" min="1" step="1" class="plano-servico-qtd" data-servico="${s.id}" value="${vinculado?vinculado.quantidade_ciclo:1}" />
+          <input type="number" min="0" step="1" class="plano-servico-qtd" data-servico="${s.id}" value="${vinculado?vinculado.quantidade_ciclo:0}" />
         </div>`;
       }).join('') || '<p class="vazio">Cadastre serviços primeiro.</p>'}
     </div>
@@ -5178,7 +5387,7 @@ async function salvarPlano(id){
 
   const servicosSelecionados = [...document.querySelectorAll('.plano-servico-check:checked')].map(el=>{
     const qtdInput = document.querySelector(`.plano-servico-qtd[data-servico="${el.value}"]`);
-    return {servico_id: el.value, quantidade_ciclo: parseInt(qtdInput?.value)||1};
+    return {servico_id: el.value, quantidade_ciclo: parseInt(qtdInput?.value, 10) || 0};
   });
   if(servicosSelecionados.length===0){ toast('Selecione pelo menos 1 serviço pro plano'); return; }
 
@@ -5251,6 +5460,10 @@ async function criarCicloComSaldo(assinaturaId, planoId, dataInicioCiclo){
       servicosDoPlano.map(ps=>({ciclo_id: ciclo.id, servico_id: ps.servico_id, contratada: ps.quantidade_ciclo, utilizada: 0}))
     );
   }
+  await sb.from('assinatura_cobrancas').insert({
+    assinatura_id: assinaturaId, ciclo_id: ciclo.id,
+    valor: plano ? plano.valor : 0, data: dataInicioCiclo, status: 'pendente'
+  });
   return ciclo;
 }
 
