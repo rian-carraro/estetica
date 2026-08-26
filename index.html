@@ -272,6 +272,16 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 }
 .assin-proxima-box span{color:var(--text-muted); text-transform:uppercase; font-size:11px; letter-spacing:0.04em;}
 .assin-proxima-box b{color:var(--gold); font-family:var(--font-mono);}
+.plano-servico-linha{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+.plano-servico-qtd{width:60px; text-align:center; flex-shrink:0;}
+.checkbox-linha{
+  display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text);
+  text-transform:none; letter-spacing:0; margin:10px 0;
+}
+.checkbox-linha input[type="checkbox"]{width:auto; flex-shrink:0;}
+.assin-saldo-lista{margin-top:8px; display:flex; flex-direction:column; gap:4px;}
+.assin-saldo-item{display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); gap:8px;}
+.assin-beneficio-box{background:rgba(232,163,61,0.08); border:1px solid var(--gold); border-radius:8px; padding:10px 12px; margin:12px 0;}
 .veiculos-mini{margin-top:10px; display:flex; flex-direction:column; gap:6px;}
 .veiculos-extra{display:flex; flex-direction:column; gap:6px;}
 .veiculo-linha{
@@ -921,13 +931,19 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
       <section id="tab-assinaturas" class="tab">
         <header class="tab-header">
           <div>
-            <p class="eyebrow">Receita recorrente</p>
-            <h2>Assinaturas</h2>
+            <p class="eyebrow" id="assinaturas-eyebrow">Planos & assinantes</p>
+            <h2 id="assinaturas-titulo">Planos</h2>
           </div>
-          <button class="btn btn-primary" id="btn-nova-assinatura">+ Nova assinatura</button>
+          <button class="btn btn-primary" id="btn-novo-item-assinatura">+ Novo plano</button>
         </header>
-        <p class="config-texto-ajuda">Ao clicar em "Gerar agendamento da cobrança", cria um agendamento pendente com o valor da assinatura já preenchido — ele aparece na Agenda e no Painel. Quando você marcar esse agendamento como concluído (do jeito normal, com horário e checklist), o valor entra certinho no Financeiro.</p>
-        <div id="lista-assinaturas" class="lista-clientes"></div>
+        <div class="agenda-modos">
+          <button class="btn btn-ghost modo-ativo" id="btn-modo-planos" onclick="mudarModoAssinaturas('planos')">Planos</button>
+          <button class="btn btn-ghost" id="btn-modo-assinantes" onclick="mudarModoAssinaturas('assinantes')">Assinantes</button>
+        </div>
+        <p class="config-texto-ajuda" id="planos-ajuda">Cadastre os planos que a estética oferece: quais serviços entram, quantas vezes por ciclo e o valor mensal.</p>
+        <p class="config-texto-ajuda oculto" id="assinantes-ajuda">Vincule clientes (e opcionalmente um veículo) a um plano. O sistema cria o ciclo e o saldo de utilizações automaticamente.</p>
+        <div id="lista-planos" class="grid-servicos"></div>
+        <div id="lista-assinaturas" class="lista-clientes oculto"></div>
       </section>
 
       <!-- HISTÓRICO -->
@@ -3316,16 +3332,25 @@ function abrirModalHorarioEtapa(a, etapa){
   const ehInicio = etapa === 'inicio';
   const servico = cacheServicos.find(s=>s.id===a.servico_id);
   const valorPadrao = a.valor_cobrado || (servico ? servico.preco : 0);
+  const beneficio = (!ehInicio) ? assinaturaAtivaParaAgendamento(a) : null;
   abrirModal(`
     <h3>${ehInicio ? 'Serviço em andamento' : 'Serviço concluído'}</h3>
     <p class="modal-sub">${ehInicio ? 'Que horas começou?' : 'Que horas terminou?'}</p>
     <label>Horário</label>
     <input id="m-hora-etapa" type="time" value="${ehInicio ? (a.hora_inicio_real || horaAtual()) : (a.hora_fim || horaAtual())}" />
+    ${beneficio ? `
+      <div class="assin-beneficio-box">
+        <label class="checkbox-linha" style="margin:0;">
+          <input type="checkbox" id="m-usar-beneficio-assinatura" checked onchange="onToggleBeneficioAssinatura(this)" />
+          Usar benefício da assinatura (restam ${beneficio.saldo.contratada - beneficio.saldo.utilizada})
+        </label>
+      </div>
+    ` : ''}
     ${ehInicio ? '' : `
-      <div class="linha-2">
-        <div><label>Valor cobrado (R$)</label><input id="m-valor-cobrado" type="number" step="0.01" value="${valorPadrao}" /></div>
+      <div class="linha-2" id="assin-linha-valor-pagamento">
+        <div><label>Valor cobrado (R$)</label><input id="m-valor-cobrado" type="number" step="0.01" value="${beneficio?'0':valorPadrao}" ${beneficio?'disabled':''} /></div>
         <div><label>Forma de pagamento</label>
-          <select id="m-forma-pagamento">
+          <select id="m-forma-pagamento" ${beneficio?'disabled':''}>
             <option value="dinheiro" ${a.forma_pagamento==='dinheiro'?'selected':''}>Dinheiro</option>
             <option value="pix" ${!a.forma_pagamento || a.forma_pagamento==='pix'?'selected':''}>Pix</option>
             <option value="debito" ${a.forma_pagamento==='debito'?'selected':''}>Cartão débito</option>
@@ -3343,15 +3368,39 @@ function abrirModalHorarioEtapa(a, etapa){
 }
 window.abrirModalHorarioEtapa = abrirModalHorarioEtapa;
 
+function onToggleBeneficioAssinatura(checkboxEl){
+  const usarBeneficio = checkboxEl.checked;
+  const valorInput = document.getElementById('m-valor-cobrado');
+  const formaSelect = document.getElementById('m-forma-pagamento');
+  valorInput.disabled = usarBeneficio;
+  formaSelect.disabled = usarBeneficio;
+  if(usarBeneficio) valorInput.value = '0';
+}
+window.onToggleBeneficioAssinatura = onToggleBeneficioAssinatura;
+
 async function confirmarHorarioEtapa(id, etapa){
   const hora = document.getElementById('m-hora-etapa').value;
   if(!hora){ toast('Informe o horário'); return; }
   if(etapa === 'inicio'){
     await atualizarStatusAgendamento(id, 'em_andamento', {hora_inicio_real: hora});
   }else{
-    const valor_cobrado = parseFloat(document.getElementById('m-valor-cobrado').value)||0;
-    const forma_pagamento = document.getElementById('m-forma-pagamento').value;
+    const a = cacheAgendamentos.find(x=>x.id===id);
+    const beneficioCheckbox = document.getElementById('m-usar-beneficio-assinatura');
+    const usandoBeneficio = beneficioCheckbox && beneficioCheckbox.checked;
+    let valor_cobrado, forma_pagamento;
+    if(usandoBeneficio){
+      valor_cobrado = 0;
+      forma_pagamento = 'assinatura';
+    }else{
+      valor_cobrado = parseFloat(document.getElementById('m-valor-cobrado').value)||0;
+      forma_pagamento = document.getElementById('m-forma-pagamento').value;
+    }
     await atualizarStatusAgendamento(id, 'concluido', {hora_fim: hora, valor_cobrado, forma_pagamento});
+    if(usandoBeneficio && a){
+      const beneficio = assinaturaAtivaParaAgendamento(a);
+      if(beneficio) await consumirBeneficioAssinatura(id, a.servico_id, beneficio.saldo);
+      carregarAssinaturas();
+    }
   }
 }
 window.confirmarHorarioEtapa = confirmarHorarioEtapa;
@@ -4854,13 +4903,46 @@ async function removerItemReceita(itemId, tipo, id){
 }
 window.removerItemReceita = removerItemReceita;
 
-/* ---------- ASSINATURAS ---------- */
+/* ---------- PLANOS & ASSINATURAS (Fase 2) ---------- */
+let cachePlanos = [];
+let cachePlanoServicos = [];
+let cachePlanoBeneficios = [];
 let cacheAssinaturas = [];
+let cacheAssinaturaCiclos = [];
+let cacheAssinaturaSaldos = [];
+let cacheAssinaturaUtilizacoes = [];
+let cacheAssinaturaCobrancas = [];
+let modoAssinaturasAtual = 'planos';
 
 async function carregarAssinaturas(){
-  const { data, error } = await sb.from('assinaturas').select('*').order('created_at', {ascending:false});
-  if(error){ cacheAssinaturas = []; return; }
-  cacheAssinaturas = data || [];
+  const [
+    { data: planos },
+    { data: planoServicos },
+    { data: planoBeneficios },
+    { data: assinaturas },
+    { data: ciclos },
+    { data: saldos },
+    { data: utilizacoes },
+    { data: cobrancas }
+  ] = await Promise.all([
+    sb.from('planos').select('*').order('ordem').order('nome'),
+    sb.from('plano_servicos').select('*'),
+    sb.from('plano_beneficios').select('*'),
+    sb.from('assinaturas').select('*').order('created_at', {ascending:false}),
+    sb.from('assinatura_ciclos').select('*'),
+    sb.from('assinatura_ciclo_saldos').select('*'),
+    sb.from('assinatura_utilizacoes').select('*').order('data', {ascending:false}),
+    sb.from('assinatura_cobrancas').select('*').order('data', {ascending:false})
+  ]);
+  cachePlanos = planos || [];
+  cachePlanoServicos = planoServicos || [];
+  cachePlanoBeneficios = planoBeneficios || [];
+  cacheAssinaturas = assinaturas || [];
+  cacheAssinaturaCiclos = ciclos || [];
+  cacheAssinaturaSaldos = saldos || [];
+  cacheAssinaturaUtilizacoes = utilizacoes || [];
+  cacheAssinaturaCobrancas = cobrancas || [];
+  renderPlanos();
   renderAssinaturas();
 }
 
@@ -4874,14 +4956,244 @@ function somarDias(dataISO, n){
   return `${y}-${m}-${dd}`;
 }
 
-function proximaDataPorFrequencia(dataBase, frequencia){
-  if(frequencia==='quinzenal') return somarDias(dataBase, 15);
-  if(frequencia==='semanal') return somarDias(dataBase, 7);
-  return somarDias(dataBase, 30);
+function diasPorPeriodicidade(periodicidade){
+  if(periodicidade==='quinzenal') return 15;
+  if(periodicidade==='semanal') return 7;
+  return 30;
 }
 
-function rotuloFrequencia(f){
-  return {mensal:'Mensal', quinzenal:'Quinzenal', semanal:'Semanal'}[f] || f;
+function rotuloPeriodicidade(p){
+  return {mensal:'Mensal', quinzenal:'Quinzenal', semanal:'Semanal'}[p] || p;
+}
+
+function rotuloStatusAssinatura(s){
+  return {ativa:'Ativa', pagamento_pendente:'Pagamento pendente', suspensa:'Suspensa', cancelada:'Cancelada', expirada:'Expirada'}[s] || s;
+}
+
+function mudarModoAssinaturas(modo){
+  modoAssinaturasAtual = modo;
+  document.getElementById('btn-modo-planos').classList.toggle('modo-ativo', modo==='planos');
+  document.getElementById('btn-modo-assinantes').classList.toggle('modo-ativo', modo==='assinantes');
+  document.getElementById('lista-planos').classList.toggle('oculto', modo!=='planos');
+  document.getElementById('lista-assinaturas').classList.toggle('oculto', modo!=='assinantes');
+  document.getElementById('planos-ajuda').classList.toggle('oculto', modo!=='planos');
+  document.getElementById('assinantes-ajuda').classList.toggle('oculto', modo!=='assinantes');
+  document.getElementById('assinaturas-eyebrow').textContent = modo==='planos' ? 'Planos & assinantes' : 'Planos & assinantes';
+  document.getElementById('assinaturas-titulo').textContent = modo==='planos' ? 'Planos' : 'Assinantes';
+  document.getElementById('btn-novo-item-assinatura').textContent = modo==='planos' ? '+ Novo plano' : '+ Nova assinatura';
+}
+window.mudarModoAssinaturas = mudarModoAssinaturas;
+
+document.getElementById('btn-novo-item-assinatura').addEventListener('click', ()=>{
+  if(modoAssinaturasAtual === 'planos') abrirModalPlano(null);
+  else abrirModalAssinatura(null);
+});
+
+/* ---------- PLANOS ---------- */
+function renderPlanos(){
+  const box = document.getElementById('lista-planos');
+  if(!box) return;
+  if(cachePlanos.length===0){
+    box.innerHTML = '<p class="vazio">Nenhum plano criado ainda.</p>';
+    return;
+  }
+  box.innerHTML = cachePlanos.map(p=>{
+    const servicosDoPlano = cachePlanoServicos.filter(ps=>ps.plano_id===p.id);
+    const nomesServicos = servicosDoPlano.map(ps=>{
+      const s = cacheServicos.find(x=>x.id===ps.servico_id);
+      return s ? `${escapeHtml(s.nome)} ×${ps.quantidade_ciclo}` : null;
+    }).filter(Boolean);
+    const beneficios = cachePlanoBeneficios.filter(b=>b.plano_id===p.id);
+    const nomesBeneficios = beneficios.map(b=>{
+      if(b.tipo==='desconto') return `${b.valor}% de desconto em adicionais`;
+      if(b.tipo==='prioridade') return 'Prioridade de agendamento';
+      if(b.tipo==='aniversario') return `Aniversário: ${escapeHtml(b.valor||'')}`;
+      return escapeHtml(b.valor||b.descricao||'');
+    });
+    const qtdAssinantes = cacheAssinaturas.filter(a=>a.plano_id===p.id && a.status==='ativa').length;
+    return `
+      <div class="servico-card ${p.status==='ativo'?'':'servico-inativo'}">
+        ${p.status==='ativo'?'':'<span class="badge-inativo">Inativo</span>'}
+        <span class="badge-tipo-veiculo">${rotuloPeriodicidade(p.periodicidade)}</span>
+        <div class="servico-nome">${escapeHtml(p.nome)}</div>
+        <div class="servico-desc">${escapeHtml(p.descricao||'')}</div>
+        <div class="servico-desc" style="margin-top:-6px;">${nomesServicos.join(', ')||'Nenhum serviço vinculado'}</div>
+        ${nomesBeneficios.length?`<div class="servico-desc" style="margin-top:-6px; color:var(--gold);">${nomesBeneficios.join(' · ')}</div>`:''}
+        <div class="servico-meta">
+          <span class="servico-preco">R$ ${Number(p.valor||0).toFixed(2)}</span>
+          <span>${qtdAssinantes} assinante${qtdAssinantes!==1?'s':''} ativo${qtdAssinantes!==1?'s':''}</span>
+        </div>
+        <div class="ticket-acoes">
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalPlano('${p.id}')">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="removerPlano('${p.id}')">Excluir</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function abrirModalPlano(id){
+  const p = id ? cachePlanos.find(x=>x.id===id) : null;
+  const servicosDoPlano = p ? cachePlanoServicos.filter(ps=>ps.plano_id===p.id) : [];
+  const beneficios = p ? cachePlanoBeneficios.filter(b=>b.plano_id===p.id) : [];
+  const beneficioDesconto = beneficios.find(b=>b.tipo==='desconto');
+  const beneficioPrioridade = beneficios.find(b=>b.tipo==='prioridade');
+  const beneficioAniversario = beneficios.find(b=>b.tipo==='aniversario');
+  const beneficioCustom = beneficios.find(b=>b.tipo==='custom');
+
+  abrirModal(`
+    <h3>${p?'Editar plano':'Novo plano'}</h3>
+    <label>Nome do plano</label>
+    <input id="m-plano-nome" value="${p?escapeHtml(p.nome):''}" placeholder="Ex: Plano Premium" />
+    <label>Descrição</label>
+    <textarea id="m-plano-desc" rows="2" placeholder="Ex: Ideal pra quem lava o carro toda semana">${p?escapeHtml(p.descricao||''):''}</textarea>
+
+    <div class="linha-2">
+      <div><label>Valor do plano (R$)</label><input id="m-plano-valor" type="number" step="0.01" value="${p?p.valor:''}" placeholder="Ex: 159.00" /></div>
+      <div><label>Periodicidade</label>
+        <select id="m-plano-periodicidade">
+          <option value="mensal" ${(!p||p.periodicidade==='mensal')?'selected':''}>Mensal (30 dias)</option>
+          <option value="quinzenal" ${p&&p.periodicidade==='quinzenal'?'selected':''}>Quinzenal (15 dias)</option>
+          <option value="semanal" ${p&&p.periodicidade==='semanal'?'selected':''}>Semanal (7 dias)</option>
+        </select>
+      </div>
+    </div>
+
+    <p class="config-texto-ajuda" style="margin-top:10px;">Serviços inclusos e quantas vezes por ciclo cada um pode ser usado.</p>
+    <div id="plano-servicos-lista">
+      ${cacheServicos.filter(s=>!s.is_combo).map(s=>{
+        const vinculado = servicosDoPlano.find(ps=>ps.servico_id===s.id);
+        return `
+        <div class="plano-servico-linha">
+          <label class="m-sub-servico-item" style="flex:1;">
+            <input type="checkbox" class="plano-servico-check" value="${s.id}" ${vinculado?'checked':''} onchange="this.closest('.plano-servico-linha').classList.toggle('marcado', this.checked)"/>
+            <span class="m-sub-servico-check-visual"></span>
+            <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
+          </label>
+          <input type="number" min="1" step="1" class="plano-servico-qtd" data-servico="${s.id}" value="${vinculado?vinculado.quantidade_ciclo:1}" />
+        </div>`;
+      }).join('') || '<p class="vazio">Cadastre serviços primeiro.</p>'}
+    </div>
+
+    <p class="config-texto-ajuda" style="margin-top:14px;">Benefícios do plano (opcional).</p>
+    <div class="linha-2">
+      <div><label>Desconto em serviços adicionais (%)</label><input id="m-plano-desconto" type="number" step="1" min="0" max="100" value="${beneficioDesconto?beneficioDesconto.valor:''}" placeholder="Ex: 15" /></div>
+      <div><label>Benefício de aniversário</label><input id="m-plano-aniversario" value="${beneficioAniversario?escapeHtml(beneficioAniversario.valor||''):''}" placeholder="Ex: lavagem grátis no mês" /></div>
+    </div>
+    <label class="checkbox-linha"><input type="checkbox" id="m-plano-prioridade" ${beneficioPrioridade?'checked':''} /> Prioridade de agendamento</label>
+    <label>Outros benefícios (texto livre)</label>
+    <textarea id="m-plano-custom" rows="2" placeholder="Ex: brinde no aniversário do plano">${beneficioCustom?escapeHtml(beneficioCustom.valor||''):''}</textarea>
+
+    <p class="config-texto-ajuda" style="margin-top:14px;">Regras do plano.</p>
+    <div class="linha-2">
+      <div><label>Veículos permitidos</label><input id="m-plano-max-veiculos" type="number" min="1" step="1" value="${p?p.max_veiculos:1}" /></div>
+      <div><label>Tolerância de atraso (dias)</label><input id="m-plano-tolerancia" type="number" min="0" step="1" value="${p?p.dias_tolerancia:0}" /></div>
+    </div>
+    <label class="checkbox-linha"><input type="checkbox" id="m-plano-renovacao" ${(!p||p.renovacao_automatica)?'checked':''} /> Renovação automática do ciclo</label>
+    <label class="checkbox-linha"><input type="checkbox" id="m-plano-acumulo" ${p&&p.permite_acumulo?'checked':''} /> Permite acumular utilização não usada pro próximo ciclo</label>
+
+    <label>Status</label>
+    <select id="m-plano-status">
+      <option value="ativo" ${(!p||p.status==='ativo')?'selected':''}>Ativo</option>
+      <option value="inativo" ${p&&p.status==='inativo'?'selected':''}>Inativo</option>
+    </select>
+
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarPlano(${p?`'${p.id}'`:'null'})">Salvar</button>
+    </div>
+  `);
+}
+window.abrirModalPlano = abrirModalPlano;
+
+async function salvarPlano(id){
+  const nome = document.getElementById('m-plano-nome').value.trim();
+  const descricao = document.getElementById('m-plano-desc').value.trim();
+  const valor = parseFloat(document.getElementById('m-plano-valor').value)||0;
+  const periodicidade = document.getElementById('m-plano-periodicidade').value;
+  const max_veiculos = parseInt(document.getElementById('m-plano-max-veiculos').value)||1;
+  const dias_tolerancia = parseInt(document.getElementById('m-plano-tolerancia').value)||0;
+  const renovacao_automatica = document.getElementById('m-plano-renovacao').checked;
+  const permite_acumulo = document.getElementById('m-plano-acumulo').checked;
+  const status = document.getElementById('m-plano-status').value;
+  if(!nome){ toast('Dê um nome ao plano'); return; }
+
+  const servicosSelecionados = [...document.querySelectorAll('.plano-servico-check:checked')].map(el=>{
+    const qtdInput = document.querySelector(`.plano-servico-qtd[data-servico="${el.value}"]`);
+    return {servico_id: el.value, quantidade_ciclo: parseInt(qtdInput?.value)||1};
+  });
+  if(servicosSelecionados.length===0){ toast('Selecione pelo menos 1 serviço pro plano'); return; }
+
+  const payload = {nome, descricao, valor, periodicidade, max_veiculos, dias_tolerancia, renovacao_automatica, permite_acumulo, status};
+  let planoId = id;
+  let error;
+  if(id){
+    ({error} = await sb.from('planos').update(payload).eq('id', id));
+  }else{
+    const resultado = await sb.from('planos').insert(payload).select().single();
+    error = resultado.error;
+    if(!error) planoId = resultado.data.id;
+  }
+  if(error){ toast('Erro ao salvar plano'); return; }
+
+  await sb.from('plano_servicos').delete().eq('plano_id', planoId);
+  await sb.from('plano_servicos').insert(servicosSelecionados.map(s=>({plano_id: planoId, ...s})));
+
+  await sb.from('plano_beneficios').delete().eq('plano_id', planoId);
+  const beneficiosNovos = [];
+  const desconto = document.getElementById('m-plano-desconto').value;
+  if(desconto && Number(desconto)>0) beneficiosNovos.push({plano_id: planoId, tipo:'desconto', valor: desconto});
+  if(document.getElementById('m-plano-prioridade').checked) beneficiosNovos.push({plano_id: planoId, tipo:'prioridade', valor:'sim'});
+  const aniversario = document.getElementById('m-plano-aniversario').value.trim();
+  if(aniversario) beneficiosNovos.push({plano_id: planoId, tipo:'aniversario', valor: aniversario});
+  const custom = document.getElementById('m-plano-custom').value.trim();
+  if(custom) beneficiosNovos.push({plano_id: planoId, tipo:'custom', valor: custom});
+  if(beneficiosNovos.length) await sb.from('plano_beneficios').insert(beneficiosNovos);
+
+  fecharModal();
+  toast('Plano salvo!');
+  carregarAssinaturas();
+}
+window.salvarPlano = salvarPlano;
+
+async function removerPlano(id){
+  const emUso = cacheAssinaturas.some(a=>a.plano_id===id && a.status==='ativa');
+  if(emUso){ toast('Esse plano tem assinantes ativos — cancele as assinaturas antes de excluir.'); return; }
+  if(!confirm('Excluir esse plano?')) return;
+  const { error } = await sb.from('planos').delete().eq('id', id);
+  if(error){ toast('Erro ao excluir'); return; }
+  toast('Plano excluído');
+  carregarAssinaturas();
+}
+window.removerPlano = removerPlano;
+
+/* ---------- ASSINATURAS (ASSINANTES) ---------- */
+let assinMes = new Date();
+let assinDataSel = null;
+
+function cicloAtivoDaAssinatura(assinaturaId){
+  return cacheAssinaturaCiclos.find(c=>c.assinatura_id===assinaturaId && c.status==='ativo');
+}
+
+function saldosDoCiclo(cicloId){
+  return cacheAssinaturaSaldos.filter(s=>s.ciclo_id===cicloId);
+}
+
+async function criarCicloComSaldo(assinaturaId, planoId, dataInicioCiclo){
+  const plano = cachePlanos.find(p=>p.id===planoId);
+  const dias = diasPorPeriodicidade(plano ? plano.periodicidade : 'mensal');
+  const dataFim = somarDias(dataInicioCiclo, dias);
+  const { data: ciclo, error } = await sb.from('assinatura_ciclos')
+    .insert({assinatura_id: assinaturaId, data_inicio: dataInicioCiclo, data_fim: dataFim, status:'ativo'})
+    .select().single();
+  if(error || !ciclo) return null;
+  const servicosDoPlano = cachePlanoServicos.filter(ps=>ps.plano_id===planoId);
+  if(servicosDoPlano.length){
+    await sb.from('assinatura_ciclo_saldos').insert(
+      servicosDoPlano.map(ps=>({ciclo_id: ciclo.id, servico_id: ps.servico_id, contratada: ps.quantidade_ciclo, utilizada: 0}))
+    );
+  }
+  return ciclo;
 }
 
 function renderAssinaturas(){
@@ -4894,26 +5206,41 @@ function renderAssinaturas(){
   const hoje = hojeISO();
   box.innerHTML = cacheAssinaturas.map(a=>{
     const cliente = cacheClientes.find(c=>c.id===a.cliente_id);
-    const servico = cacheServicos.find(s=>s.id===a.servico_id);
-    const vencida = a.status==='ativo' && a.proxima_cobranca <= hoje;
+    const veiculo = a.veiculo_id ? cacheVeiculos.find(v=>v.id===a.veiculo_id) : null;
+    const plano = cachePlanos.find(p=>p.id===a.plano_id);
+    const ciclo = cicloAtivoDaAssinatura(a.id);
+    const saldos = ciclo ? saldosDoCiclo(ciclo.id) : [];
+    const cicloVencido = ciclo && ciclo.data_fim <= hoje;
     return `
       <div class="cliente-card">
         <div class="cliente-topo">
           <div>
-            <div class="cliente-nome">${escapeHtml(cliente?cliente.nome:'Cliente removido')}</div>
-            <div class="assin-meta">${escapeHtml(servico?servico.nome:'Serviço removido')} · ${formatarMoeda(a.valor)} · ${rotuloFrequencia(a.frequencia)}</div>
+            <div class="cliente-nome">${escapeHtml(cliente?cliente.nome:'Cliente removido')}${veiculo?` <span class="assin-meta">· ${escapeHtml(veiculo.placa||'')} ${escapeHtml(veiculo.modelo||'')}</span>`:''}</div>
+            <div class="assin-meta">${escapeHtml(plano?plano.nome:'Plano removido')} · ${formatarMoeda(plano?plano.valor:0)} · ${rotuloPeriodicidade(plano?plano.periodicidade:'')}</div>
           </div>
-          <span class="ticket-status status-${a.status}">${a.status==='ativo'?'Ativa':a.status==='pausado'?'Pausada':'Cancelada'}</span>
+          <span class="ticket-status status-${a.status==='ativa'?'ativo':a.status==='suspensa'?'pausado':'cancelado'}">${rotuloStatusAssinatura(a.status)}</span>
         </div>
+        ${ciclo?`
         <div class="assin-meta" style="margin-top:6px;">
-          Próxima cobrança: <b style="color:${vencida?'var(--red)':'var(--text)'};">${formatarData(a.proxima_cobranca)}</b>${vencida?' — vencida':''}
+          Ciclo atual: ${formatarData(ciclo.data_inicio)} → <b style="color:${cicloVencido?'var(--red)':'var(--text)'};">${formatarData(ciclo.data_fim)}</b>${cicloVencido?' — vencido, renove':''}
         </div>
-        ${a.observacoes?`<div class="assin-meta" style="margin-top:2px;">${escapeHtml(a.observacoes)}</div>`:''}
+        <div class="assin-saldo-lista">
+          ${saldos.map(s=>{
+            const servico = cacheServicos.find(x=>x.id===s.servico_id);
+            const restante = s.contratada - s.utilizada;
+            return `<div class="assin-saldo-item">
+              <span>${escapeHtml(servico?servico.nome:'Serviço removido')}</span>
+              <span>${s.utilizada}/${s.contratada} usadas <b style="color:${restante<=0?'var(--red)':'var(--gold)'};">(${restante} restante${restante!==1?'s':''})</b></span>
+            </div>`;
+          }).join('')}
+        </div>`:'<p class="assin-meta" style="margin-top:6px;">Sem ciclo ativo.</p>'}
+        ${a.observacoes?`<div class="assin-meta" style="margin-top:6px;">${escapeHtml(a.observacoes)}</div>`:''}
         <div class="ticket-acoes" style="margin-top:10px;">
-          ${a.status==='ativo'?`<button class="btn btn-ghost btn-sm" onclick="marcarCobrancaRecebida('${a.id}')">Gerar agendamento da cobrança</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="abrirModalAssinatura('${a.id}')">Editar</button>
-          ${a.status==='ativo'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'pausado')">Pausar</button>`:''}
-          ${a.status==='pausado'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'ativo')">Reativar</button>`:''}
+          ${(a.status==='ativa' && cicloVencido)?`<button class="btn btn-primary btn-sm" onclick="renovarCicloAssinatura('${a.id}')">Renovar ciclo</button>`:''}
+          ${a.status==='ativa'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'suspensa')">Suspender</button>`:''}
+          ${a.status==='suspensa'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'ativa')">Reativar</button>`:''}
+          ${a.status!=='cancelada'?`<button class="btn btn-ghost btn-sm" onclick="cancelarAssinatura('${a.id}')">Cancelar</button>`:''}
           <button class="btn btn-danger btn-sm" onclick="removerAssinatura('${a.id}')">Excluir</button>
         </div>
       </div>
@@ -4923,7 +5250,6 @@ function renderAssinaturas(){
 
 function abrirModalAssinatura(id){
   const a = id ? cacheAssinaturas.find(x=>x.id===id) : null;
-  const clienteAtual = a ? cacheClientes.find(c=>c.id===a.cliente_id) : null;
   abrirModal(`
     <h3>${a?'Editar assinatura':'Nova assinatura'}</h3>
 
@@ -4935,7 +5261,7 @@ function abrirModalAssinatura(id){
 
     <div id="assin-bloco-cliente-existente">
       <label>Cliente</label>
-      <select id="m-assin-cliente-id">
+      <select id="m-assin-cliente-id" onchange="onTrocarClienteAssinatura(this)">
         ${cacheClientes.map(c=>`<option value="${c.id}" ${a&&a.cliente_id===c.id?'selected':''}>${escapeHtml(c.nome)}</option>`).join('') || '<option value="">Cadastre um cliente primeiro</option>'}
       </select>
     </div>
@@ -4946,10 +5272,16 @@ function abrirModalAssinatura(id){
       <input id="m-assin-cliente-telefone" placeholder="Ex: 5514999999999" />
     </div>
 
-    <label>Serviço</label>
-    <select id="m-assin-servico-id" onchange="onTrocarServicoAssinatura(this)">
-      ${cacheServicos.map(s=>`<option value="${s.id}" data-preco="${s.preco||0}" ${a&&a.servico_id===s.id?'selected':''}>${s.is_combo?'Combo: ':''}${escapeHtml(s.nome)}</option>`).join('') || '<option value="">Cadastre um serviço primeiro</option>'}
+    <label>Veículo (opcional)</label>
+    <select id="m-assin-veiculo-id">
+      <option value="">Sem veículo vinculado</option>
     </select>
+
+    <label>Plano</label>
+    <select id="m-assin-plano-id" onchange="onTrocarPlanoAssinatura(this)">
+      ${cachePlanos.filter(p=>p.status==='ativo').map(p=>`<option value="${p.id}" ${a&&a.plano_id===p.id?'selected':''}>${escapeHtml(p.nome)} — R$ ${Number(p.valor).toFixed(2)}</option>`).join('') || '<option value="">Cadastre um plano primeiro</option>'}
+    </select>
+    <p class="config-texto-ajuda" id="assin-plano-resumo" style="margin-top:-6px;"></p>
 
     <label>Data da primeira lavagem</label>
     <input type="hidden" id="m-assin-data-inicio" value="${a?a.data_inicio:hojeISO()}" />
@@ -4959,23 +5291,23 @@ function abrirModalAssinatura(id){
       <button type="button" class="btn-mes" onclick="mudarMesAssinatura(1)">›</button>
     </div>
     <div class="grid-dias" id="assin-grid-dias"></div>
+    ${a?'<p class="config-texto-ajuda">Mudar a data aqui não altera o ciclo já em andamento — use "Renovar ciclo" na listagem pra isso.</p>':''}
 
-    <div class="linha-2">
-      <div><label>Valor da assinatura (R$)</label><input id="m-assin-valor" type="number" step="0.01" value="${a?a.valor:''}" placeholder="Ex: 150.00" /></div>
-      <div><label>Frequência</label>
-        <select id="m-assin-frequencia" onchange="recalcularProximaCobrancaAssinatura()">
-          <option value="mensal" ${(!a||a.frequencia==='mensal')?'selected':''}>Mensal (30 dias)</option>
-          <option value="quinzenal" ${a&&a.frequencia==='quinzenal'?'selected':''}>Quinzenal (15 dias)</option>
-          <option value="semanal" ${a&&a.frequencia==='semanal'?'selected':''}>Semanal (7 dias)</option>
-        </select>
-      </div>
-    </div>
+    <label>Forma de pagamento</label>
+    <select id="m-assin-forma-pagamento">
+      <option value="">—</option>
+      <option value="dinheiro" ${a&&a.forma_pagamento==='dinheiro'?'selected':''}>Dinheiro</option>
+      <option value="pix" ${a&&a.forma_pagamento==='pix'?'selected':''}>Pix</option>
+      <option value="debito" ${a&&a.forma_pagamento==='debito'?'selected':''}>Cartão débito</option>
+      <option value="credito" ${a&&a.forma_pagamento==='credito'?'selected':''}>Cartão crédito</option>
+      <option value="outro" ${a&&a.forma_pagamento==='outro'?'selected':''}>Outro</option>
+    </select>
 
-    <div class="assin-proxima-box">
-      <span>Próxima cobrança</span>
-      <b id="assin-proxima-label">${a?formatarData(a.proxima_cobranca):formatarData(proximaDataPorFrequencia(hojeISO(),'mensal'))}</b>
-    </div>
-    <input type="hidden" id="m-assin-proxima" value="${a?a.proxima_cobranca:proximaDataPorFrequencia(hojeISO(),'mensal')}" />
+    ${a?`
+    <label>Status</label>
+    <select id="m-assin-status">
+      ${['ativa','pagamento_pendente','suspensa','cancelada','expirada'].map(s=>`<option value="${s}" ${a.status===s?'selected':''}>${rotuloStatusAssinatura(s)}</option>`).join('')}
+    </select>`:''}
 
     <label>Observações</label>
     <textarea id="m-assin-obs" rows="2" placeholder="Ex: combinado com o cliente, desconto por fidelidade...">${a?escapeHtml(a.observacoes||''):''}</textarea>
@@ -4989,11 +5321,52 @@ function abrirModalAssinatura(id){
   const [ay, am] = assinDataSel.split('-').map(Number);
   assinMes = new Date(ay, am-1, 1);
   renderGridDiasAssinatura();
+  atualizarResumoPlanoAssinatura();
+  const clienteSelecionado = a ? a.cliente_id : document.getElementById('m-assin-cliente-id').value;
+  sincronizarVeiculosAssinatura(clienteSelecionado, a ? a.veiculo_id : null);
 }
 window.abrirModalAssinatura = abrirModalAssinatura;
 
-let assinMes = new Date();
-let assinDataSel = null;
+function sincronizarVeiculosAssinatura(clienteId, veiculoIdSelecionado){
+  const veiculoSelect = document.getElementById('m-assin-veiculo-id');
+  if(!veiculoSelect) return;
+  const veiculosDoCliente = cacheVeiculos.filter(v=>v.cliente_id===clienteId);
+  veiculoSelect.innerHTML = '<option value="">Sem veículo vinculado</option>' +
+    veiculosDoCliente.map(v=>`<option value="${v.id}" ${veiculoIdSelecionado===v.id?'selected':''}>${escapeHtml(v.placa||'')} — ${escapeHtml(v.modelo||'')}</option>`).join('');
+}
+window.sincronizarVeiculosAssinatura = sincronizarVeiculosAssinatura;
+
+function alternarModoClienteAssinatura(modo){
+  document.getElementById('btn-assin-cliente-existente').classList.toggle('modo-ativo', modo==='existente');
+  document.getElementById('btn-assin-cliente-novo').classList.toggle('modo-ativo', modo==='novo');
+  document.getElementById('assin-bloco-cliente-existente').classList.toggle('oculto', modo!=='existente');
+  document.getElementById('assin-bloco-cliente-novo').classList.toggle('oculto', modo!=='novo');
+}
+window.alternarModoClienteAssinatura = alternarModoClienteAssinatura;
+
+function onTrocarClienteAssinatura(selectEl){
+  sincronizarVeiculosAssinatura(selectEl.value, null);
+}
+window.onTrocarClienteAssinatura = onTrocarClienteAssinatura;
+
+function onTrocarPlanoAssinatura(selectEl){
+  atualizarResumoPlanoAssinatura();
+}
+window.onTrocarPlanoAssinatura = onTrocarPlanoAssinatura;
+
+function atualizarResumoPlanoAssinatura(){
+  const planoId = document.getElementById('m-assin-plano-id').value;
+  const resumo = document.getElementById('assin-plano-resumo');
+  if(!resumo) return;
+  const plano = cachePlanos.find(p=>p.id===planoId);
+  if(!plano){ resumo.textContent = ''; return; }
+  const servicos = cachePlanoServicos.filter(ps=>ps.plano_id===planoId).map(ps=>{
+    const s = cacheServicos.find(x=>x.id===ps.servico_id);
+    return s ? `${s.nome} ×${ps.quantidade_ciclo}` : null;
+  }).filter(Boolean);
+  resumo.textContent = servicos.length ? `Inclui: ${servicos.join(', ')}` : '';
+}
+window.atualizarResumoPlanoAssinatura = atualizarResumoPlanoAssinatura;
 
 function mudarMesAssinatura(delta){
   assinMes.setMonth(assinMes.getMonth()+delta);
@@ -5025,36 +5398,8 @@ function escolherDataAssinatura(iso){
   assinDataSel = iso;
   document.getElementById('m-assin-data-inicio').value = iso;
   renderGridDiasAssinatura();
-  recalcularProximaCobrancaAssinatura();
 }
 window.escolherDataAssinatura = escolherDataAssinatura;
-
-function recalcularProximaCobrancaAssinatura(){
-  const dataInicioEl = document.getElementById('m-assin-data-inicio');
-  const frequenciaEl = document.getElementById('m-assin-frequencia');
-  if(!dataInicioEl || !frequenciaEl) return;
-  const proxima = proximaDataPorFrequencia(dataInicioEl.value, frequenciaEl.value);
-  document.getElementById('m-assin-proxima').value = proxima;
-  document.getElementById('assin-proxima-label').textContent = formatarData(proxima);
-}
-window.recalcularProximaCobrancaAssinatura = recalcularProximaCobrancaAssinatura;
-
-function alternarModoClienteAssinatura(modo){
-  document.getElementById('btn-assin-cliente-existente').classList.toggle('modo-ativo', modo==='existente');
-  document.getElementById('btn-assin-cliente-novo').classList.toggle('modo-ativo', modo==='novo');
-  document.getElementById('assin-bloco-cliente-existente').classList.toggle('oculto', modo!=='existente');
-  document.getElementById('assin-bloco-cliente-novo').classList.toggle('oculto', modo!=='novo');
-}
-window.alternarModoClienteAssinatura = alternarModoClienteAssinatura;
-
-function onTrocarServicoAssinatura(selectEl){
-  const valorInput = document.getElementById('m-assin-valor');
-  if(!valorInput.value){
-    const opt = selectEl.options[selectEl.selectedIndex];
-    valorInput.value = opt.dataset.preco || '';
-  }
-}
-window.onTrocarServicoAssinatura = onTrocarServicoAssinatura;
 
 async function salvarAssinatura(id){
   const modoNovoCliente = !id && !document.getElementById('assin-bloco-cliente-novo').classList.contains('oculto');
@@ -5072,23 +5417,33 @@ async function salvarAssinatura(id){
     if(!cliente_id){ toast('Escolha um cliente'); return; }
   }
 
-  const servico_id = document.getElementById('m-assin-servico-id').value;
-  const valor = parseFloat(document.getElementById('m-assin-valor').value)||0;
-  const frequencia = document.getElementById('m-assin-frequencia').value;
+  const veiculo_id = document.getElementById('m-assin-veiculo-id').value || null;
+  const plano_id = document.getElementById('m-assin-plano-id').value;
   const data_inicio = document.getElementById('m-assin-data-inicio').value;
-  const proxima_cobranca = document.getElementById('m-assin-proxima').value;
+  const forma_pagamento = document.getElementById('m-assin-forma-pagamento').value;
   const observacoes = document.getElementById('m-assin-obs').value.trim();
-  if(!servico_id){ toast('Escolha um serviço'); return; }
-  if(!data_inicio || !proxima_cobranca){ toast('Preencha as datas'); return; }
+  if(!plano_id){ toast('Escolha um plano'); return; }
+  if(!data_inicio){ toast('Escolha a data de início'); return; }
 
-  const payload = {cliente_id, servico_id, valor, frequencia, data_inicio, proxima_cobranca, observacoes};
+  const payload = {cliente_id, veiculo_id, plano_id, data_inicio, forma_pagamento, observacoes};
   let error;
+  let assinaturaId = id;
+
   if(id){
+    const statusEl = document.getElementById('m-assin-status');
+    if(statusEl) payload.status = statusEl.value;
     ({error} = await sb.from('assinaturas').update(payload).eq('id', id));
   }else{
-    ({error} = await sb.from('assinaturas').insert({...payload, status:'ativo'}));
+    const resultado = await sb.from('assinaturas').insert({...payload, status:'ativa'}).select().single();
+    error = resultado.error;
+    if(!error) assinaturaId = resultado.data.id;
   }
   if(error){ toast('Erro ao salvar assinatura'); return; }
+
+  if(!id){
+    await criarCicloComSaldo(assinaturaId, plano_id, data_inicio);
+  }
+
   fecharModal();
   toast('Assinatura salva!');
   carregarClientes();
@@ -5096,46 +5451,41 @@ async function salvarAssinatura(id){
 }
 window.salvarAssinatura = salvarAssinatura;
 
-async function marcarCobrancaRecebida(id){
+async function renovarCicloAssinatura(id){
   const a = cacheAssinaturas.find(x=>x.id===id);
   if(!a) return;
-
-  const payloadAgendamento = {
-    cliente_id: a.cliente_id,
-    veiculo_id: null,
-    servico_id: a.servico_id,
-    data: a.proxima_cobranca,
-    hora_inicio: '08:00',
-    status: 'agendado',
-    valor_cobrado: a.valor,
-    forma_pagamento: 'outro',
-    observacoes: `Cobrança de assinatura (${rotuloFrequencia(a.frequencia)})${a.observacoes?' — '+a.observacoes:''}`
-  };
-  const { error: erroAgendamento } = await sb.from('agendamentos').insert(payloadAgendamento);
-  if(erroAgendamento){ toast('Erro ao criar agendamento da assinatura'); return; }
-
-  const proxima_cobranca = proximaDataPorFrequencia(a.proxima_cobranca, a.frequencia);
-  const { error } = await sb.from('assinaturas').update({proxima_cobranca}).eq('id', id);
-  if(error){ toast('Erro ao atualizar assinatura'); return; }
-
-  toast(`Agendamento criado! Próxima cobrança: ${formatarData(proxima_cobranca)}`);
-  await carregarAgendamentos();
-  renderDashboard();
-  renderFinanceiro();
+  const cicloAtual = cicloAtivoDaAssinatura(id);
+  if(cicloAtual){
+    await sb.from('assinatura_ciclos').update({status:'encerrado'}).eq('id', cicloAtual.id);
+  }
+  const novaDataInicio = cicloAtual ? cicloAtual.data_fim : hojeISO();
+  await criarCicloComSaldo(id, a.plano_id, novaDataInicio);
+  toast('Ciclo renovado! Saldo do novo período liberado.');
   carregarAssinaturas();
 }
-window.marcarCobrancaRecebida = marcarCobrancaRecebida;
+window.renovarCicloAssinatura = renovarCicloAssinatura;
 
 async function alterarStatusAssinatura(id, status){
   const { error } = await sb.from('assinaturas').update({status}).eq('id', id);
   if(error){ toast('Erro ao atualizar'); return; }
-  toast(status==='ativo'?'Assinatura reativada':'Assinatura pausada');
+  toast(status==='ativa'?'Assinatura reativada':'Assinatura suspensa');
   carregarAssinaturas();
 }
 window.alterarStatusAssinatura = alterarStatusAssinatura;
 
+function cancelarAssinatura(id){
+  const motivo = prompt('Motivo do cancelamento (opcional):') || '';
+  (async ()=>{
+    const { error } = await sb.from('assinaturas').update({status:'cancelada', motivo_cancelamento: motivo}).eq('id', id);
+    if(error){ toast('Erro ao cancelar'); return; }
+    toast('Assinatura cancelada');
+    carregarAssinaturas();
+  })();
+}
+window.cancelarAssinatura = cancelarAssinatura;
+
 async function removerAssinatura(id){
-  if(!confirm('Excluir essa assinatura?')) return;
+  if(!confirm('Excluir essa assinatura? Isso apaga o histórico de ciclos e utilizações dela.')) return;
   const { error } = await sb.from('assinaturas').delete().eq('id', id);
   if(error){ toast('Erro ao excluir'); return; }
   toast('Assinatura excluída');
@@ -5143,7 +5493,24 @@ async function removerAssinatura(id){
 }
 window.removerAssinatura = removerAssinatura;
 
-document.getElementById('btn-nova-assinatura').addEventListener('click', ()=>abrirModalAssinatura(null));
+/* ---------- CONSUMO DE BENEFÍCIO NA CONCLUSÃO DO AGENDAMENTO ---------- */
+function assinaturaAtivaParaAgendamento(a){
+  const candidatas = cacheAssinaturas.filter(x=>x.cliente_id===a.cliente_id && x.status==='ativa');
+  if(candidatas.length===0) return null;
+  const comVeiculoIgual = candidatas.find(x=>x.veiculo_id && x.veiculo_id===a.veiculo_id);
+  const assinatura = comVeiculoIgual || candidatas.find(x=>!x.veiculo_id) || candidatas[0];
+  const ciclo = cicloAtivoDaAssinatura(assinatura.id);
+  if(!ciclo) return null;
+  const saldo = cacheAssinaturaSaldos.find(s=>s.ciclo_id===ciclo.id && s.servico_id===a.servico_id);
+  if(!saldo || (saldo.contratada - saldo.utilizada) <= 0) return null;
+  return {assinatura, ciclo, saldo};
+}
+
+async function consumirBeneficioAssinatura(agendamentoId, servicoId, saldo){
+  await sb.from('assinatura_ciclo_saldos').update({utilizada: saldo.utilizada+1}).eq('id', saldo.id);
+  await sb.from('assinatura_utilizacoes').insert({ciclo_id: saldo.ciclo_id, servico_id: servicoId, agendamento_id: agendamentoId, data: hojeISO()});
+}
+window.consumirBeneficioAssinatura = consumirBeneficioAssinatura;
 
 /* ---------- START ---------- */
 iniciarConexao();
