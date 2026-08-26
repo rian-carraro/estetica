@@ -792,6 +792,11 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
           <input type="date" id="filtro-data-agenda" />
           <button class="btn btn-ghost" id="btn-todos-agendamentos">Ver todos</button>
         </div>
+        <div class="agenda-modos" id="filtro-origem-agenda" style="margin-top:8px;">
+          <button class="btn btn-ghost modo-ativo" data-origem="todos" onclick="filtrarOrigemAgenda('todos')">Todos</button>
+          <button class="btn btn-ghost" data-origem="normal" onclick="filtrarOrigemAgenda('normal')">Normais</button>
+          <button class="btn btn-ghost" data-origem="assinatura" onclick="filtrarOrigemAgenda('assinatura')">Assinaturas</button>
+        </div>
         <div id="agenda-semana" class="agenda-semana oculto">
           <div class="semana-nav">
             <button class="btn btn-ghost btn-sm" onclick="semanaAnterior()">← Semana anterior</button>
@@ -2747,14 +2752,24 @@ function veiculoTxt(id){
 }
 function nomeServico(id){ return cacheServicos.find(s=>s.id===id)?.nome || '—'; }
 
+function nomePlanoDoAgendamento(a){
+  if(!a.assinatura_id) return null;
+  const assinatura = cacheAssinaturas.find(x=>x.id===a.assinatura_id);
+  if(!assinatura) return null;
+  const plano = cachePlanos.find(p=>p.id===assinatura.plano_id);
+  return plano ? plano.nome : null;
+}
+
 function ticketHtml(a){
   const subNomes = nomesSubServicosDoAgendamento(a.id);
+  const nomePlano = nomePlanoDoAgendamento(a);
   return `
     <div class="ticket">
       <div class="ticket-info">
         <span class="ticket-hora">${formatarHora(a.hora_inicio)} · ${formatarData(a.data)}</span>
         <span class="ticket-cliente">${escapeHtml(nomeCliente(a.cliente_id))}</span>
         <span class="ticket-detalhe">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}${subNomes.length?' + '+escapeHtml(subNomes.join(', ')):''}</span>
+        ${nomePlano?`<span class="badge-combo" style="align-self:flex-start; margin-top:2px;">Assinatura ${escapeHtml(nomePlano)}</span>`:''}
       </div>
       <div class="ticket-acoes">
         <select class="ticket-status ticket-status-select status-${a.status}" onchange="mudarStatusAgendamento('${a.id}', this.value)">
@@ -2781,7 +2796,8 @@ function abrirAcoesTicket(id){
   `;
   abrirModal(`
     <h3>${escapeHtml(nomeCliente(a.cliente_id))}</h3>
-    <p class="config-texto-ajuda">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}</p>
+    <p class="config-texto-ajuda">${escapeHtml(veiculoTxt(a.veiculo_id))} · ${escapeHtml(nomeServico(a.servico_id))}${nomePlanoDoAgendamento(a)?` · Assinatura ${escapeHtml(nomePlanoDoAgendamento(a))}`:''}</p>
+    <p class="config-texto-ajuda" style="margin-top:-10px;">${formatarData(a.data)} às ${formatarHora(a.hora_inicio)} · ${rotuloStatus(a.status)}</p>
     <div class="acoes-lista">${botoes}</div>
   `);
 }
@@ -2831,10 +2847,21 @@ function renderLucroMesPainel(){
   cardLucro.closest('.mini-card').classList.toggle('negativo', lucroMes<0);
 }
 
+let filtroOrigemAgendaAtual = 'todos';
+
+function filtrarOrigemAgenda(origem){
+  filtroOrigemAgendaAtual = origem;
+  document.querySelectorAll('#filtro-origem-agenda button').forEach(b=>b.classList.toggle('modo-ativo', b.dataset.origem===origem));
+  renderAgendaCompleta();
+}
+window.filtrarOrigemAgenda = filtrarOrigemAgenda;
+
 function renderAgendaCompleta(){
   const filtro = document.getElementById('filtro-data-agenda').value;
   let lista = cacheAgendamentos.filter(a=>a.status!=='concluido');
   if(filtro) lista = lista.filter(a=>a.data===filtro);
+  if(filtroOrigemAgendaAtual==='assinatura') lista = lista.filter(a=>!!a.assinatura_id);
+  if(filtroOrigemAgendaAtual==='normal') lista = lista.filter(a=>!a.assinatura_id);
   const box = document.getElementById('lista-agenda-completa');
   box.innerHTML = lista.length ? lista.map(ticketHtml).join('') : '<p class="vazio">Nenhum agendamento encontrado.</p>';
 }
@@ -2938,31 +2965,35 @@ let mAgendaDataSel = null;
 let mAgendaHoraSel = null;
 let mAgendaServicoSel = null;
 let mAgendaEditandoId = '';
+let contextoAgendamentoAssinatura = null;
 
-function abrirModalAgendamento(id){
+function abrirModalAgendamento(id, contexto){
+  contextoAgendamentoAssinatura = contexto || null;
   const a = id ? cacheAgendamentos.find(x=>x.id===id) : null;
-  const clienteAtual = a ? a.cliente_id : (cacheClientes[0]?.id || '');
+  const clienteAtual = a ? a.cliente_id : (contexto ? contexto.cliente_id : (cacheClientes[0]?.id || ''));
   const dataInicial = a ? a.data : '';
   mAgendaDataSel = a ? a.data : null;
   mAgendaHoraSel = a ? formatarHora(a.hora_inicio) : null;
-  mAgendaServicoSel = a ? a.servico_id : null;
+  mAgendaServicoSel = a ? a.servico_id : (contexto && contexto.servico_id_sugerido ? contexto.servico_id_sugerido : null);
   mAgendaEditandoId = a ? a.id : '';
   const baseMes = a ? new Date(...a.data.split('-').map((v,i)=>i===1?Number(v)-1:Number(v))) : new Date();
   mAgendaMes = new Date(baseMes.getFullYear(), baseMes.getMonth(), 1);
 
   abrirModal(`
-    <h3>${a?'Editar agendamento':'Novo agendamento'}</h3>
+    <h3>${a?'Editar agendamento':(contexto?'Primeiro atendimento da assinatura':'Novo agendamento')}</h3>
+    ${contexto?`<p class="modal-sub">Plano ${escapeHtml(contexto.plano_nome||'')} — esse atendimento fica vinculado à assinatura e ao ciclo atual. O saldo só é descontado quando você concluir de verdade.</p>`:''}
     <label>Cliente</label>
-    <select id="m-cliente" onchange="atualizarVeiculosModal()">
+    <select id="m-cliente" onchange="atualizarVeiculosModal()" ${contexto?'disabled':''}>
       ${cacheClientes.map(c=>`<option value="${c.id}" ${c.id===clienteAtual?'selected':''}>${escapeHtml(c.nome)}</option>`).join('') || '<option value="">Cadastre um cliente primeiro</option>'}
     </select>
     <label>Veículo</label>
-    <select id="m-veiculo">
-      ${cacheVeiculos.filter(v=>v.cliente_id===clienteAtual).map(v=>`<option value="${v.id}" ${a&&a.veiculo_id===v.id?'selected':''}>${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')}${v.placa?' - '+escapeHtml(v.placa):''}</option>`).join('')}
+    <select id="m-veiculo" ${contexto?'disabled':''}>
+      ${cacheVeiculos.filter(v=>v.cliente_id===clienteAtual).map(v=>`<option value="${v.id}" ${(a?a.veiculo_id===v.id:(contexto&&contexto.veiculo_id===v.id))?'selected':''}>${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')}${v.placa?' - '+escapeHtml(v.placa):''}</option>`).join('')}
     </select>
     <label>Serviço</label>
     <input type="hidden" id="m-servico" value="${mAgendaServicoSel||''}" />
     <div class="m-sub-servicos-lista" id="m-servicos-lista"></div>
+    <div id="m-aviso-servico-plano" class="oculto"></div>
     <label>Sub serviços (opcional)</label>
     <div class="m-sub-servicos-lista">
       ${cacheSubServicos.length ? cacheSubServicos.map(s=>{
@@ -3011,7 +3042,7 @@ function abrirModalAgendamento(id){
     <label>Observações</label>
     <textarea id="m-obs-agend" rows="2">${a?escapeHtml(a.observacoes||''):''}</textarea>
     <div class="modal-acoes">
-      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-ghost" onclick="fecharModal(); contextoAgendamentoAssinatura=null;">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarAgendamento(${a?`'${a.id}'`:'null'})">Salvar</button>
     </div>
   `);
@@ -3019,6 +3050,7 @@ function abrirModalAgendamento(id){
   renderGridDiasModal();
   renderGridHorariosModal();
   atualizarDisponibilidadeModal();
+  atualizarAvisoServicoPlano();
 }
 window.abrirModalAgendamento = abrirModalAgendamento;
 
@@ -3044,8 +3076,27 @@ function escolherServicoModal(servicoId){
   renderServicosModal();
   renderGridHorariosModal();
   atualizarDisponibilidadeModal();
+  atualizarAvisoServicoPlano();
 }
 window.escolherServicoModal = escolherServicoModal;
+
+function atualizarAvisoServicoPlano(){
+  const box = document.getElementById('m-aviso-servico-plano');
+  if(!box) return;
+  if(!contextoAgendamentoAssinatura || !mAgendaServicoSel){ box.classList.add('oculto'); box.innerHTML=''; return; }
+  const assinatura = cacheAssinaturas.find(x=>x.id===contextoAgendamentoAssinatura.assinatura_id);
+  const plano = assinatura ? cachePlanos.find(p=>p.id===assinatura.plano_id) : null;
+  if(!plano){ box.classList.add('oculto'); return; }
+  const incluso = cachePlanoServicos.some(ps=>ps.plano_id===plano.id && ps.servico_id===mAgendaServicoSel);
+  if(incluso){
+    box.classList.add('oculto');
+    box.innerHTML = '';
+  }else{
+    box.classList.remove('oculto');
+    box.innerHTML = `<p class="m-disponibilidade-conflito">Esse serviço não está incluso no plano ${escapeHtml(plano.nome)} — será tratado como serviço adicional (cobrado à parte, sem descontar saldo).</p>`;
+  }
+}
+window.atualizarAvisoServicoPlano = atualizarAvisoServicoPlano;
 
 function mudarMesModal(delta){
   mAgendaMes.setMonth(mAgendaMes.getMonth()+delta);
@@ -3219,6 +3270,11 @@ async function salvarAgendamento(id){
   });
   if(conflito && !confirm(`Já tem ${nomeCliente(conflito.cliente_id)} marcado às ${hora_inicio} nesse dia. Marcar mesmo assim?`)) return;
   const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, hora_inicio_real, hora_fim, valor_cobrado, forma_pagamento, observacoes};
+  if(!id && contextoAgendamentoAssinatura){
+    payload.assinatura_id = contextoAgendamentoAssinatura.assinatura_id;
+    payload.ciclo_id = contextoAgendamentoAssinatura.ciclo_id;
+    payload.origem = 'assinatura';
+  }
   let error, agendamentoId = id;
   if(id){
     ({error} = await sb.from('agendamentos').update(payload).eq('id', id));
@@ -3228,6 +3284,7 @@ async function salvarAgendamento(id){
     agendamentoId = resultado.data?.id;
   }
   if(error){ toast('Erro ao salvar agendamento'); return; }
+  contextoAgendamentoAssinatura = null;
   if(agendamentoId){
     await sb.from('agendamento_sub_servicos').delete().eq('agendamento_id', agendamentoId);
     if(subServicoIds.length){
@@ -3238,6 +3295,7 @@ async function salvarAgendamento(id){
   toast('Agendamento salvo!');
   await carregarAgendamentos();
   renderFinanceiro();
+  renderAssinaturas();
 }
 window.salvarAgendamento = salvarAgendamento;
 
@@ -5196,6 +5254,13 @@ async function criarCicloComSaldo(assinaturaId, planoId, dataInicioCiclo){
   return ciclo;
 }
 
+function agendamentoVinculado(assinaturaId){
+  const vinculados = cacheAgendamentos.filter(x=>x.assinatura_id===assinaturaId && x.status!=='cancelado');
+  if(vinculados.length===0) return null;
+  const futuro = vinculados.filter(x=>x.status!=='concluido').sort((a,b)=>(a.data+a.hora_inicio).localeCompare(b.data+b.hora_inicio))[0];
+  return futuro || vinculados.sort((a,b)=>(b.data+b.hora_inicio).localeCompare(a.data+a.hora_inicio))[0];
+}
+
 function renderAssinaturas(){
   const box = document.getElementById('lista-assinaturas');
   if(!box) return;
@@ -5234,9 +5299,28 @@ function renderAssinaturas(){
             </div>`;
           }).join('')}
         </div>`:'<p class="assin-meta" style="margin-top:6px;">Sem ciclo ativo.</p>'}
+        ${(()=>{
+          const ag = agendamentoVinculado(a.id);
+          if(ag){
+            return `<div class="assin-meta" style="margin-top:6px;">Atendimento: <b style="color:var(--text);">${formatarData(ag.data)} às ${formatarHora(ag.hora_inicio)}</b> · ${rotuloStatus(ag.status)}</div>`;
+          }
+          return `<div class="assin-meta" style="margin-top:6px; color:var(--red);">Nenhum atendimento agendado ainda.</div>`;
+        })()}
         ${a.observacoes?`<div class="assin-meta" style="margin-top:6px;">${escapeHtml(a.observacoes)}</div>`:''}
         <div class="ticket-acoes" style="margin-top:10px;">
           <button class="btn btn-ghost btn-sm" onclick="abrirModalAssinatura('${a.id}')">Editar</button>
+          ${(()=>{
+            const ag = agendamentoVinculado(a.id);
+            if(!ag && a.status==='ativa' && ciclo){
+              const plano = cachePlanos.find(p=>p.id===a.plano_id);
+              const servicosDoPlano = cachePlanoServicos.filter(ps=>ps.plano_id===a.plano_id);
+              return `<button class="btn btn-primary btn-sm" onclick='agendarAtendimentoAssinatura(${JSON.stringify(a.id)})'>Agendar atendimento</button>`;
+            }
+            if(ag && ag.status!=='concluido'){
+              return `<button class="btn btn-ghost btn-sm" onclick="abrirModalAgendamento('${ag.id}')">Reagendar</button>`;
+            }
+            return '';
+          })()}
           ${(a.status==='ativa' && cicloVencido)?`<button class="btn btn-primary btn-sm" onclick="renovarCicloAssinatura('${a.id}')">Renovar ciclo</button>`:''}
           ${a.status==='ativa'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'suspensa')">Suspender</button>`:''}
           ${a.status==='suspensa'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'ativa')">Reativar</button>`:''}
@@ -5247,6 +5331,23 @@ function renderAssinaturas(){
     `;
   }).join('');
 }
+
+function agendarAtendimentoAssinatura(assinaturaId){
+  const a = cacheAssinaturas.find(x=>x.id===assinaturaId);
+  if(!a) return;
+  const ciclo = cicloAtivoDaAssinatura(assinaturaId);
+  const plano = cachePlanos.find(p=>p.id===a.plano_id);
+  const servicosDoPlano = cachePlanoServicos.filter(ps=>ps.plano_id===a.plano_id);
+  abrirModalAgendamento(null, {
+    assinatura_id: assinaturaId,
+    ciclo_id: ciclo?ciclo.id:null,
+    cliente_id: a.cliente_id,
+    veiculo_id: a.veiculo_id,
+    plano_nome: plano?plano.nome:'',
+    servico_id_sugerido: servicosDoPlano.length===1 ? servicosDoPlano[0].servico_id : null
+  });
+}
+window.agendarAtendimentoAssinatura = agendarAtendimentoAssinatura;
 
 function abrirModalAssinatura(id){
   const a = id ? cacheAssinaturas.find(x=>x.id===id) : null;
@@ -5441,7 +5542,22 @@ async function salvarAssinatura(id){
   if(error){ toast('Erro ao salvar assinatura'); return; }
 
   if(!id){
-    await criarCicloComSaldo(assinaturaId, plano_id, data_inicio);
+    const ciclo = await criarCicloComSaldo(assinaturaId, plano_id, data_inicio);
+    fecharModal();
+    toast('Assinatura criada! Agora marque o primeiro atendimento.');
+    await carregarClientes();
+    await carregarAssinaturas();
+    const plano = cachePlanos.find(p=>p.id===plano_id);
+    const servicosDoPlano = cachePlanoServicos.filter(ps=>ps.plano_id===plano_id);
+    abrirModalAgendamento(null, {
+      assinatura_id: assinaturaId,
+      ciclo_id: ciclo?.id,
+      cliente_id,
+      veiculo_id,
+      plano_nome: plano?plano.nome:'',
+      servico_id_sugerido: servicosDoPlano.length===1 ? servicosDoPlano[0].servico_id : null
+    });
+    return;
   }
 
   fecharModal();
@@ -5474,10 +5590,18 @@ async function alterarStatusAssinatura(id, status){
 window.alterarStatusAssinatura = alterarStatusAssinatura;
 
 function cancelarAssinatura(id){
+  const futuros = cacheAgendamentos.filter(x=>x.assinatura_id===id && ['agendado','em_andamento'].includes(x.status));
   const motivo = prompt('Motivo do cancelamento (opcional):') || '';
   (async ()=>{
     const { error } = await sb.from('assinaturas').update({status:'cancelada', motivo_cancelamento: motivo}).eq('id', id);
     if(error){ toast('Erro ao cancelar'); return; }
+    if(futuros.length){
+      const cancelarTambem = confirm(`Existem ${futuros.length} agendamento(s) futuro(s) vinculado(s) a essa assinatura.\n\nOK = cancelar esses agendamentos também\nCancelar = manter esses agendamentos como estão`);
+      if(cancelarTambem){
+        await Promise.all(futuros.map(ag=>sb.from('agendamentos').update({status:'cancelado'}).eq('id', ag.id)));
+        await carregarAgendamentos();
+      }
+    }
     toast('Assinatura cancelada');
     carregarAssinaturas();
   })();
@@ -5495,6 +5619,16 @@ window.removerAssinatura = removerAssinatura;
 
 /* ---------- CONSUMO DE BENEFÍCIO NA CONCLUSÃO DO AGENDAMENTO ---------- */
 function assinaturaAtivaParaAgendamento(a){
+  if(a.assinatura_id && a.ciclo_id){
+    const assinatura = cacheAssinaturas.find(x=>x.id===a.assinatura_id && x.status==='ativa');
+    const ciclo = cacheAssinaturaCiclos.find(c=>c.id===a.ciclo_id && c.status==='ativo');
+    if(assinatura && ciclo){
+      const saldo = cacheAssinaturaSaldos.find(s=>s.ciclo_id===ciclo.id && s.servico_id===a.servico_id);
+      if(saldo && (saldo.contratada - saldo.utilizada) > 0) return {assinatura, ciclo, saldo};
+      return null; // vinculado à assinatura, mas serviço fora do plano ou sem saldo — cobra normal
+    }
+  }
+  // fallback pra agendamentos sem vínculo direto (ex: criados antes dessa versão)
   const candidatas = cacheAssinaturas.filter(x=>x.cliente_id===a.cliente_id && x.status==='ativa');
   if(candidatas.length===0) return null;
   const comVeiculoIgual = candidatas.find(x=>x.veiculo_id && x.veiculo_id===a.veiculo_id);
