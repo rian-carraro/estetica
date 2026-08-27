@@ -213,7 +213,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .status-aceito{background:rgba(95,184,106,0.15); color:var(--green);}
 .status-recusado{background:rgba(217,83,79,0.15); color:var(--red);}
 .status-expirado{background:rgba(154,159,166,0.15); color:var(--text-muted);}
-.ticket-acoes{display:flex; gap:8px; align-items:center;}
+.ticket-acoes{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
 .acoes-lista{display:flex; flex-direction:column; gap:8px;}
 .acoes-lista .btn{width:100%; text-align:center;}
 .fid-numero{font-family:var(--font-mono); font-size:32px; color:var(--gold); text-align:center; margin:6px 0 2px;}
@@ -227,7 +227,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .vazio{color:var(--text-muted); font-size:14px; padding:20px 0;}
 
 /* ---------- AGENDA FILTRO ---------- */
-.agenda-modos{display:flex; gap:8px; margin-bottom:16px;}
+.agenda-modos{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
 .agenda-modos .btn.modo-ativo{border-color:var(--gold); color:var(--gold);}
 .filtro-data{display:flex; align-items:center; gap:10px; margin-bottom:18px;}
 .filtro-data label{margin:0; font-size:12px;}
@@ -282,6 +282,14 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .assin-saldo-lista{margin-top:8px; display:flex; flex-direction:column; gap:4px;}
 .assin-saldo-item{display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); gap:8px;}
 .assin-beneficio-box{background:rgba(232,163,61,0.08); border:1px solid var(--gold); border-radius:8px; padding:10px 12px; margin:12px 0;}
+.assin-plano-resumo-box{
+  margin:10px 0 16px; padding:10px 12px; background:var(--surface-2); border:1px solid var(--line); border-radius:8px;
+  font-size:13px; color:var(--text-muted); line-height:1.5; overflow-wrap:break-word;
+}
+.assin-plano-resumo-box.oculto{display:none;}
+.assin-plano-resumo-label{
+  display:block; color:var(--gold); text-transform:uppercase; font-size:11px; letter-spacing:0.04em; margin-bottom:3px; font-weight:600;
+}
 .veiculos-mini{margin-top:10px; display:flex; flex-direction:column; gap:6px;}
 .cliente-assinatura-box{
   margin-top:10px; background:rgba(232,163,61,0.06); border:1px solid var(--gold); border-radius:8px; padding:10px 12px;
@@ -525,7 +533,7 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .modal-fechar-x:hover{color:var(--text); border-color:var(--gold);}
 .modal-box h3{font-size:20px; margin-bottom:4px; padding-right:36px;}
 .modal-sub{color:var(--text-muted); font-size:13px; margin:0 0 10px;}
-.modal-acoes{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
+.modal-acoes{display:flex; justify-content:flex-end; gap:10px; margin-top:22px; flex-wrap:wrap;}
 .m-sub-servicos-lista{display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto; overflow-x:hidden; padding-right:2px; margin-bottom:14px;}
 .m-sub-servico-item{
   position:relative; display:flex; align-items:center; gap:10px; min-width:0;
@@ -2669,6 +2677,15 @@ function toggleTopicosOcultos(btn){
   }
 }
 window.toggleTopicosOcultos = toggleTopicosOcultos;
+
+function toggleMaisAcoesCard(btn){
+  const extra = btn.closest('.cliente-card, .servico-card')?.querySelector('.ticket-acoes-extra');
+  if(!extra) return;
+  const expandido = !extra.classList.contains('oculto');
+  extra.classList.toggle('oculto');
+  btn.textContent = expandido ? 'Mais ações ▾' : 'Menos ações ▴';
+}
+window.toggleMaisAcoesCard = toggleMaisAcoesCard;
 
 function toggleTagsChecklistTopico(btn, id){
   const t = cacheChecklistTopicos.find(x=>x.id===id);
@@ -5656,13 +5673,9 @@ function renderAssinaturas(){
         ${a.observacoes?`<div class="assin-meta" style="margin-top:6px;">${escapeHtml(a.observacoes)}</div>`:''}
         <div class="ticket-acoes" style="margin-top:10px;">
           <button class="btn btn-ghost btn-sm" onclick="abrirModalAssinatura('${a.id}')">Editar</button>
-          <button class="btn btn-whats btn-sm" onclick="enviarWhatsappRenovacaoAssinatura('${a.id}')">Lembrar renovação</button>
-          ${ciclo?`<button class="btn btn-whats btn-sm" onclick="enviarWhatsappSaldoAssinatura('${a.id}')">Enviar saldo</button>`:''}
           ${(()=>{
             const ag = agendamentoVinculado(a.id);
             if(!ag && a.status==='ativa' && ciclo){
-              const plano = cachePlanos.find(p=>p.id===a.plano_id);
-              const servicosDoPlano = cachePlanoServicos.filter(ps=>ps.plano_id===a.plano_id);
               return `<button class="btn btn-primary btn-sm" onclick='agendarAtendimentoAssinatura(${JSON.stringify(a.id)})'>Agendar atendimento</button>`;
             }
             if(ag && ag.status!=='concluido'){
@@ -5671,6 +5684,11 @@ function renderAssinaturas(){
             return '';
           })()}
           ${(a.status==='ativa' && cicloVencido)?`<button class="btn btn-primary btn-sm" onclick="renovarCicloAssinatura('${a.id}')">Renovar ciclo</button>`:''}
+          <button type="button" class="btn btn-ghost btn-sm" onclick="toggleMaisAcoesCard(this)">Mais ações ▾</button>
+        </div>
+        <div class="ticket-acoes ticket-acoes-extra oculto" style="margin-top:8px;">
+          <button class="btn btn-whats btn-sm" onclick="enviarWhatsappRenovacaoAssinatura('${a.id}')">Lembrar renovação</button>
+          ${ciclo?`<button class="btn btn-whats btn-sm" onclick="enviarWhatsappSaldoAssinatura('${a.id}')">Enviar saldo</button>`:''}
           ${a.status==='ativa'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'suspensa')">Suspender</button>`:''}
           ${a.status==='suspensa'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'ativa')">Reativar</button>`:''}
           ${a.status!=='cancelada'?`<button class="btn btn-ghost btn-sm" onclick="cancelarAssinatura('${a.id}')">Cancelar</button>`:''}
@@ -5731,7 +5749,7 @@ function abrirModalAssinatura(id){
     <select id="m-assin-plano-id" onchange="onTrocarPlanoAssinatura(this)">
       ${cachePlanos.filter(p=>p.status==='ativo').map(p=>`<option value="${p.id}" ${a&&a.plano_id===p.id?'selected':''}>${escapeHtml(p.nome)} — R$ ${Number(p.valor).toFixed(2)}</option>`).join('') || '<option value="">Cadastre um plano primeiro</option>'}
     </select>
-    <p class="config-texto-ajuda" id="assin-plano-resumo" style="margin-top:-6px;"></p>
+    <div class="assin-plano-resumo-box" id="assin-plano-resumo"></div>
 
     <label>Data da primeira lavagem</label>
     <input type="hidden" id="m-assin-data-inicio" value="${a?a.data_inicio:hojeISO()}" />
@@ -5809,12 +5827,14 @@ function atualizarResumoPlanoAssinatura(){
   const resumo = document.getElementById('assin-plano-resumo');
   if(!resumo) return;
   const plano = cachePlanos.find(p=>p.id===planoId);
-  if(!plano){ resumo.textContent = ''; return; }
+  if(!plano){ resumo.innerHTML = ''; resumo.classList.add('oculto'); return; }
   const servicos = cachePlanoServicos.filter(ps=>ps.plano_id===planoId).map(ps=>{
     const s = cacheServicos.find(x=>x.id===ps.servico_id);
-    return s ? `${s.nome} ×${ps.quantidade_ciclo}` : null;
+    return s ? `${escapeHtml(s.nome)} ×${ps.quantidade_ciclo}` : null;
   }).filter(Boolean);
-  resumo.textContent = servicos.length ? `Inclui: ${servicos.join(', ')}` : '';
+  if(servicos.length===0){ resumo.innerHTML = ''; resumo.classList.add('oculto'); return; }
+  resumo.classList.remove('oculto');
+  resumo.innerHTML = `<span class="assin-plano-resumo-label">Inclui</span><span>${servicos.join(', ')}</span>`;
 }
 window.atualizarResumoPlanoAssinatura = atualizarResumoPlanoAssinatura;
 
