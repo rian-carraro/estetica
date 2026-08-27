@@ -1073,6 +1073,27 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         </div>
 
         <div class="config-secao">
+          <h3>Mensagem de renovação de assinatura</h3>
+          <p class="config-texto-ajuda">Enviada manualmente pelo botão "Lembrar renovação" na aba Assinaturas. Variáveis: <br/> <code>{cliente}</code> <code>{plano}</code> <code>{data}</code> <code>{valor}</code></p>
+          <textarea id="cfg-mensagem-assinatura-renovacao" rows="6"></textarea>
+          <button class="btn btn-primary" id="btn-salvar-mensagem-assinatura-renovacao">Salvar mensagem</button>
+        </div>
+
+        <div class="config-secao">
+          <h3>Mensagem de cobrança pendente</h3>
+          <p class="config-texto-ajuda">Enviada manualmente pelo botão "Cobrar via WhatsApp" no Financeiro. Variáveis: <br/> <code>{cliente}</code> <code>{plano}</code> <code>{data}</code> <code>{valor}</code></p>
+          <textarea id="cfg-mensagem-assinatura-pendencia" rows="6"></textarea>
+          <button class="btn btn-primary" id="btn-salvar-mensagem-assinatura-pendencia">Salvar mensagem</button>
+        </div>
+
+        <div class="config-secao">
+          <h3>Mensagem de saldo restante</h3>
+          <p class="config-texto-ajuda">Enviada manualmente ao concluir um serviço de assinatura. Variáveis: <br/> <code>{cliente}</code> <code>{plano}</code> <code>{servico}</code> <code>{saldo}</code></p>
+          <textarea id="cfg-mensagem-assinatura-saldo" rows="6"></textarea>
+          <button class="btn btn-primary" id="btn-salvar-mensagem-assinatura-saldo">Salvar mensagem</button>
+        </div>
+
+        <div class="config-secao">
           <h3>Seu WhatsApp (recebe aviso de novo agendamento feito pelo link)</h3>
           <input id="cfg-telefone-negocio" type="text" placeholder="Ex: 5514999999999 (DDI+DDD+número, só números)" />
           <button class="btn btn-primary" id="btn-salvar-telefone">Salvar</button>
@@ -3504,7 +3525,10 @@ async function confirmarHorarioEtapa(id, etapa){
     if(usandoBeneficio && a){
       const beneficio = assinaturaAtivaParaAgendamento(a);
       if(beneficio) await consumirBeneficioAssinatura(id, a.servico_id, beneficio.saldo);
-      carregarAssinaturas();
+      await carregarAssinaturas();
+      if(beneficio && telefoneCliente(a.cliente_id) && confirm('Avisar o cliente do saldo restante da assinatura por WhatsApp?')){
+        enviarWhatsappSaldoAssinatura(beneficio.assinatura.id);
+      }
     }
   }
 }
@@ -3576,6 +3600,83 @@ function enviarLembrete(id){
   window.open(url, '_blank');
 }
 window.enviarLembrete = enviarLembrete;
+
+/* ---------- WHATSAPP SOB DEMANDA — ASSINATURAS ---------- */
+function montarMensagemAssinatura(template, dados){
+  let msg = template
+    .replaceAll('{cliente}', dados.cliente||'')
+    .replaceAll('{plano}', dados.plano||'')
+    .replaceAll('{data}', dados.data||'')
+    .replaceAll('{valor}', dados.valor||'')
+    .replaceAll('{servico}', dados.servico||'')
+    .replaceAll('{saldo}', dados.saldo||'');
+  msg = msg.split('\n')
+    .filter(linha => linha.trim()==='' || !/:\s*$/.test(linha.trim()))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');
+  return msg;
+}
+
+function enviarWhatsappRenovacaoAssinatura(assinaturaId){
+  const a = cacheAssinaturas.find(x=>x.id===assinaturaId);
+  if(!a) return;
+  const cliente = cacheClientes.find(c=>c.id===a.cliente_id);
+  const plano = cachePlanos.find(p=>p.id===a.plano_id);
+  const ciclo = cicloAtivoDaAssinatura(assinaturaId);
+  if(!cliente || !plano){ toast('Dados incompletos pra montar a mensagem'); return; }
+  const fone = telefoneCliente(a.cliente_id);
+  if(!fone){ toast('Cliente sem telefone cadastrado'); return; }
+  const template = (cacheConfig && cacheConfig.mensagem_assinatura_renovacao) ||
+    'Olá, {cliente}! Sua assinatura {plano} será renovada em {data}, no valor de {valor}.';
+  const msg = montarMensagemAssinatura(template, {
+    cliente: cliente.nome, plano: plano.nome,
+    data: ciclo?formatarData(ciclo.data_fim):'—',
+    valor: formatarMoeda(plano.valor)
+  });
+  window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+window.enviarWhatsappRenovacaoAssinatura = enviarWhatsappRenovacaoAssinatura;
+
+function enviarWhatsappCobrancaPendente(cobrancaId){
+  const c = cacheAssinaturaCobrancas.find(x=>x.id===cobrancaId);
+  if(!c) return;
+  const a = cacheAssinaturas.find(x=>x.id===c.assinatura_id);
+  const cliente = a ? cacheClientes.find(cl=>cl.id===a.cliente_id) : null;
+  const plano = a ? cachePlanos.find(p=>p.id===a.plano_id) : null;
+  if(!a || !cliente){ toast('Dados incompletos pra montar a mensagem'); return; }
+  const fone = telefoneCliente(a.cliente_id);
+  if(!fone){ toast('Cliente sem telefone cadastrado'); return; }
+  const template = (cacheConfig && cacheConfig.mensagem_assinatura_pendencia) ||
+    'Olá, {cliente}! Identificamos uma pendência de {valor} na sua assinatura {plano}, vencida em {data}.';
+  const msg = montarMensagemAssinatura(template, {
+    cliente: cliente.nome, plano: plano?plano.nome:'', data: formatarData(c.data), valor: formatarMoeda(c.valor)
+  });
+  window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+window.enviarWhatsappCobrancaPendente = enviarWhatsappCobrancaPendente;
+
+function enviarWhatsappSaldoAssinatura(assinaturaId){
+  const a = cacheAssinaturas.find(x=>x.id===assinaturaId);
+  if(!a) return;
+  const cliente = cacheClientes.find(c=>c.id===a.cliente_id);
+  const plano = cachePlanos.find(p=>p.id===a.plano_id);
+  const ciclo = cicloAtivoDaAssinatura(assinaturaId);
+  if(!cliente || !plano || !ciclo){ toast('Sem ciclo ativo pra essa assinatura'); return; }
+  const fone = telefoneCliente(a.cliente_id);
+  if(!fone){ toast('Cliente sem telefone cadastrado'); return; }
+  const saldos = saldosDoCiclo(ciclo.id);
+  const saldoTxt = saldos.map(s=>{
+    const servico = cacheServicos.find(x=>x.id===s.servico_id);
+    return `${servico?servico.nome:'Serviço'}: ${s.contratada-s.utilizada}`;
+  }).join(', ');
+  const template = (cacheConfig && cacheConfig.mensagem_assinatura_saldo) ||
+    'Olá, {cliente}! Você ainda tem {saldo} disponível na sua assinatura {plano} nesse ciclo.';
+  const msg = montarMensagemAssinatura(template, {
+    cliente: cliente.nome, plano: plano.nome, servico: '', saldo: saldoTxt || 'nenhuma utilização restante'
+  });
+  window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+window.enviarWhatsappSaldoAssinatura = enviarWhatsappSaldoAssinatura;
 
 /* =========================================================
    ESTOQUE / PRODUTOS
@@ -4011,6 +4112,18 @@ function renderConfiguracoes(){
   const msgLembreteBox = document.getElementById('cfg-mensagem-lembrete');
   if(msgLembreteBox) msgLembreteBox.value = cacheConfig.mensagem_lembrete || '';
 
+  const msgAssinRenovacaoBox = document.getElementById('cfg-mensagem-assinatura-renovacao');
+  if(msgAssinRenovacaoBox) msgAssinRenovacaoBox.value = cacheConfig.mensagem_assinatura_renovacao ||
+    'Olá, {cliente}! Sua assinatura {plano} será renovada em {data}, no valor de {valor}. Qualquer dúvida, é só chamar!';
+
+  const msgAssinPendenciaBox = document.getElementById('cfg-mensagem-assinatura-pendencia');
+  if(msgAssinPendenciaBox) msgAssinPendenciaBox.value = cacheConfig.mensagem_assinatura_pendencia ||
+    'Olá, {cliente}! Identificamos uma pendência de {valor} na sua assinatura {plano}, vencida em {data}. Pode verificar pra gente, por favor?';
+
+  const msgAssinSaldoBox = document.getElementById('cfg-mensagem-assinatura-saldo');
+  if(msgAssinSaldoBox) msgAssinSaldoBox.value = cacheConfig.mensagem_assinatura_saldo ||
+    'Olá, {cliente}! Seu serviço de {servico} foi concluído. Você ainda tem {saldo} utilização(ões) disponível(is) na sua assinatura {plano} nesse ciclo.';
+
   const fidMetaBox = document.getElementById('cfg-fidelidade-meta');
   if(fidMetaBox) fidMetaBox.value = cacheConfig.fidelidade_meta || 10;
   const fidPremioBox = document.getElementById('cfg-fidelidade-premio');
@@ -4285,6 +4398,30 @@ document.getElementById('btn-salvar-mensagem-lembrete').addEventListener('click'
   if(error){ toast('Erro ao salvar a mensagem de lembrete'); return; }
   cacheConfig.mensagem_lembrete = mensagem;
   toast('Mensagem de lembrete salva!');
+});
+
+document.getElementById('btn-salvar-mensagem-assinatura-renovacao').addEventListener('click', async ()=>{
+  const mensagem = document.getElementById('cfg-mensagem-assinatura-renovacao').value;
+  const { error } = await sb.from('configuracoes').update({mensagem_assinatura_renovacao: mensagem}).eq('id','unica');
+  if(error){ toast('Erro ao salvar a mensagem'); return; }
+  cacheConfig.mensagem_assinatura_renovacao = mensagem;
+  toast('Mensagem salva!');
+});
+
+document.getElementById('btn-salvar-mensagem-assinatura-pendencia').addEventListener('click', async ()=>{
+  const mensagem = document.getElementById('cfg-mensagem-assinatura-pendencia').value;
+  const { error } = await sb.from('configuracoes').update({mensagem_assinatura_pendencia: mensagem}).eq('id','unica');
+  if(error){ toast('Erro ao salvar a mensagem'); return; }
+  cacheConfig.mensagem_assinatura_pendencia = mensagem;
+  toast('Mensagem salva!');
+});
+
+document.getElementById('btn-salvar-mensagem-assinatura-saldo').addEventListener('click', async ()=>{
+  const mensagem = document.getElementById('cfg-mensagem-assinatura-saldo').value;
+  const { error } = await sb.from('configuracoes').update({mensagem_assinatura_saldo: mensagem}).eq('id','unica');
+  if(error){ toast('Erro ao salvar a mensagem'); return; }
+  cacheConfig.mensagem_assinatura_saldo = mensagem;
+  toast('Mensagem salva!');
 });
 
 document.getElementById('btn-salvar-fidelidade').addEventListener('click', async ()=>{
@@ -4604,6 +4741,7 @@ function renderListaCobrancasAssinatura(cobrancasPeriodo){
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="color:${c.status==='pago'?'var(--green)':'var(--gold)'}; font-family:var(--font-mono); font-weight:600;">${formatarMoeda(c.valor)}</span>
+          ${c.status!=='pago'?`<button class="btn btn-whats btn-sm" onclick="enviarWhatsappCobrancaPendente('${c.id}')">Cobrar</button>`:''}
           ${c.status!=='pago'?`<button class="btn btn-ghost btn-sm" onclick="marcarCobrancaAssinaturaPaga('${c.id}')">Marcar paga</button>`:`<button class="btn btn-ghost btn-sm" onclick="marcarCobrancaAssinaturaPendente('${c.id}')">Desfazer</button>`}
         </div>
       </div>
@@ -5522,6 +5660,8 @@ function renderAssinaturas(){
         ${a.observacoes?`<div class="assin-meta" style="margin-top:6px;">${escapeHtml(a.observacoes)}</div>`:''}
         <div class="ticket-acoes" style="margin-top:10px;">
           <button class="btn btn-ghost btn-sm" onclick="abrirModalAssinatura('${a.id}')">Editar</button>
+          <button class="btn btn-whats btn-sm" onclick="enviarWhatsappRenovacaoAssinatura('${a.id}')">Lembrar renovação</button>
+          ${ciclo?`<button class="btn btn-whats btn-sm" onclick="enviarWhatsappSaldoAssinatura('${a.id}')">Enviar saldo</button>`:''}
           ${(()=>{
             const ag = agendamentoVinculado(a.id);
             if(!ag && a.status==='ativa' && ciclo){

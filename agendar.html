@@ -114,6 +114,10 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
 .dia-btn.selecionado{background:var(--gold); color:#1A1200; border-color:var(--gold); font-weight:600;}
 .aviso{font-size:13px; color:var(--text-muted); text-align:center; padding:16px 0;}
 .aviso.erro{color:var(--red);}
+.resumo-assinatura-aviso{
+  margin-top:12px; background:rgba(232,163,61,0.1); border:1px solid var(--gold); border-radius:8px;
+  padding:10px 12px; font-size:13px; color:var(--gold);
+}
 
 .resumo{background:var(--surface-2); border-radius:8px; padding:14px 16px; margin-bottom:16px; font-size:13px; line-height:1.7;}
 .resumo b{color:var(--gold);}
@@ -711,13 +715,41 @@ function escolherHorario(hora){
 }
 window.escolherHorario = escolherHorario;
 
-function irParaResumo(){
+let assinaturaClientePub = null;
+
+async function detectarAssinaturaCliente(whatsapp){
+  assinaturaClientePub = null;
+  try{
+    const { data: cliente } = await sb.from('clientes').select('id').eq('telefone', whatsapp).maybeSingle();
+    if(!cliente) return null;
+    const { data: assinaturas } = await sb.from('assinaturas').select('*').eq('cliente_id', cliente.id).eq('status','ativa');
+    if(!assinaturas || assinaturas.length===0) return null;
+    const assinatura = assinaturas[0];
+    const { data: ciclo } = await sb.from('assinatura_ciclos').select('*').eq('assinatura_id', assinatura.id).eq('status','ativo').maybeSingle();
+    if(!ciclo) return null;
+    const { data: saldos } = await sb.from('assinatura_ciclo_saldos').select('*').eq('ciclo_id', ciclo.id);
+    const saldo = (saldos||[]).find(s=>s.servico_id===servicoEscolhido.id);
+    if(!saldo || (saldo.contratada-saldo.utilizada)<=0) return null;
+    assinaturaClientePub = {assinatura_id: assinatura.id, ciclo_id: ciclo.id, restante: saldo.contratada-saldo.utilizada};
+    return assinaturaClientePub;
+  }catch(e){
+    return null;
+  }
+}
+
+async function irParaResumo(){
   const nome = document.getElementById('input-nome').value.trim();
   const whatsapp = document.getElementById('input-whatsapp').value.trim();
   if(!nome || !whatsapp){
     alert('Preencha seu nome e WhatsApp pra continuar.');
     return;
   }
+  const btn = document.getElementById('btn-continuar-dados');
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  await detectarAssinaturaCliente(whatsapp.replace(/\D/g,''));
+  btn.disabled = false;
+  btn.textContent = 'Continuar';
   renderResumo();
   irParaPasso(5);
 }
@@ -735,8 +767,9 @@ function renderResumo(){
     <div><b>Dia:</b> ${formatarDataBr(dataEscolhida)}</div>
     <div><b>Horário:</b> ${horaEscolhida}</div>
     <div><b>Duração:</b> ${formatarDuracao(servicoEscolhido.duracao_minutos||60)}</div>
-    <div><b>Valor:</b> R$ ${valorTotal.toFixed(2)}</div>
+    <div><b>Valor:</b> ${assinaturaClientePub ? 'Incluso na sua assinatura' : 'R$ '+valorTotal.toFixed(2)}</div>
     <div><b>Veículo:</b> ${escapeHtml(veiculoTxt)}</div>
+    ${assinaturaClientePub ? `<div class="resumo-assinatura-aviso">✓ Assinatura ativa identificada — esse serviço vai ser descontado do seu plano (restam ${assinaturaClientePub.restante} nesse ciclo, incluindo esse agendamento).</div>` : ''}
   `;
 }
 
@@ -780,7 +813,7 @@ async function confirmarAgendamento(){
       ? `Sub serviços adicionados: ${subs.map(s=>`${s.nome} (R$ ${Number(s.preco||0).toFixed(2)})`).join(', ')}`
       : null;
 
-    const { error: erroAgendamento } = await sb.from('agendamentos').insert({
+    const payloadAgendamento = {
       cliente_id: clienteId,
       veiculo_id: veiculoId,
       servico_id: servicoEscolhido.id,
@@ -788,10 +821,18 @@ async function confirmarAgendamento(){
       hora_inicio: horaEscolhida,
       status: 'agendado',
       observacoes
-    });
+    };
+    if(assinaturaClientePub){
+      payloadAgendamento.assinatura_id = assinaturaClientePub.assinatura_id;
+      payloadAgendamento.ciclo_id = assinaturaClientePub.ciclo_id;
+      payloadAgendamento.origem = 'assinatura';
+    }
+
+    const { error: erroAgendamento } = await sb.from('agendamentos').insert(payloadAgendamento);
     if(erroAgendamento) throw erroAgendamento;
 
     mostrarSucesso(nome);
+    assinaturaClientePub = null;
   }catch(e){
     alert('Não foi possível confirmar o agendamento. Tente novamente. (' + (e.message||'erro') + ')');
     btn.disabled = false;
