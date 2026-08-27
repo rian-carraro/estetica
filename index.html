@@ -5302,16 +5302,12 @@ function renderDashboardAssinaturas(){
   const ativas = cacheAssinaturas.filter(a=>a.status==='ativa');
   const qtdAtivas = ativas.length;
 
-  const mrr = ativas.reduce((soma,a)=>{
+  const receitaRecorrente = ativas.reduce((soma,a)=>{
     const plano = cachePlanos.find(p=>p.id===a.plano_id);
-    if(!plano) return soma;
-    const valor = Number(plano.valor||0);
-    if(plano.periodicidade==='quinzenal') return soma + valor*2;
-    if(plano.periodicidade==='semanal') return soma + valor*4.345;
-    return soma + valor;
+    return plano ? soma + Number(plano.valor||0) : soma;
   }, 0);
 
-  const ticketMedio = qtdAtivas>0 ? mrr/qtdAtivas : 0;
+  const ticketMedio = qtdAtivas>0 ? receitaRecorrente/qtdAtivas : 0;
 
   const { inicio, fim } = intervaloMesAtual();
   const criadaNoMes = a => a.created_at && a.created_at.slice(0,10)>=inicio && a.created_at.slice(0,10)<=fim;
@@ -5330,7 +5326,7 @@ function renderDashboardAssinaturas(){
 
   box.innerHTML = `
     <div class="fin-cards">
-      <div class="fin-card receita"><div class="fin-card-label">MRR (receita recorrente/mês)</div><div class="fin-card-valor">${formatarMoeda(mrr)}</div></div>
+      <div class="fin-card receita"><div class="fin-card-label">Receita recorrente ativa</div><div class="fin-card-valor">${formatarMoeda(receitaRecorrente)}</div></div>
       <div class="fin-card"><div class="fin-card-label">Assinantes ativos</div><div class="fin-card-valor">${qtdAtivas}</div></div>
       <div class="fin-card"><div class="fin-card-label">Ticket médio</div><div class="fin-card-valor">${formatarMoeda(ticketMedio)}</div></div>
       <div class="fin-card"><div class="fin-card-label">Novos assinantes (mês)</div><div class="fin-card-valor">${novosNoMes}</div></div>
