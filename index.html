@@ -2919,9 +2919,9 @@ function renderLucroMesPainel(){
     .filter(a => a.status==='concluido' && a.data>=inicio && a.data<=fim)
     .reduce((soma,a)=>soma+valorAgendamento(a), 0);
 
-  const receitaAssinaturasMes = (cacheAssinaturaCobrancas||[])
-    .filter(c => c.status==='pago' && c.data>=inicio && c.data<=fim)
-    .reduce((soma,c)=>soma+Number(c.valor||0), 0);
+  const receitaAssinaturasMes = (cacheAssinaturaPagamentos||[])
+    .filter(p => p.data>=inicio && p.data<=fim)
+    .reduce((soma,p)=>soma+Number(p.valor||0), 0);
 
   const despesaMes = (cacheDespesas||[])
     .filter(d => d.data>=inicio && d.data<=fim)
@@ -3665,8 +3665,9 @@ function enviarWhatsappCobrancaPendente(cobrancaId){
   if(!fone){ toast('Cliente sem telefone cadastrado'); return; }
   const template = (cacheConfig && cacheConfig.mensagem_assinatura_pendencia) ||
     'Olá, {cliente}! Identificamos uma pendência de {valor} na sua assinatura {plano}, vencida em {data}.';
+  const restante = Number(c.valor||0) - Number(c.valor_pago||0);
   const msg = montarMensagemAssinatura(template, {
-    cliente: cliente.nome, plano: plano?plano.nome:'', data: formatarData(c.data), valor: formatarMoeda(c.valor)
+    cliente: cliente.nome, plano: plano?plano.nome:'', data: formatarData(c.data), valor: formatarMoeda(restante)
   });
   window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
@@ -4707,7 +4708,9 @@ function renderFinanceiro(){
   const qtdServicos = concluidosPeriodo.length;
 
   const cobrancasPeriodo = (cacheAssinaturaCobrancas||[]).filter(c => c.data >= inicio && c.data <= fim);
-  const receitaAssinaturas = cobrancasPeriodo.filter(c=>c.status==='pago').reduce((soma,c)=>soma+Number(c.valor||0), 0);
+  const receitaAssinaturas = (cacheAssinaturaPagamentos||[])
+    .filter(p => p.data >= inicio && p.data <= fim)
+    .reduce((soma,p)=>soma+Number(p.valor||0), 0);
 
   const receitaTotal = receitaServicos + receitaAssinaturas;
   const ticketMedio = qtdServicos>0 ? receitaServicos/qtdServicos : 0;
@@ -4747,19 +4750,22 @@ function renderListaCobrancasAssinatura(cobrancasPeriodo){
     const assinatura = cacheAssinaturas.find(a=>a.id===c.assinatura_id);
     const cliente = assinatura ? cacheClientes.find(cl=>cl.id===assinatura.cliente_id) : null;
     const plano = assinatura ? cachePlanos.find(p=>p.id===assinatura.plano_id) : null;
-    const atrasada = c.status==='pendente' && c.data < hoje;
-    const statusTxt = c.status==='pago' ? 'Paga' : (atrasada ? 'Atrasada' : 'Pendente');
-    const statusClasse = c.status==='pago' ? 'status-ativo' : (atrasada ? 'status-cancelado' : 'status-pausado');
+    const valorPago = Number(c.valor_pago||0);
+    const restante = Number(c.valor||0) - valorPago;
+    const atrasada = c.status!=='pago' && c.data < hoje;
+    const statusTxt = c.status==='pago' ? 'Paga' : (c.status==='parcial' ? 'Parcial' : (atrasada ? 'Atrasada' : 'Pendente'));
+    const statusClasse = c.status==='pago' ? 'status-ativo' : (c.status==='parcial' ? 'status-pausado' : (atrasada ? 'status-cancelado' : 'status-pausado'));
     return `
       <div class="fin-despesa-item">
         <div>
           <span class="fin-despesa-nome">${escapeHtml(cliente?cliente.nome:'Cliente removido')} <span class="ticket-status ${statusClasse}" style="margin-left:6px;">${statusTxt}</span></span>
-          <span class="fin-despesa-meta">${escapeHtml(plano?plano.nome:'Plano removido')} · ${formatarData(c.data)}</span>
+          <span class="fin-despesa-meta">${escapeHtml(plano?plano.nome:'Plano removido')} · ${formatarData(c.data)}${valorPago>0?` · pago ${formatarMoeda(valorPago)} de ${formatarMoeda(c.valor)}`:''}</span>
         </div>
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="color:${c.status==='pago'?'var(--green)':'var(--gold)'}; font-family:var(--font-mono); font-weight:600;">${formatarMoeda(c.valor)}</span>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="color:${c.status==='pago'?'var(--green)':'var(--gold)'}; font-family:var(--font-mono); font-weight:600;">${c.status==='pago'?formatarMoeda(c.valor):formatarMoeda(restante)+' falta'}</span>
           ${c.status!=='pago'?`<button class="btn btn-whats btn-sm" onclick="enviarWhatsappCobrancaPendente('${c.id}')">Cobrar</button>`:''}
-          ${c.status!=='pago'?`<button class="btn btn-ghost btn-sm" onclick="marcarCobrancaAssinaturaPaga('${c.id}')">Marcar paga</button>`:`<button class="btn btn-ghost btn-sm" onclick="marcarCobrancaAssinaturaPendente('${c.id}')">Desfazer</button>`}
+          ${c.status!=='pago'?`<button class="btn btn-ghost btn-sm" onclick="marcarCobrancaAssinaturaPaga('${c.id}')">${valorPago>0?'Registrar mais pagamento':'Registrar pagamento'}</button>`:''}
+          ${valorPago>0?`<button class="btn btn-ghost btn-sm" onclick="desfazerUltimoPagamentoCobranca('${c.id}')">Desfazer último pagamento</button>`:''}
         </div>
       </div>
     `;
@@ -4767,22 +4773,44 @@ function renderListaCobrancasAssinatura(cobrancasPeriodo){
 }
 
 async function marcarCobrancaAssinaturaPaga(id){
-  const { error } = await sb.from('assinatura_cobrancas').update({status:'pago'}).eq('id', id);
+  const c = cacheAssinaturaCobrancas.find(x=>x.id===id);
+  if(!c) return;
+  const jaPago = Number(c.valor_pago||0);
+  const restante = Number(c.valor||0) - jaPago;
+  const entrada = prompt(`Quanto o cliente pagou agora?\n\nValor da assinatura: ${formatarMoeda(c.valor)}\nJá pago: ${formatarMoeda(jaPago)}\nFalta: ${formatarMoeda(restante)}`, restante>0?restante.toFixed(2):'0');
+  if(entrada===null) return;
+  const valorPago = parseFloat(entrada.replace(',','.'))||0;
+  if(valorPago<=0){ toast('Informe um valor maior que zero'); return; }
+
+  const { error: erroPagamento } = await sb.from('assinatura_pagamentos').insert({cobranca_id: id, valor: valorPago, data: hojeISO()});
+  if(erroPagamento){ toast('Erro ao registrar pagamento'); return; }
+
+  const novoTotalPago = jaPago + valorPago;
+  const novoStatus = novoTotalPago >= Number(c.valor||0) ? 'pago' : 'parcial';
+  const { error } = await sb.from('assinatura_cobrancas').update({valor_pago: novoTotalPago, status: novoStatus}).eq('id', id);
   if(error){ toast('Erro ao atualizar cobrança'); return; }
-  toast('Cobrança marcada como paga!');
+
+  toast(novoStatus==='pago' ? 'Cobrança quitada!' : `Pagamento parcial registrado — falta ${formatarMoeda(Number(c.valor||0)-novoTotalPago)}`);
   await carregarAssinaturas();
   renderFinanceiro();
 }
 window.marcarCobrancaAssinaturaPaga = marcarCobrancaAssinaturaPaga;
 
-async function marcarCobrancaAssinaturaPendente(id){
-  const { error } = await sb.from('assinatura_cobrancas').update({status:'pendente'}).eq('id', id);
-  if(error){ toast('Erro ao atualizar cobrança'); return; }
-  toast('Cobrança revertida pra pendente');
+async function desfazerUltimoPagamentoCobranca(id){
+  const pagamentosDaCobranca = cacheAssinaturaPagamentos.filter(p=>p.cobranca_id===id).sort((a,b)=>b.data.localeCompare(a.data));
+  const ultimo = pagamentosDaCobranca[0];
+  if(!ultimo){ toast('Nenhum pagamento registrado pra desfazer'); return; }
+  if(!confirm(`Desfazer o último pagamento de ${formatarMoeda(ultimo.valor)}?`)) return;
+  await sb.from('assinatura_pagamentos').delete().eq('id', ultimo.id);
+  const c = cacheAssinaturaCobrancas.find(x=>x.id===id);
+  const novoTotalPago = Math.max(0, Number(c.valor_pago||0) - Number(ultimo.valor||0));
+  const novoStatus = novoTotalPago<=0 ? 'pendente' : (novoTotalPago >= Number(c.valor||0) ? 'pago' : 'parcial');
+  await sb.from('assinatura_cobrancas').update({valor_pago: novoTotalPago, status: novoStatus}).eq('id', id);
+  toast('Pagamento desfeito');
   await carregarAssinaturas();
   renderFinanceiro();
 }
-window.marcarCobrancaAssinaturaPendente = marcarCobrancaAssinaturaPendente;
+window.desfazerUltimoPagamentoCobranca = desfazerUltimoPagamentoCobranca;
 
 function mesAtualStr(){
   const hoje = new Date();
@@ -5227,6 +5255,7 @@ let cacheAssinaturaCiclos = [];
 let cacheAssinaturaSaldos = [];
 let cacheAssinaturaUtilizacoes = [];
 let cacheAssinaturaCobrancas = [];
+let cacheAssinaturaPagamentos = [];
 let modoAssinaturasAtual = 'dashboard';
 
 async function carregarAssinaturas(){
@@ -5238,7 +5267,8 @@ async function carregarAssinaturas(){
     { data: ciclos },
     { data: saldos },
     { data: utilizacoes },
-    { data: cobrancas }
+    { data: cobrancas },
+    { data: pagamentos }
   ] = await Promise.all([
     sb.from('planos').select('*').order('ordem').order('nome'),
     sb.from('plano_servicos').select('*'),
@@ -5247,7 +5277,8 @@ async function carregarAssinaturas(){
     sb.from('assinatura_ciclos').select('*'),
     sb.from('assinatura_ciclo_saldos').select('*'),
     sb.from('assinatura_utilizacoes').select('*').order('data', {ascending:false}),
-    sb.from('assinatura_cobrancas').select('*').order('data', {ascending:false})
+    sb.from('assinatura_cobrancas').select('*').order('data', {ascending:false}),
+    sb.from('assinatura_pagamentos').select('*').order('data', {ascending:false})
   ]);
   cachePlanos = planos || [];
   cachePlanoServicos = planoServicos || [];
@@ -5257,6 +5288,7 @@ async function carregarAssinaturas(){
   cacheAssinaturaSaldos = saldos || [];
   cacheAssinaturaUtilizacoes = utilizacoes || [];
   cacheAssinaturaCobrancas = cobrancas || [];
+  cacheAssinaturaPagamentos = pagamentos || [];
   renderPlanos();
   renderAssinaturas();
   renderDashboardAssinaturas();
@@ -5334,12 +5366,12 @@ function renderDashboardAssinaturas(){
   const churn = baseChurn>0 ? (canceladasNoMes/baseChurn*100) : 0;
 
   const hoje = hojeISO();
-  const cobrancasPendentes = (cacheAssinaturaCobrancas||[]).filter(c=>c.status==='pendente').length;
-  const cobrancasAtrasadas = (cacheAssinaturaCobrancas||[]).filter(c=>c.status==='pendente' && c.data < hoje).length;
+  const cobrancasPendentes = (cacheAssinaturaCobrancas||[]).filter(c=>c.status==='pendente' || c.status==='parcial').length;
+  const cobrancasAtrasadas = (cacheAssinaturaCobrancas||[]).filter(c=>c.status!=='pago' && c.data < hoje).length;
 
-  const receitaRecebidaMes = (cacheAssinaturaCobrancas||[])
-    .filter(c=>c.status==='pago' && c.data>=inicio && c.data<=fim)
-    .reduce((soma,c)=>soma+Number(c.valor||0),0);
+  const receitaRecebidaMes = (cacheAssinaturaPagamentos||[])
+    .filter(p=>p.data>=inicio && p.data<=fim)
+    .reduce((soma,p)=>soma+Number(p.valor||0),0);
 
   box.innerHTML = `
     <div class="fin-cards">
@@ -5640,6 +5672,8 @@ function renderAssinaturas(){
     const ciclo = cicloAtivoDaAssinatura(a.id);
     const saldos = ciclo ? saldosDoCiclo(ciclo.id) : [];
     const cicloVencido = ciclo && ciclo.data_fim <= hoje;
+    const cobrancaCiclo = ciclo ? cacheAssinaturaCobrancas.find(c=>c.ciclo_id===ciclo.id) : null;
+    const saldoDevedor = cobrancaCiclo ? Number(cobrancaCiclo.valor||0) - Number(cobrancaCiclo.valor_pago||0) : 0;
     return `
       <div class="cliente-card">
         <div class="cliente-topo">
@@ -5653,6 +5687,12 @@ function renderAssinaturas(){
         <div class="assin-meta" style="margin-top:6px;">
           Ciclo atual: ${formatarData(ciclo.data_inicio)} → <b style="color:${cicloVencido?'var(--red)':'var(--text)'};">${formatarData(ciclo.data_fim)}</b>${cicloVencido?' — vencido, renove':''}
         </div>
+        ${cobrancaCiclo?`
+        <div class="assin-meta" style="margin-top:2px;">
+          Pagamento do ciclo: ${cobrancaCiclo.status==='pago'
+            ? `<b style="color:var(--green);">quitado</b>`
+            : `<b style="color:var(--gold);">saldo restante: ${formatarMoeda(saldoDevedor)}</b>${Number(cobrancaCiclo.valor_pago||0)>0?` (já pago ${formatarMoeda(cobrancaCiclo.valor_pago)} de ${formatarMoeda(cobrancaCiclo.valor)})`:''}`}
+        </div>`:''}
         <div class="assin-saldo-lista">
           ${saldos.map(s=>{
             const servico = cacheServicos.find(x=>x.id===s.servico_id);
