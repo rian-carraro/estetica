@@ -1936,6 +1936,7 @@ function renderClientes(){
             return `<div class="assin-saldo-item"><span>${escapeHtml(servico?servico.nome:'Serviço removido')}</span><span>${restante} restante${restante!==1?'s':''}</span></div>`;
           }).join('')}</div>`:''}
           <button class="link-add" onclick="abrirModalAssinatura('${assinatura.id}')">ver assinatura completa</button>
+          <button class="link-add" onclick="enviarWhatsappStatusAssinatura('${assinatura.id}')">enviar pro cliente</button>
         </div>`;
       })()}
       <div class="veiculos-mini">
@@ -3546,6 +3547,16 @@ async function confirmarHorarioEtapa(id, etapa){
       if(beneficio && telefoneCliente(a.cliente_id) && confirm('Avisar o cliente do saldo restante da assinatura por WhatsApp?')){
         enviarWhatsappSaldoAssinatura(beneficio.assinatura.id);
       }
+    }else if(a && a.assinatura_id){
+      await carregarAssinaturas();
+    }
+    if(a && a.assinatura_id){
+      const assinaturaId = a.assinatura_id;
+      const ciclo = cicloAtivoDaAssinatura(assinaturaId);
+      const restanteTotal = ciclo ? saldosDoCiclo(ciclo.id).reduce((soma,s)=>soma+Math.max(0, s.contratada-s.utilizada), 0) : 0;
+      if(ciclo && restanteTotal>0 && confirm(`Ainda restam ${restanteTotal} utilização(ões) nesse ciclo. Agendar o próximo atendimento agora?`)){
+        agendarAtendimentoAssinatura(assinaturaId);
+      }
     }
   }
 }
@@ -3633,6 +3644,28 @@ function montarMensagemAssinatura(template, dados){
     .replace(/\n{3,}/g, '\n\n');
   return msg;
 }
+
+function linkAssinatura(id){
+  const base = location.href.replace(/[^\/]*$/, '');
+  return base + 'assinatura.html?id=' + id;
+}
+
+function copiarLinkAssinatura(id){
+  navigator.clipboard.writeText(linkAssinatura(id)).then(()=>toast('Link copiado!'));
+}
+window.copiarLinkAssinatura = copiarLinkAssinatura;
+
+function enviarWhatsappStatusAssinatura(assinaturaId){
+  const a = cacheAssinaturas.find(x=>x.id===assinaturaId);
+  if(!a) return;
+  const cliente = cacheClientes.find(c=>c.id===a.cliente_id);
+  if(!cliente){ toast('Cliente não encontrado'); return; }
+  const fone = telefoneCliente(a.cliente_id);
+  if(!fone){ toast('Cliente sem telefone cadastrado'); return; }
+  const msg = `Olá, ${cliente.nome}! Aqui está o link da sua assinatura — dá pra ver quantos serviços ainda restam nesse ciclo e o que já foi feito:\n\n${linkAssinatura(a.id)}`;
+  window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+window.enviarWhatsappStatusAssinatura = enviarWhatsappStatusAssinatura;
 
 function enviarWhatsappRenovacaoAssinatura(assinaturaId){
   const a = cacheAssinaturas.find(x=>x.id===assinaturaId);
@@ -5729,6 +5762,8 @@ function renderAssinaturas(){
         <div class="ticket-acoes ticket-acoes-extra oculto" style="margin-top:8px;">
           <button class="btn btn-whats btn-sm" onclick="enviarWhatsappRenovacaoAssinatura('${a.id}')">Lembrar renovação</button>
           ${ciclo?`<button class="btn btn-whats btn-sm" onclick="enviarWhatsappSaldoAssinatura('${a.id}')">Enviar saldo</button>`:''}
+          <button class="btn btn-whats btn-sm" onclick="enviarWhatsappStatusAssinatura('${a.id}')">Enviar página da assinatura</button>
+          <button class="btn btn-ghost btn-sm" onclick="copiarLinkAssinatura('${a.id}')">Copiar link</button>
           ${a.status==='ativa'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'suspensa')">Suspender</button>`:''}
           ${a.status==='suspensa'?`<button class="btn btn-ghost btn-sm" onclick="alterarStatusAssinatura('${a.id}', 'ativa')">Reativar</button>`:''}
           ${a.status!=='cancelada'?`<button class="btn btn-ghost btn-sm" onclick="cancelarAssinatura('${a.id}')">Cancelar</button>`:''}

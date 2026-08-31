@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Minha assinatura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: #15171B;
+  --surface: #1E2126;
+  --surface-2: #262A31;
+  --line: #2C3038;
+  --text: #F2F1ED;
+  --text-muted: #9A9FA6;
+  --gold: #E8A33D;
+  --blue: #3DA5D9;
+  --red: #D9534F;
+  --green: #5FB86A;
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); -webkit-font-smoothing:antialiased;
+  display:flex; justify-content:center; padding:24px 16px;
+}
+h1,h2,h3{font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.03em; margin:0;}
+.oculto{display:none !important;}
+
+.wrap{width:100%; max-width:460px;}
+.cabecalho{text-align:center; margin-bottom:22px;}
+.cabecalho h1{font-size:20px; letter-spacing:0.05em;}
+.cabecalho p{color:var(--text-muted); font-size:13px; margin:4px 0 0;}
+
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:22px; margin-bottom:16px; overflow-wrap:break-word;}
+.card h2{font-size:15px; margin-bottom:14px;}
+
+.status-badge{display:inline-block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:5px 12px; border-radius:20px; margin-bottom:14px;}
+.status-ativa{background:rgba(95,184,106,0.15); color:var(--green);}
+.status-pagamento_pendente{background:rgba(232,163,61,0.15); color:var(--gold);}
+.status-suspensa{background:rgba(232,163,61,0.15); color:var(--gold);}
+.status-cancelada{background:rgba(217,83,79,0.15); color:var(--red);}
+.status-expirada{background:rgba(154,159,166,0.15); color:var(--text-muted);}
+
+.assin-nome{font-family:var(--font-display); font-size:20px; margin-bottom:4px;}
+.assin-plano{font-size:14px; color:var(--text-muted); margin-bottom:2px;}
+.assin-veiculo{font-size:13px; color:var(--text-muted);}
+
+.ciclo-datas{display:flex; justify-content:space-between; font-size:13px; color:var(--text-muted); margin-bottom:4px;}
+.ciclo-datas b{color:var(--text); font-family:var(--font-mono);}
+
+.servico-item{padding:12px 0; border-bottom:1px solid var(--line);}
+.servico-item:last-child{border-bottom:none; padding-bottom:0;}
+.servico-topo{display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; gap:8px;}
+.servico-restante{font-family:var(--font-mono); color:var(--gold); font-weight:600; white-space:nowrap;}
+.servico-restante.zerado{color:var(--text-muted);}
+.barra-fundo{background:var(--surface-2); border-radius:6px; height:6px; overflow:hidden;}
+.barra-preenchida{background:var(--gold); height:100%; border-radius:6px;}
+
+.historico-item{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px;}
+.historico-item:last-child{border-bottom:none;}
+.historico-data{font-family:var(--font-mono); color:var(--text-muted); white-space:nowrap;}
+
+.btn{display:block; width:100%; text-align:center; border:none; border-radius:10px; padding:14px; font-family:var(--font-body); font-size:15px; font-weight:600; cursor:pointer; text-decoration:none; margin-bottom:10px;}
+.btn-whats{background:#25D366; color:#06210f;}
+.btn:last-child{margin-bottom:0;}
+
+.aviso{font-size:14px; color:var(--text-muted); text-align:center; padding:40px 16px;}
+.aviso.erro{color:var(--red);}
+.vazio{font-size:13px; color:var(--text-muted); text-align:center; padding:12px 0;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="cabecalho">
+    <h1>Estética Automotiva</h1>
+    <p>Minha assinatura</p>
+  </div>
+
+  <div id="conteudo">
+    <p class="aviso">Carregando...</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://djwgrdugpirgubjynoih.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YnyyjQKnO2Euf7E-9BPwPA_l4bAKFPv';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function escapeHtml(str){
+  if(str === null || str === undefined) return '';
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function formatarData(d){
+  if(!d) return '';
+  const [ano,mes,dia] = d.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+function formatarMoeda(v){
+  return 'R$ ' + Number(v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function rotuloStatusAssinatura(s){
+  return {ativa:'Ativa', pagamento_pendente:'Pagamento pendente', suspensa:'Suspensa', cancelada:'Cancelada', expirada:'Expirada'}[s] || s;
+}
+function rotuloPeriodicidade(p){
+  return {mensal:'Mensal', quinzenal:'Quinzenal', semanal:'Semanal'}[p] || p;
+}
+
+async function iniciar(){
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const box = document.getElementById('conteudo');
+
+  if(!id){
+    box.innerHTML = '<p class="aviso erro">Link inválido. Peça um novo link pra estética.</p>';
+    return;
+  }
+
+  const { data: assinatura, error } = await sb.from('assinaturas').select('*').eq('id', id).maybeSingle();
+  if(error || !assinatura){
+    box.innerHTML = '<p class="aviso erro">Não encontramos essa assinatura. Peça um novo link pra estética.</p>';
+    return;
+  }
+
+  const [
+    { data: cliente },
+    { data: veiculo },
+    { data: plano },
+    { data: config }
+  ] = await Promise.all([
+    sb.from('clientes').select('nome, telefone').eq('id', assinatura.cliente_id).maybeSingle(),
+    assinatura.veiculo_id ? sb.from('veiculos').select('placa, marca, modelo').eq('id', assinatura.veiculo_id).maybeSingle() : Promise.resolve({data:null}),
+    sb.from('planos').select('*').eq('id', assinatura.plano_id).maybeSingle(),
+    sb.from('configuracoes').select('telefone_negocio').eq('id','unica').maybeSingle()
+  ]);
+
+  const { data: ciclo } = await sb.from('assinatura_ciclos').select('*').eq('assinatura_id', id).eq('status','ativo').maybeSingle();
+
+  let saldos = [];
+  let utilizacoes = [];
+  let servicosPorId = {};
+  if(ciclo){
+    const [{ data: saldosData }, { data: utilizacoesData }] = await Promise.all([
+      sb.from('assinatura_ciclo_saldos').select('*').eq('ciclo_id', ciclo.id),
+      sb.from('assinatura_utilizacoes').select('*').eq('ciclo_id', ciclo.id).order('data', {ascending:false})
+    ]);
+    saldos = saldosData || [];
+    utilizacoes = utilizacoesData || [];
+    const idsServicos = [...new Set([...saldos.map(s=>s.servico_id), ...utilizacoes.map(u=>u.servico_id)])];
+    if(idsServicos.length){
+      const { data: servicosData } = await sb.from('servicos').select('id, nome').in('id', idsServicos);
+      (servicosData||[]).forEach(s=>{ servicosPorId[s.id]=s.nome; });
+    }
+  }
+
+  render({ assinatura, cliente, veiculo, plano, ciclo, saldos, utilizacoes, servicosPorId, foneNegocio: (config && config.telefone_negocio) || '' });
+}
+
+function render(d){
+  const box = document.getElementById('conteudo');
+  const { assinatura: a, cliente, veiculo, plano, ciclo, saldos, utilizacoes, servicosPorId, foneNegocio } = d;
+
+  const veiculoTxt = veiculo ? [veiculo.placa, veiculo.marca, veiculo.modelo].filter(Boolean).join(' — ') : '';
+
+  const servicosHtml = saldos.length ? saldos.map(s=>{
+    const nome = servicosPorId[s.servico_id] || 'Serviço';
+    const restante = Math.max(0, s.contratada - s.utilizada);
+    const pct = s.contratada>0 ? Math.min(100, Math.round((s.utilizada/s.contratada)*100)) : 0;
+    return `
+      <div class="servico-item">
+        <div class="servico-topo">
+          <span>${escapeHtml(nome)}</span>
+          <span class="servico-restante ${restante<=0?'zerado':''}">${restante} restante${restante!==1?'s':''}</span>
+        </div>
+        <div class="barra-fundo"><div class="barra-preenchida" style="width:${pct}%;"></div></div>
+      </div>
+    `;
+  }).join('') : '<p class="vazio">Nenhum serviço configurado nesse plano.</p>';
+
+  const historicoHtml = utilizacoes.length ? utilizacoes.map(u=>`
+    <div class="historico-item">
+      <span>${escapeHtml(servicosPorId[u.servico_id] || 'Serviço')}</span>
+      <span class="historico-data">${formatarData(u.data)}</span>
+    </div>
+  `).join('') : '<p class="vazio">Nenhum serviço realizado ainda nesse ciclo.</p>';
+
+  const foneLimpo = (foneNegocio||'').replace(/\D/g,'');
+  const linkWhats = foneLimpo ? `https://wa.me/${foneLimpo}?text=${encodeURIComponent('Olá! Vim pela minha página de assinatura.')}` : '';
+
+  box.innerHTML = `
+    <div class="card">
+      <span class="status-badge status-${a.status}">${rotuloStatusAssinatura(a.status)}</span>
+      <div class="assin-nome">${escapeHtml(cliente?cliente.nome:'')}</div>
+      <div class="assin-plano">${escapeHtml(plano?plano.nome:'Plano removido')} · ${formatarMoeda(plano?plano.valor:0)} · ${rotuloPeriodicidade(plano?plano.periodicidade:'')}</div>
+      ${veiculoTxt ? `<div class="assin-veiculo">${escapeHtml(veiculoTxt)}</div>` : ''}
+    </div>
+
+    ${ciclo ? `
+    <div class="card">
+      <h2>Ciclo atual</h2>
+      <div class="ciclo-datas"><span>Início</span><b>${formatarData(ciclo.data_inicio)}</b></div>
+      <div class="ciclo-datas"><span>Renovação</span><b>${formatarData(ciclo.data_fim)}</b></div>
+    </div>
+
+    <div class="card">
+      <h2>Serviços disponíveis nesse ciclo</h2>
+      ${servicosHtml}
+    </div>
+
+    <div class="card">
+      <h2>Serviços realizados nesse ciclo</h2>
+      ${historicoHtml}
+    </div>
+    ` : `
+    <div class="card">
+      <p class="vazio">Nenhum ciclo ativo no momento. Fale com a estética pra mais detalhes.</p>
+    </div>
+    `}
+
+    ${linkWhats ? `<a class="btn btn-whats" href="${linkWhats}" target="_blank">Falar com a estética</a>` : ''}
+  `;
+}
+
+iniciar();
+</script>
+</body>
+</html>
