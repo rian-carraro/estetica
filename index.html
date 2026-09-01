@@ -4853,17 +4853,39 @@ function renderListaCobrancasAssinatura(cobrancasPeriodo){
   }).join('');
 }
 
-async function marcarCobrancaAssinaturaPaga(id){
+function marcarCobrancaAssinaturaPaga(id){
   const c = cacheAssinaturaCobrancas.find(x=>x.id===id);
   if(!c) return;
   const jaPago = Number(c.valor_pago||0);
-  const restante = Number(c.valor||0) - jaPago;
-  const entrada = prompt(`Quanto o cliente pagou agora?\n\nValor da assinatura: ${formatarMoeda(c.valor)}\nJá pago: ${formatarMoeda(jaPago)}\nFalta: ${formatarMoeda(restante)}`, restante>0?restante.toFixed(2):'0');
-  if(entrada===null) return;
-  const valorPago = parseFloat(entrada.replace(',','.'))||0;
-  if(valorPago<=0){ toast('Informe um valor maior que zero'); return; }
+  const restante = Math.max(0, Number(c.valor||0) - jaPago);
+  const assinatura = cacheAssinaturas.find(a=>a.id===c.assinatura_id);
+  const cliente = assinatura ? cacheClientes.find(cl=>cl.id===assinatura.cliente_id) : null;
 
-  const { error: erroPagamento } = await sb.from('assinatura_pagamentos').insert({cobranca_id: id, valor: valorPago, data: hojeISO()});
+  abrirModal(`
+    <h3>Registrar pagamento</h3>
+    <p class="modal-sub">${cliente?escapeHtml(cliente.nome)+' — ':''}Valor da assinatura: ${formatarMoeda(c.valor)}${jaPago>0?` · já pago: ${formatarMoeda(jaPago)} · falta: ${formatarMoeda(restante)}`:''}</p>
+    <label>Quanto foi pago agora (R$)</label>
+    <input id="m-pagamento-valor" type="number" step="0.01" min="0.01" value="${restante>0?restante.toFixed(2):''}" />
+    <label>Data do pagamento</label>
+    <input id="m-pagamento-data" type="date" value="${hojeISO()}" />
+    <div class="modal-acoes">
+      <button class="btn btn-ghost" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarPagamentoCobranca('${id}')">Registrar</button>
+    </div>
+  `);
+}
+window.marcarCobrancaAssinaturaPaga = marcarCobrancaAssinaturaPaga;
+
+async function confirmarPagamentoCobranca(id){
+  const c = cacheAssinaturaCobrancas.find(x=>x.id===id);
+  if(!c) return;
+  const valorPago = parseFloat(document.getElementById('m-pagamento-valor').value)||0;
+  const dataPagamento = document.getElementById('m-pagamento-data').value;
+  if(valorPago<=0){ toast('Informe um valor maior que zero'); return; }
+  if(!dataPagamento){ toast('Informe a data do pagamento'); return; }
+
+  const jaPago = Number(c.valor_pago||0);
+  const { error: erroPagamento } = await sb.from('assinatura_pagamentos').insert({cobranca_id: id, valor: valorPago, data: dataPagamento});
   if(erroPagamento){ toast('Erro ao registrar pagamento'); return; }
 
   const novoTotalPago = jaPago + valorPago;
@@ -4871,6 +4893,7 @@ async function marcarCobrancaAssinaturaPaga(id){
   const { error } = await sb.from('assinatura_cobrancas').update({valor_pago: novoTotalPago, status: novoStatus}).eq('id', id);
   if(error){ toast('Erro ao atualizar cobrança'); return; }
 
+  fecharModal();
   toast(novoStatus==='pago' ? 'Cobrança quitada!' : `Pagamento parcial registrado — falta ${formatarMoeda(Number(c.valor||0)-novoTotalPago)}`);
   await carregarAssinaturas();
   renderFinanceiro();
