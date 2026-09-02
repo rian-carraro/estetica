@@ -3380,6 +3380,8 @@ window.atualizarVeiculosModal = atualizarVeiculosModal;
 function atualizarBeneficioAssinaturaModal(){
   const box = document.getElementById('m-assinatura-beneficio-box');
   if(!box) return;
+  const blocoNovo = document.getElementById('agenda-bloco-cliente-novo');
+  if(blocoNovo && !blocoNovo.classList.contains('oculto')){ box.innerHTML=''; return; }
   const clienteEl = document.getElementById('m-cliente');
   const clienteId = clienteEl ? clienteEl.value : null;
   if(!clienteId){ box.innerHTML=''; return; }
