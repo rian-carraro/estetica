@@ -3068,14 +3068,35 @@ function abrirModalAgendamento(id, contexto){
   abrirModal(`
     <h3>${a?'Editar agendamento':(contexto?'Primeiro atendimento da assinatura':'Novo agendamento')}</h3>
     ${contexto?`<p class="modal-sub">Plano ${escapeHtml(contexto.plano_nome||'')} — esse atendimento fica vinculado à assinatura e ao ciclo atual. O saldo só é descontado quando você concluir de verdade.</p>`:''}
-    <label>Cliente</label>
-    <select id="m-cliente" onchange="atualizarVeiculosModal()" ${contexto?'disabled':''}>
-      ${cacheClientes.map(c=>`<option value="${c.id}" ${c.id===clienteAtual?'selected':''}>${escapeHtml(c.nome)}</option>`).join('') || '<option value="">Cadastre um cliente primeiro</option>'}
-    </select>
+    ${(!a && !contexto) ? `
+    <div class="agenda-modos" style="margin-bottom:14px;">
+      <button type="button" class="btn btn-ghost modo-ativo" id="btn-agenda-cliente-existente" onclick="alternarModoClienteAgendamento('existente')">Cliente existente</button>
+      <button type="button" class="btn btn-ghost" id="btn-agenda-cliente-novo" onclick="alternarModoClienteAgendamento('novo')">Novo cliente</button>
+    </div>` : ''}
+    <div id="agenda-bloco-cliente-existente">
+      <label>Cliente</label>
+      <select id="m-cliente" onchange="atualizarVeiculosModal()" ${contexto?'disabled':''}>
+        ${cacheClientes.map(c=>`<option value="${c.id}" ${c.id===clienteAtual?'selected':''}>${escapeHtml(c.nome)}</option>`).join('') || '<option value="">Cadastre um cliente primeiro</option>'}
+      </select>
+    </div>
+    <div id="agenda-bloco-cliente-novo" class="oculto">
+      <label>Nome do novo cliente</label>
+      <input id="m-cliente-novo-nome" placeholder="Nome do cliente" />
+      <label>WhatsApp (com DDI+DDD, só números)</label>
+      <input id="m-cliente-novo-telefone" placeholder="Ex: 5514999999999" />
+    </div>
     <label>Veículo</label>
-    <select id="m-veiculo" ${contexto?'disabled':''}>
-      ${cacheVeiculos.filter(v=>v.cliente_id===clienteAtual).map(v=>`<option value="${v.id}" ${(a?a.veiculo_id===v.id:(contexto&&contexto.veiculo_id===v.id))?'selected':''}>${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')}${v.placa?' - '+escapeHtml(v.placa):''}</option>`).join('')}
-    </select>
+    <div id="agenda-bloco-veiculo-existente">
+      <select id="m-veiculo" ${contexto?'disabled':''}>
+        ${cacheVeiculos.filter(v=>v.cliente_id===clienteAtual).map(v=>`<option value="${v.id}" ${(a?a.veiculo_id===v.id:(contexto&&contexto.veiculo_id===v.id))?'selected':''}>${escapeHtml(v.marca||'')} ${escapeHtml(v.modelo||'')}${v.placa?' - '+escapeHtml(v.placa):''}</option>`).join('')}
+      </select>
+    </div>
+    <div id="agenda-bloco-veiculo-novo" class="oculto">
+      <div class="linha-2">
+        <div><label>Placa (opcional)</label><input id="m-veiculo-novo-placa" placeholder="Ex: ABC1234" /></div>
+        <div><label>Modelo</label><input id="m-veiculo-novo-modelo" placeholder="Ex: Honda Civic" /></div>
+      </div>
+    </div>
     <div id="m-assinatura-beneficio-box"></div>
     <label>Serviço</label>
     <input type="hidden" id="m-servico" value="${mAgendaServicoSel||''}" />
@@ -3331,6 +3352,22 @@ function atualizarDisponibilidadeModal(){
 }
 window.atualizarDisponibilidadeModal = atualizarDisponibilidadeModal;
 
+function alternarModoClienteAgendamento(modo){
+  document.getElementById('btn-agenda-cliente-existente').classList.toggle('modo-ativo', modo==='existente');
+  document.getElementById('btn-agenda-cliente-novo').classList.toggle('modo-ativo', modo==='novo');
+  document.getElementById('agenda-bloco-cliente-existente').classList.toggle('oculto', modo!=='existente');
+  document.getElementById('agenda-bloco-cliente-novo').classList.toggle('oculto', modo!=='novo');
+  document.getElementById('agenda-bloco-veiculo-existente').classList.toggle('oculto', modo!=='existente');
+  document.getElementById('agenda-bloco-veiculo-novo').classList.toggle('oculto', modo!=='novo');
+  if(modo==='existente'){
+    atualizarBeneficioAssinaturaModal();
+  }else{
+    const box = document.getElementById('m-assinatura-beneficio-box');
+    if(box) box.innerHTML = '';
+  }
+}
+window.alternarModoClienteAgendamento = alternarModoClienteAgendamento;
+
 function atualizarVeiculosModal(){
   const clienteId = document.getElementById('m-cliente').value;
   const sel = document.getElementById('m-veiculo');
@@ -3367,8 +3404,30 @@ function atualizarBeneficioAssinaturaModal(){
 window.atualizarBeneficioAssinaturaModal = atualizarBeneficioAssinaturaModal;
 
 async function salvarAgendamento(id){
-  const cliente_id = document.getElementById('m-cliente').value;
-  const veiculo_id = document.getElementById('m-veiculo').value || null;
+  const modoNovoCliente = !id && document.getElementById('agenda-bloco-cliente-novo') && !document.getElementById('agenda-bloco-cliente-novo').classList.contains('oculto');
+  let cliente_id, veiculo_id;
+
+  if(modoNovoCliente){
+    const nome = document.getElementById('m-cliente-novo-nome').value.trim();
+    const telefone = document.getElementById('m-cliente-novo-telefone').value.trim().replace(/\D/g,'');
+    if(!nome || !telefone){ toast('Preencha nome e telefone do novo cliente'); return; }
+    const { data: novoCliente, error: erroCliente } = await sb.from('clientes').insert({nome, telefone}).select().single();
+    if(erroCliente){ toast('Erro ao criar cliente'); return; }
+    cliente_id = novoCliente.id;
+    veiculo_id = null;
+
+    const placa = document.getElementById('m-veiculo-novo-placa').value.trim().toUpperCase();
+    const modelo = document.getElementById('m-veiculo-novo-modelo').value.trim();
+    if(placa || modelo){
+      const { data: novoVeiculo, error: erroVeiculo } = await sb.from('veiculos').insert({cliente_id, placa, modelo}).select().single();
+      if(erroVeiculo){ toast('Cliente criado, mas houve erro ao salvar o veículo'); }
+      else veiculo_id = novoVeiculo.id;
+    }
+  }else{
+    cliente_id = document.getElementById('m-cliente').value;
+    veiculo_id = document.getElementById('m-veiculo').value || null;
+  }
+
   const servico_id = document.getElementById('m-servico').value || null;
   const data = document.getElementById('m-data').value;
   const hora_inicio = document.getElementById('m-hora').value;
@@ -3427,6 +3486,7 @@ async function salvarAgendamento(id){
   }
   fecharModal();
   toast('Agendamento salvo!');
+  if(modoNovoCliente) await carregarClientes();
   await carregarAgendamentos();
   renderFinanceiro();
   renderAssinaturas();
