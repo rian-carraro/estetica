@@ -3059,6 +3059,8 @@ let mAgendaDataSel = null;
 let mAgendaHoraSel = null;
 let mAgendaServicoSel = null;
 let mAgendaEditandoId = '';
+let mAgendaModoDesconto = 'manual';
+let mAgendaCupomValido = null;
 let contextoAgendamentoAssinatura = null;
 
 function abrirModalAgendamento(id, contexto){
@@ -3070,6 +3072,8 @@ function abrirModalAgendamento(id, contexto){
   mAgendaHoraSel = a ? formatarHora(a.hora_inicio) : null;
   mAgendaServicoSel = a ? a.servico_id : (contexto && contexto.servico_id_sugerido ? contexto.servico_id_sugerido : null);
   mAgendaEditandoId = a ? a.id : '';
+  mAgendaModoDesconto = (a && a.cupom_codigo) ? 'cupom' : 'manual';
+  mAgendaCupomValido = null;
   const baseMes = a ? new Date(...a.data.split('-').map((v,i)=>i===1?Number(v)-1:Number(v))) : new Date();
   mAgendaMes = new Date(baseMes.getFullYear(), baseMes.getMonth(), 1);
 
@@ -3115,7 +3119,7 @@ function abrirModalAgendamento(id, contexto){
       ${cacheSubServicos.length ? cacheSubServicos.map(s=>{
         const marcado = a ? subServicoIdsDoAgendamento(a.id).includes(s.id) : false;
         return `<label class="m-sub-servico-item ${marcado?'marcado':''}">
-          <input type="checkbox" class="m-sub-servico-check" value="${s.id}" ${marcado?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked)"/>
+          <input type="checkbox" class="m-sub-servico-check" value="${s.id}" ${marcado?'checked':''} onchange="this.closest('.m-sub-servico-item').classList.toggle('marcado', this.checked); recalcularResumoAgendamento()"/>
           <span class="m-sub-servico-check-visual"></span>
           <span class="m-sub-servico-nome">${escapeHtml(s.nome)}</span>
           ${s.preco?`<span class="m-sub-servico-preco">R$ ${Number(s.preco).toFixed(2)}</span>`:''}
@@ -3134,6 +3138,27 @@ function abrirModalAgendamento(id, contexto){
     <input type="hidden" id="m-hora" value="${mAgendaHoraSel||''}" />
     <div class="grid-horarios" id="m-grid-horarios"></div>
     <div id="m-disponibilidade-dia"></div>
+
+    <label>Desconto</label>
+    <div class="orc-desconto-toggle">
+      <button type="button" class="orc-toggle-btn ${mAgendaModoDesconto==='manual'?'selecionado':''}" onclick="alternarDescontoAgendamento('manual', this)">Desconto manual</button>
+      <button type="button" class="orc-toggle-btn ${mAgendaModoDesconto==='cupom'?'selecionado':''}" onclick="alternarDescontoAgendamento('cupom', this)">Cupom</button>
+    </div>
+    <div id="m-agenda-bloco-desconto-manual" class="${mAgendaModoDesconto==='cupom'?'oculto':''}">
+      <div class="desconto-valor-linha">
+        <select id="m-agenda-desconto-tipo" onchange="recalcularResumoAgendamento()">
+          <option value="percentual" ${(!a||a.desconto_tipo==='percentual')?'selected':''}>%</option>
+          <option value="fixo" ${a&&a.desconto_tipo==='fixo'?'selected':''}>R$</option>
+        </select>
+        <input type="number" step="0.01" min="0" id="m-agenda-desconto-valor" oninput="recalcularResumoAgendamento()" placeholder="0" value="${a&&a.desconto_valor?a.desconto_valor:''}" />
+      </div>
+    </div>
+    <div id="m-agenda-bloco-cupom" class="${mAgendaModoDesconto==='manual'?'oculto':''}">
+      <input type="text" id="m-agenda-cupom-codigo" placeholder="Código do cupom" style="text-transform:uppercase;" oninput="validarCupomAgendamento()" value="${a&&a.cupom_codigo?escapeHtml(a.cupom_codigo):''}" />
+      <p id="m-agenda-cupom-status" class="config-texto-ajuda"></p>
+    </div>
+    <div class="orc-resumo" id="m-agenda-resumo"></div>
+
     <label>Status</label>
     <select id="m-status">
       ${['agendado','em_andamento','concluido','cancelado'].map(s=>`<option value="${s}" ${a&&a.status===s?'selected':''}>${rotuloStatus(s)}</option>`).join('')}
@@ -3168,6 +3193,12 @@ function abrirModalAgendamento(id, contexto){
   atualizarDisponibilidadeModal();
   atualizarAvisoServicoPlano();
   atualizarBeneficioAssinaturaModal();
+  if(a && a.cupom_codigo){
+    document.getElementById('m-agenda-cupom-codigo').value = a.cupom_codigo;
+    validarCupomAgendamento();
+  }else{
+    recalcularResumoAgendamento();
+  }
 }
 window.abrirModalAgendamento = abrirModalAgendamento;
 
@@ -3195,8 +3226,86 @@ function escolherServicoModal(servicoId){
   atualizarDisponibilidadeModal();
   atualizarAvisoServicoPlano();
   atualizarBeneficioAssinaturaModal();
+  recalcularResumoAgendamento();
 }
 window.escolherServicoModal = escolherServicoModal;
+
+function alternarDescontoAgendamento(modo, btn){
+  mAgendaModoDesconto = modo;
+  btn.parentElement.querySelectorAll('.orc-toggle-btn').forEach(b=>b.classList.remove('selecionado'));
+  btn.classList.add('selecionado');
+  document.getElementById('m-agenda-bloco-desconto-manual').classList.toggle('oculto', modo!=='manual');
+  document.getElementById('m-agenda-bloco-cupom').classList.toggle('oculto', modo!=='cupom');
+  if(modo==='manual'){
+    mAgendaCupomValido = null;
+    document.getElementById('m-agenda-cupom-status').textContent = '';
+  }else{
+    document.getElementById('m-agenda-desconto-valor').value = '';
+  }
+  recalcularResumoAgendamento();
+}
+window.alternarDescontoAgendamento = alternarDescontoAgendamento;
+
+function validarCupomAgendamento(){
+  const codigo = document.getElementById('m-agenda-cupom-codigo').value.trim().toUpperCase();
+  const statusEl = document.getElementById('m-agenda-cupom-status');
+  if(!codigo){ mAgendaCupomValido = null; statusEl.textContent=''; statusEl.className='config-texto-ajuda'; recalcularResumoAgendamento(); return; }
+  const cupom = cacheCupons.find(c=>c.codigo.toUpperCase()===codigo && c.ativo);
+  if(cupom){
+    mAgendaCupomValido = cupom;
+    statusEl.textContent = `Válido — ${cupom.parceiro_nome?cupom.parceiro_nome+' · ':''}${cupom.tipo==='percentual'?cupom.valor+'%':('R$ '+Number(cupom.valor).toFixed(2))} de desconto`;
+    statusEl.className = 'config-texto-ajuda valido';
+  }else{
+    mAgendaCupomValido = null;
+    statusEl.textContent = 'Cupom não encontrado ou inativo';
+    statusEl.className = 'config-texto-ajuda invalido';
+  }
+  recalcularResumoAgendamento();
+}
+window.validarCupomAgendamento = validarCupomAgendamento;
+
+function itensSelecionadosAgendamento(){
+  const itens = [];
+  const servico = cacheServicos.find(s=>s.id===mAgendaServicoSel);
+  if(servico){
+    const desconto = descontoAtivoDoServico(servico.id);
+    const precoFinal = aplicarDesconto(Number(servico.preco||0), desconto);
+    itens.push({nome: servico.nome, preco: Number(servico.preco||0), preco_final: precoFinal});
+  }
+  document.querySelectorAll('.m-sub-servico-check:checked').forEach(el=>{
+    const s = cacheSubServicos.find(sv=>sv.id===el.value);
+    if(s) itens.push({nome: s.nome, preco: Number(s.preco||0), preco_final: Number(s.preco||0)});
+  });
+  return itens;
+}
+
+function recalcularResumoAgendamento(){
+  const box = document.getElementById('m-agenda-resumo');
+  if(!box) return;
+  const itens = itensSelecionadosAgendamento();
+  const subtotal = itens.reduce((soma,it)=>soma+it.preco_final, 0);
+  let descontoTotal = 0, cupomTxt = '';
+  if(mAgendaModoDesconto==='cupom' && mAgendaCupomValido){
+    const tipo = mAgendaCupomValido.tipo, valor = Number(mAgendaCupomValido.valor);
+    descontoTotal = tipo==='percentual' ? subtotal*valor/100 : Math.min(subtotal, valor);
+    cupomTxt = ` (${mAgendaCupomValido.codigo})`;
+  }else if(mAgendaModoDesconto==='manual'){
+    const valorInput = parseFloat(document.getElementById('m-agenda-desconto-valor')?.value) || 0;
+    const tipoInput = document.getElementById('m-agenda-desconto-tipo')?.value || 'percentual';
+    if(valorInput > 0){
+      descontoTotal = tipoInput==='percentual' ? subtotal*valorInput/100 : Math.min(subtotal, valorInput);
+    }
+  }
+  const total = Math.max(0, subtotal - descontoTotal);
+  box.innerHTML = `
+    <div class="orc-resumo-linha"><span>Subtotal (${itens.length} item${itens.length!==1?'s':''})</span><span>${formatarMoeda(subtotal)}</span></div>
+    ${descontoTotal>0?`<div class="orc-resumo-linha desconto"><span>Desconto${cupomTxt}</span><span>-${formatarMoeda(descontoTotal)}</span></div>`:''}
+    <div class="orc-resumo-linha total"><span>Total</span><span>${formatarMoeda(total)}</span></div>
+  `;
+  const valorCobradoInput = document.getElementById('m-valor-cobrado');
+  if(valorCobradoInput) valorCobradoInput.value = total>0 ? total.toFixed(2) : '';
+}
+window.recalcularResumoAgendamento = recalcularResumoAgendamento;
 
 function atualizarAvisoServicoPlano(){
   const box = document.getElementById('m-aviso-servico-plano');
@@ -3458,6 +3567,21 @@ async function salvarAgendamento(id){
   });
   if(conflito && !confirm(`Já tem ${nomeCliente(conflito.cliente_id)} marcado às ${hora_inicio} nesse dia. Marcar mesmo assim?`)) return;
   const payload = {cliente_id, veiculo_id, servico_id, data, hora_inicio, status, hora_inicio_real, hora_fim, valor_cobrado, forma_pagamento, observacoes};
+  const boxResumo = document.getElementById('m-agenda-resumo');
+  if(boxResumo){
+    if(mAgendaModoDesconto==='cupom' && mAgendaCupomValido){
+      payload.desconto_tipo = mAgendaCupomValido.tipo;
+      payload.desconto_valor = Number(mAgendaCupomValido.valor);
+      payload.cupom_id = mAgendaCupomValido.id;
+      payload.cupom_codigo = mAgendaCupomValido.codigo;
+    }else if(mAgendaModoDesconto==='manual'){
+      const valorDesconto = parseFloat(document.getElementById('m-agenda-desconto-valor')?.value) || 0;
+      payload.desconto_tipo = valorDesconto>0 ? (document.getElementById('m-agenda-desconto-tipo')?.value || 'percentual') : null;
+      payload.desconto_valor = valorDesconto>0 ? valorDesconto : null;
+      payload.cupom_id = null;
+      payload.cupom_codigo = null;
+    }
+  }
   if(!id && contextoAgendamentoAssinatura){
     payload.assinatura_id = contextoAgendamentoAssinatura.assinatura_id;
     payload.ciclo_id = contextoAgendamentoAssinatura.ciclo_id;
