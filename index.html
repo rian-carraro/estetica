@@ -1115,6 +1115,13 @@ label{font-size:12px; color:var(--text-muted); text-transform:uppercase; letter-
         </div>
 
         <div class="config-secao">
+          <h3>InfinitePay (link de pagamento)</h3>
+          <p class="config-texto-ajuda">Sua InfiniteTag — o nome depois do $ no app da InfinitePay, sem o símbolo. Usada pra gerar links de pagamento direto do agendamento/orçamento.</p>
+          <input id="cfg-infinitepay-handle" type="text" placeholder="Ex: carraroestetica" />
+          <button class="btn btn-primary" id="btn-salvar-infinitepay">Salvar</button>
+        </div>
+
+        <div class="config-secao">
           <h3>Cartão fidelidade</h3>
           <p class="config-texto-ajuda">Conta lavagens concluídas do cliente (carro e moto juntos). Ao completar a meta, a próxima lavagem sai grátis e o contador reinicia.</p>
           <div class="linha-2">
@@ -4063,6 +4070,7 @@ function abrirEscolhaWhatsapp(id){
     <div class="acoes-lista">
       <button class="btn btn-whats" onclick="fecharModal(); enviarWhatsapp('${id}')">Aviso (mensagem de texto)</button>
       <button class="btn btn-whats" onclick="fecharModal(); enviarPdfAgendamentoWhatsapp('${id}')">PDF (ordem de serviço)</button>
+      <button class="btn btn-whats" onclick="fecharModal(); enviarLinkPagamentoAgendamento('${id}')">Link de pagamento (InfinitePay)</button>
     </div>
   `);
 }
@@ -4078,6 +4086,49 @@ function enviarPdfAgendamentoWhatsapp(id){
 }
 window.enviarPdfAgendamentoWhatsapp = enviarPdfAgendamentoWhatsapp;
 
+/* ---------- LINK DE PAGAMENTO (INFINITEPAY) ---------- */
+async function gerarLinkInfinitePay(items, orderNsu){
+  const handle = cacheConfig && cacheConfig.infinitepay_handle;
+  if(!handle){ toast('Cadastre sua InfiniteTag em Configurações primeiro'); return null; }
+  try{
+    const resp = await fetch('https://api.checkout.infinitepay.io/links', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ handle, order_nsu: orderNsu, items })
+    });
+    if(!resp.ok) throw new Error('status ' + resp.status);
+    const data = await resp.json();
+    if(!data.url) throw new Error('sem url na resposta');
+    return data.url;
+  }catch(e){
+    console.error(e);
+    toast('Não consegui gerar o link da InfinitePay. Confira sua internet ou tente de novo.');
+    return null;
+  }
+}
+
+async function enviarLinkPagamentoAgendamento(id){
+  const a = cacheAgendamentos.find(x=>x.id===id);
+  if(!a) return;
+  const servico = cacheServicos.find(s=>s.id===a.servico_id);
+  const valor = (a.valor_cobrado!=null && a.valor_cobrado!==0) ? Number(a.valor_cobrado) : Number(servico?.preco||0);
+  if(valor<=0){ toast('Defina um valor cobrado antes de gerar o link'); return; }
+  toast('Gerando link de pagamento...');
+  const url = await gerarLinkInfinitePay(
+    [{quantity:1, price: Math.round(valor*100), description: servico?servico.nome:'Serviço'}],
+    id
+  );
+  if(!url) return;
+  const fone = telefoneCliente(a.cliente_id);
+  const msg = `Olá, ${nomeCliente(a.cliente_id)}! Segue o link pra pagamento do seu serviço (${servico?servico.nome+' - ':''}${formatarMoeda(valor)}):\n\n${url}`;
+  if(fone){
+    window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank');
+  }else{
+    navigator.clipboard.writeText(url).then(()=>toast('Link copiado! Esse cliente não tem telefone cadastrado.'));
+  }
+}
+window.enviarLinkPagamentoAgendamento = enviarLinkPagamentoAgendamento;
+
 function abrirEscolhaWhatsappOrcamento(id){
   abrirModal(`
     <h3>Enviar pro cliente</h3>
@@ -4085,6 +4136,7 @@ function abrirEscolhaWhatsappOrcamento(id){
     <div class="acoes-lista">
       <button class="btn btn-whats" onclick="fecharModal(); enviarWhatsappOrcamento('${id}')">Aviso (mensagem com link)</button>
       <button class="btn btn-whats" onclick="fecharModal(); enviarPdfOrcamentoWhatsapp('${id}')">PDF (orçamento completo)</button>
+      <button class="btn btn-whats" onclick="fecharModal(); enviarLinkPagamentoOrcamento('${id}')">Link de pagamento (InfinitePay)</button>
     </div>
   `);
 }
@@ -4099,6 +4151,31 @@ function enviarPdfOrcamentoWhatsapp(id){
   if(fone) setTimeout(()=>window.open(`https://wa.me/${fone}`, '_blank'), 700);
 }
 window.enviarPdfOrcamentoWhatsapp = enviarPdfOrcamentoWhatsapp;
+
+async function enviarLinkPagamentoOrcamento(id){
+  const o = cacheOrcamentos.find(x=>x.id===id);
+  if(!o) return;
+  const valor = Number(o.total||0);
+  if(valor<=0){ toast('Esse orçamento não tem valor total'); return; }
+  toast('Gerando link de pagamento...');
+  const itensBrutos = (o.itens||[]).map(it=>({
+    quantity: 1,
+    price: Math.round((it.preco_final!=null?Number(it.preco_final):Number(it.preco||0))*100),
+    description: it.nome
+  })).filter(it=>it.price>0);
+  const items = itensBrutos.length ? itensBrutos : [{quantity:1, price:Math.round(valor*100), description:'Orçamento'}];
+  const url = await gerarLinkInfinitePay(items, id);
+  if(!url) return;
+  const nome = o.cliente_id ? nomeCliente(o.cliente_id) : (o.cliente_nome||'Cliente');
+  const fone = o.cliente_id ? telefoneCliente(o.cliente_id) : (o.cliente_whatsapp||'').replace(/\D/g,'');
+  const msg = `Olá, ${nome}! Segue o link pra pagamento do seu orçamento (${formatarMoeda(valor)}):\n\n${url}`;
+  if(fone){
+    window.open(`https://wa.me/${fone}?text=${encodeURIComponent(msg)}`, '_blank');
+  }else{
+    navigator.clipboard.writeText(url).then(()=>toast('Link copiado!'));
+  }
+}
+window.enviarLinkPagamentoOrcamento = enviarLinkPagamentoOrcamento;
 
 function enviarLembrete(id){
   const a = cacheAgendamentos.find(x=>x.id===id);
@@ -4672,6 +4749,9 @@ function renderConfiguracoes(){
   const enderecoBox = document.getElementById('cfg-endereco-negocio');
   if(enderecoBox) enderecoBox.value = cacheConfig.endereco_negocio || '';
 
+  const infinitepayBox = document.getElementById('cfg-infinitepay-handle');
+  if(infinitepayBox) infinitepayBox.value = cacheConfig.infinitepay_handle || 'riancarraro';
+
   const slotSel = document.getElementById('cfg-duracao-slot');
   if(slotSel) slotSel.value = String(cacheConfig.duracao_slot_minutos || 30);
 
@@ -5055,6 +5135,14 @@ document.getElementById('btn-salvar-endereco').addEventListener('click', async (
   if(error){ toast('Erro ao salvar o endereço'); return; }
   cacheConfig.endereco_negocio = endereco;
   toast('Endereço salvo!');
+});
+
+document.getElementById('btn-salvar-infinitepay').addEventListener('click', async ()=>{
+  const handle = document.getElementById('cfg-infinitepay-handle').value.trim().replace(/^\$/, '');
+  const { error } = await sb.from('configuracoes').update({infinitepay_handle: handle}).eq('id','unica');
+  if(error){ toast('Erro ao salvar a InfiniteTag'); return; }
+  cacheConfig.infinitepay_handle = handle;
+  toast('InfiniteTag salva!');
 });
 
 document.getElementById('btn-salvar-dias').addEventListener('click', async ()=>{
