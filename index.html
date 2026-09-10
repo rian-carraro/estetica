@@ -1264,11 +1264,86 @@ async function iniciarConexao(){
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { error } = await sb.from('servicos').select('id').limit(1);
     if(error) throw error;
-    carregarTudo();
+    await carregarTudo();
+    iniciarRealtime();
   }catch(e){
     toast('Não foi possível conectar ao banco. Confira se o schema.sql foi executado no Supabase. (' + (e.message||'erro') + ')');
   }
 }
+
+/* =========================================================
+   REALTIME — atualização automática sem precisar recarregar
+   =========================================================
+   Assina mudanças (INSERT/UPDATE/DELETE) nas tabelas do Supabase
+   e, quando algo muda (em qualquer dispositivo/aba, inclusive o
+   agendar.html/assinatura.html usados por clientes), refaz o
+   carregamento da área afetada e re-renderiza a tela sozinho.
+
+   IMPORTANTE (passo manual no Supabase, feito uma única vez):
+   No painel do Supabase, em Database > Replication, é preciso
+   habilitar a replicação ("Enable Realtime") para cada tabela
+   listada abaixo. Sem isso, os canais se inscrevem mas nunca
+   recebem eventos. */
+
+const _rtTimers = {};
+function _rtAgendarRecarga(chave, fn, delay){
+  clearTimeout(_rtTimers[chave]);
+  _rtTimers[chave] = setTimeout(fn, delay || 350);
+}
+
+const _rtCanais = [];
+function _rtAssinar(tabela, chave, fn){
+  const canal = sb
+    .channel('rt-' + tabela)
+    .on('postgres_changes', { event: '*', schema: 'public', table: tabela }, () => {
+      _rtAgendarRecarga(chave, fn);
+    })
+    .subscribe();
+  _rtCanais.push(canal);
+}
+
+function iniciarRealtime(){
+  // Agenda
+  _rtAssinar('agendamentos', 'agenda', carregarAgendamentos);
+  _rtAssinar('agendamento_sub_servicos', 'agenda', carregarAgendamentos);
+
+  // Clientes e veículos
+  _rtAssinar('clientes', 'clientes', carregarClientes);
+  _rtAssinar('veiculos', 'clientes', carregarClientes);
+
+  // Serviços
+  _rtAssinar('servicos', 'servicos', carregarServicos);
+  _rtAssinar('sub_servicos', 'subservicos', carregarSubServicos);
+  _rtAssinar('receita_servico', 'financeiro', carregarFinanceiro);
+
+  // Produtos e estoque
+  _rtAssinar('produtos', 'produtos', carregarProdutos);
+  _rtAssinar('movimentacoes', 'movimentacoes', carregarMovimentacoes);
+
+  // Orçamentos e cupons
+  _rtAssinar('orcamentos', 'orcamentos', carregarOrcamentos);
+  _rtAssinar('cupons', 'cupons', carregarCupons);
+  _rtAssinar('descontos_servico', 'descontos', carregarDescontosServico);
+
+  // Configurações e checklist
+  _rtAssinar('configuracoes', 'config', carregarConfiguracoes);
+  _rtAssinar('checklist_topicos', 'checklist', carregarChecklistTopicos);
+
+  // Financeiro
+  _rtAssinar('despesas', 'financeiro', carregarFinanceiro);
+  _rtAssinar('despesas_fixas', 'financeiro', carregarFinanceiro);
+
+  // Assinaturas (módulo completo)
+  ['planos','plano_servicos','plano_beneficios','assinaturas','assinatura_ciclos',
+   'assinatura_ciclo_saldos','assinatura_utilizacoes','assinatura_cobrancas',
+   'assinatura_pagamentos'].forEach(tabela=>{
+    _rtAssinar(tabela, 'assinaturas', carregarAssinaturas);
+  });
+}
+
+window.addEventListener('beforeunload', ()=>{
+  _rtCanais.forEach(c=>sb.removeChannel(c));
+});
 
 /* ---------- NAVEGAÇÃO ---------- */
 document.querySelectorAll('.nav-item').forEach(btn=>{
