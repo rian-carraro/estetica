@@ -1280,6 +1280,7 @@ document.querySelectorAll('.nav-item').forEach(btn=>{
     if(btn.dataset.tab === 'financeiro') renderFinanceiro();
     if(btn.dataset.tab === 'orcamentos') renderOrcamentos();
     if(btn.dataset.tab === 'assinaturas'){ renderAssinaturas(); renderDashboardAssinaturas(); }
+    if(btn.dataset.tab === 'config') popularSelectServicoDesconto();
     document.getElementById('nav-principal').classList.remove('aberto');
   });
 });
@@ -4936,7 +4937,7 @@ async function carregarDescontosServico(){
 function popularSelectServicoDesconto(){
   const sel = document.getElementById('descserv-servico');
   if(!sel) return;
-  sel.innerHTML = cacheServicos.filter(s=>s.ativo).map(s=>`<option value="${s.id}">${escapeHtml(s.nome)}</option>`).join('');
+  sel.innerHTML = cacheServicos.filter(s=>s.ativo && !s.is_combo).map(s=>`<option value="${s.id}">${escapeHtml(s.nome)}</option>`).join('') || '<option value="">Cadastre um serviço primeiro</option>';
 }
 
 function descontoAtivoDoServico(servicoId, dataRef){
