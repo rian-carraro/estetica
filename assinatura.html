@@ -161,6 +161,37 @@ async function iniciar(){
   }
 
   render({ assinatura, cliente, veiculo, plano, ciclo, saldos, utilizacoes, servicosPorId, foneNegocio: (config && config.telefone_negocio) || '' });
+  iniciarRealtime(id, ciclo ? ciclo.id : null);
+}
+
+/* Realtime: se a estética registrar um pagamento, uso ou trocar o ciclo
+   enquanto o cliente está olhando a página, ela atualiza sozinha. */
+let _rtCanaisAssinatura = [];
+let _rtTimerAssinatura = null;
+function iniciarRealtime(assinaturaId, cicloId){
+  _rtCanaisAssinatura.forEach(c=>sb.removeChannel(c));
+  _rtCanaisAssinatura = [];
+
+  const recarregar = () => {
+    clearTimeout(_rtTimerAssinatura);
+    _rtTimerAssinatura = setTimeout(() => iniciar(), 350);
+  };
+
+  _rtCanaisAssinatura.push(
+    sb.channel('rt-assinatura-'+assinaturaId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assinaturas', filter: 'id=eq.'+assinaturaId }, recarregar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'assinatura_ciclos', filter: 'assinatura_id=eq.'+assinaturaId }, recarregar)
+      .subscribe()
+  );
+
+  if(cicloId){
+    _rtCanaisAssinatura.push(
+      sb.channel('rt-ciclo-'+cicloId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'assinatura_ciclo_saldos', filter: 'ciclo_id=eq.'+cicloId }, recarregar)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'assinatura_utilizacoes', filter: 'ciclo_id=eq.'+cicloId }, recarregar)
+        .subscribe()
+    );
+  }
 }
 
 function render(d){

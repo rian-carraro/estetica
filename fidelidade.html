@@ -198,6 +198,20 @@ async function iniciar(){
       ${historicoHtml}
     </div>
   `;
+
+  iniciarRealtime(clienteId);
+}
+
+/* Realtime: quando uma lavagem for concluída, o cartão de fidelidade
+   atualiza o anel de progresso sozinho, sem precisar recarregar. */
+let _rtTimerFidelidade = null;
+function iniciarRealtime(clienteId){
+  sb.channel('rt-fidelidade-'+clienteId)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos', filter: 'cliente_id=eq.'+clienteId }, () => {
+      clearTimeout(_rtTimerFidelidade);
+      _rtTimerFidelidade = setTimeout(() => iniciar(), 350);
+    })
+    .subscribe();
 }
 
 iniciar();

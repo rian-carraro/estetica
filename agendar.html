@@ -379,6 +379,24 @@ async function iniciar(){
   renderGridDias();
   carregarOutrosServicos();
   configurarBotaoContatoData();
+  iniciarRealtime();
+}
+
+/* Realtime: se outro cliente agendar/cancelar enquanto esta pessoa está
+   escolhendo horário, a grade se atualiza sozinha (sem precisar dar F5). */
+let _rtTimerHorarios = null;
+function iniciarRealtime(){
+  sb.channel('rt-agendamentos-publico')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
+      clearTimeout(_rtTimerHorarios);
+      _rtTimerHorarios = setTimeout(() => {
+        const passo3 = document.getElementById('passo-3');
+        if(passo3 && !passo3.classList.contains('oculto') && dataEscolhida){
+          carregarHorarios();
+        }
+      }, 350);
+    })
+    .subscribe();
 }
 
 function renderCombosPublico(){
